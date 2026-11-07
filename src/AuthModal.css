@@ -1,456 +1,209 @@
-.auth-overlay {
+/* ===== Auth estilo Shalom (placeholder) ===== */
+:root {
+  --sh-navy: #1e2a5a;
+  --sh-navy-soft: #27367a;
+  --sh-red: #e8453c;
+  --sh-red-dark: #d13a31;
+  --sh-gray-line: #d9dce3;
+  --sh-gray-text: #8a909c;
+  --sh-bg-soft: #f4f6fb;
+}
+
+.sh-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(37, 43, 58, 0.75);
-  backdrop-filter: blur(4px);
+  z-index: 1000;
+  background: #ffffff;
   display: flex;
-  align-items: center;
   justify-content: center;
-  z-index: 200;
-  padding: 16px;
-  padding-top: calc(var(--safe-top, 44px) + 16px);
-  padding-bottom: calc(var(--safe-bottom, 12px) + 16px);
-  box-sizing: border-box;
+  overflow-y: auto;
 }
 
-.auth-card {
-  background: #ffffff;
-  border-radius: 20px;
+.sh-screen {
   width: 100%;
-  max-width: 390px;
-  padding: 32px 28px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-  position: relative;
+  max-width: 440px;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  background: #ffffff;
 }
 
-.auth-close-btn {
+/* ---- Banner ---- */
+.sh-banner {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #e9f0fb, #f6f9ff);
+  flex-shrink: 0;
+}
+.sh-banner-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+.sh-back {
   position: absolute;
   top: 14px;
-  right: 14px;
-  background: #f3f4f6;
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  font-size: 1rem;
-  color: #6b7280;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Brand */
-.auth-brand {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-.ayni-vector-logo {
-  position: relative;
-  width: 100px;
-  height: 70px;
-  margin-bottom: 4px;
-}
-
-.ring {
-  position: absolute;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  border-width: 10px;
-  border-style: solid;
-}
-
-.ring-red { border-color: #D83B35; left: 4px; z-index: 2; }
-.ring-gold { border-color: #FF875C; right: 4px; z-index: 1; }
-.ring-center-dot {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  background: #FFF7EF;
-  border-radius: 50%;
+  left: 14px;
   z-index: 3;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.ayni-wordmark {
-  font-size: 2.2rem;
-  font-weight: 900;
-  letter-spacing: 1px;
-  line-height: 1;
-  margin-top: 4px;
-}
-
-.char-red { color: #D83B35; }
-.char-gold { color: #FF875C; }
-
-.auth-slogan {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-  color: #252B3A;
-  margin-top: 6px;
-  text-transform: uppercase;
-}
-
-/* Tabs */
-.auth-mode-switch {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(30, 42, 90, 0.2);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--sh-navy);
   display: flex;
-  width: 100%;
-  margin-bottom: 20px;
-  background: #f3f4f6;
-  border-radius: 10px;
-  padding: 3px;
-}
-
-.auth-tab-btn {
-  flex: 1;
-  background: none;
-  border: none;
-  padding: 10px 0;
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: #9ca3af;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.2s;
+  backdrop-filter: blur(2px);
 }
 
-.auth-tab-btn.active {
+/* ---- Tarjeta ---- */
+.sh-card {
+  position: relative;
+  margin-top: -26px;
   background: #ffffff;
-  color: #D83B35;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  border-radius: 26px 26px 0 0;
+  padding: 26px 22px 36px;
+  flex: 1;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.04);
 }
+.sh-form { display: flex; flex-direction: column; }
 
-/* Form */
-.auth-form {
+.sh-title { font-size: 28px; font-weight: 800; color: var(--sh-navy); margin: 0 0 6px; }
+.sh-subtitle { font-size: 14px; color: var(--sh-gray-text); margin: 0 0 22px; line-height: 1.4; }
+
+/* ---- Campos ---- */
+.sh-field { position: relative; margin-bottom: 16px; }
+.sh-input {
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.auth-field {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.auth-field label {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  color: #4b5563;
-  text-transform: uppercase;
-}
-
-.auth-input {
-  width: 100%;
-  padding: 12px 14px;
-  border: 1.5px solid #d1d5db;
-  background: #ffffff;
-  font-size: 0.95rem;
-  color: #1f2937;
-  border-radius: 10px;
+  box-sizing: border-box;
+  padding: 15px 16px;
+  font-size: 15px;
+  color: #1c2333;
+  border: 1.5px solid var(--sh-gray-line);
+  border-radius: 12px;
+  background: #fff;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color .15s, box-shadow .15s;
 }
-
-.auth-input:focus {
-  border-color: #D83B35;
-}
-
-.auth-input.mono-font {
-  font-family: monospace;
-  letter-spacing: 2px;
-}
-
-.auth-input.disabled-input {
-  background: #f9fafb;
-  border-color: #e5e7eb;
-  color: #9ca3af;
-  cursor: not-allowed;
-}
-
-.select-wrapper {
-  position: relative;
-}
-
-.select-input {
-  appearance: none;
-  cursor: pointer;
-  padding-right: 40px;
-  font-weight: 600;
-}
-
-.select-arrow {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #9ca3af;
-  pointer-events: none;
-  font-size: 0.75rem;
-}
-
-/* Field notes & Digit counters */
-.doc-field-header {
+.sh-input:focus { border-color: var(--sh-navy); box-shadow: 0 0 0 3px rgba(30, 42, 90, 0.08); }
+.sh-field-icon .sh-input { padding-right: 46px; }
+.sh-eye {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; color: var(--sh-gray-text); cursor: pointer;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
 
-.doc-counter {
-  font-size: 0.72rem;
+/* Label flotante */
+.sh-floating label {
+  position: absolute; left: 12px; top: 15px;
+  color: var(--sh-gray-text); font-size: 15px;
+  pointer-events: none; background: #fff; padding: 0 5px;
+  transition: all .15s ease;
+}
+.sh-floating .sh-input:focus + label,
+.sh-floating .sh-input:not(:placeholder-shown) + label {
+  top: -9px; font-size: 12px; color: var(--sh-navy); font-weight: 600;
+}
+.sh-count {
+  position: absolute; right: 12px; bottom: -18px;
+  font-size: 11px; color: var(--sh-gray-text);
+}
+
+/* ---- Fila recuérdame / olvidé ---- */
+.sh-row-between {
+  display: flex; align-items: center; justify-content: space-between;
+  margin: 2px 0 20px; font-size: 13px;
+}
+.sh-check { display: flex; align-items: center; gap: 7px; color: #5b6170; cursor: pointer; }
+.sh-check input { width: 16px; height: 16px; accent-color: var(--sh-red); }
+.sh-link-red { color: var(--sh-red); font-weight: 700; cursor: pointer; }
+.sh-link-red:hover { text-decoration: underline; }
+
+/* ---- Botón principal ---- */
+.sh-btn-primary {
+  width: 100%;
+  padding: 15px;
+  margin-top: 6px;
+  border: none;
+  border-radius: 12px;
+  background: var(--sh-red);
+  color: #fff;
+  font-size: 16px;
   font-weight: 700;
-  letter-spacing: 0.2px;
-}
-
-.doc-counter.incomplete {
-  color: #dc2626;
-}
-
-.doc-counter.complete {
-  color: #16a34a;
-}
-
-/* Estilo Taxi App (inDrive / Uber style) con animación de carga real */
-.taxi-address-card {
-  position: relative;
-  display: flex;
-  align-items: center;
-  background: #ffffff;
-  border: 1.5px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 10px 14px;
-  gap: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: all 0.2s ease;
-  overflow: hidden;
-}
-
-.taxi-address-card:focus-within {
-  border-color: #D83B35;
-  box-shadow: 0 3px 12px rgba(216, 59, 53, 0.12);
-}
-
-.taxi-icon-box {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  background: #D83B35;
-  display: flex;
+  cursor: pointer;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  transition: background-color 0.2s ease;
+  gap: 8px;
+  transition: background .15s, transform .05s;
+}
+.sh-btn-primary:hover { background: var(--sh-red-dark); }
+.sh-btn-primary:active { transform: scale(0.99); }
+.sh-btn-primary:disabled { opacity: .6; cursor: default; }
+
+.sh-foot { text-align: center; margin-top: 18px; font-size: 14px; color: #5b6170; }
+.sh-demo {
+  text-align: center; margin-top: 10px; font-size: 12.5px;
+  color: var(--sh-gray-text); cursor: pointer; text-decoration: underline dotted;
+}
+.sh-error {
+  background: #fdecea; color: #b42318; font-size: 13px;
+  padding: 10px 12px; border-radius: 10px; margin: 2px 0 14px;
 }
 
-.taxi-icon-box.is-loading {
-  background: #D83B35;
+/* ===== Registro ===== */
+.sh-stepper { display: flex; align-items: center; justify-content: center; margin: 2px 0 18px; }
+.sh-step {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 2px solid var(--sh-navy); color: var(--sh-navy);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px; background: #fff; flex-shrink: 0;
+}
+.sh-step.active { background: var(--sh-navy); color: #fff; }
+.sh-step-line { width: 42px; height: 3px; background: var(--sh-gray-line); }
+.sh-step-line.active { background: var(--sh-navy); }
+
+.sh-reg-title { font-size: 21px; color: var(--sh-navy); font-weight: 600; margin: 0 0 20px; line-height: 1.25; }
+.sh-reg-title strong { font-weight: 800; }
+
+/* Toggle DNI/CE */
+.sh-toggle { display: inline-flex; gap: 10px; margin-bottom: 20px; }
+.sh-toggle-opt {
+  padding: 7px 22px; border: none; border-radius: 999px;
+  background: #e9ecf2; color: var(--sh-gray-text);
+  font-weight: 700; font-size: 14px; cursor: pointer; transition: all .15s;
+}
+.sh-toggle-opt.on { background: var(--sh-red); color: #fff; }
+
+/* Tarjeta de nombre confirmado */
+.sh-name-card {
+  background: var(--sh-bg-soft); border: 1px solid #e3e8f2;
+  border-radius: 12px; padding: 12px 14px; margin-bottom: 18px;
+}
+.sh-name-label { font-size: 12px; font-weight: 700; color: #16794c; display: block; margin-bottom: 4px; }
+.sh-name-input {
+  width: 100%; box-sizing: border-box; border: none; background: transparent;
+  font-size: 17px; font-weight: 700; color: var(--sh-navy); outline: none;
 }
 
-/* Spinner real con animación CSS pura (sin emojis) */
-.real-spinner {
-  width: 20px;
-  height: 20px;
-  border: 2.5px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #ffffff;
-  border-radius: 50%;
-  animation: taxi-spin 0.75s linear infinite;
+.sh-inline-btn {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; color: var(--sh-red); font-weight: 700;
+  font-size: 14px; cursor: pointer; padding: 6px 8px;
 }
+.sh-hint { font-size: 13px; color: #5b6170; margin: 0 0 12px; line-height: 1.4; }
+.sh-dev-code {
+  background: #fff7e6; border: 1px dashed #f0b429; color: #8a5a00;
+  padding: 10px 12px; border-radius: 10px; font-size: 13.5px; margin-bottom: 14px;
+}
+.sh-code { letter-spacing: 8px; text-align: center; font-size: 20px; font-weight: 700; }
+.sh-note-small { font-size: 11.5px; color: var(--sh-gray-text); text-align: center; margin: 10px 0 0; }
 
-@keyframes taxi-spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.taxi-text-container {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-}
-
-.taxi-label {
-  font-size: 0.72rem;
-  font-weight: 500;
-  color: #6b7280;
-  line-height: 1.1;
-  margin-bottom: 3px;
-  text-transform: none;
-}
-
-.taxi-input {
-  border: none !important;
-  outline: none !important;
-  background: transparent !important;
-  padding: 0 !important;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #1f2937;
-  width: 100%;
-  line-height: 1.2;
-}
-
-.taxi-input::placeholder {
-  color: #9ca3af;
-  font-weight: 400;
-}
-
-.taxi-map-btn {
-  background: #f3f4f6;
-  color: #1f2937;
-  border: none;
-  border-radius: 9999px;
-  padding: 8px 16px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: all 0.15s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.taxi-map-btn:hover {
-  background: #e5e7eb;
-}
-
-.taxi-map-btn:active {
-  transform: scale(0.97);
-}
-
-.taxi-map-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.mini-pulse-text {
-  font-size: 0.75rem;
-  color: #6b7280;
-  animation: pulse-text 1s infinite alternate;
-}
-
-@keyframes pulse-text {
-  from { opacity: 0.5; }
-  to { opacity: 1; }
-}
-
-/* Barra de progreso animada al pie de la tarjeta */
-.taxi-loading-bar {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2.5px;
-  background: #fee2e2;
-  overflow: hidden;
-}
-
-.taxi-loading-progress {
-  width: 40%;
-  height: 100%;
-  background: #D83B35;
-  border-radius: 2px;
-  animation: taxi-progress 1.2s infinite ease-in-out;
-}
-
-@keyframes taxi-progress {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(350%);
-  }
-}
-
-.gps-success-badge {
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
-  color: #065f46;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 0.78rem;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.gps-warning-badge {
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-  color: #92400e;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 0.76rem;
-  line-height: 1.3;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.field-note {
-  font-size: 0.72rem;
-  color: #9ca3af;
-  margin-top: 2px;
-}
-
-/* CTA */
-.auth-submit-btn {
-  margin-top: 8px;
-  width: 100%;
-  background: #D83B35;
-  color: #ffffff;
-  border: none;
-  border-radius: 9999px;
-  padding: 14px;
-  font-size: 0.92rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  transition: background 0.2s;
-  box-shadow: 0 4px 15px rgba(216,59,53,0.3);
-}
-
-.auth-submit-btn:hover {
-  background: #b52f2a;
-}
-
-.auth-secondary-btn {
-  margin-top: 8px;
-  background: #f3f4f6;
-  color: #374151;
-  border: 1px solid #d1d5db;
-  border-radius: 9999px;
-  padding: 14px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.auth-helper-links {
-  margin-top: 8px;
-  text-align: center;
-}
-
-.quick-fill {
-  font-size: 0.78rem;
-  color: #D83B35;
-  cursor: pointer;
-  text-decoration: underline;
-  font-weight: 600;
-}
+.sh-spin { animation: sh-rotate 0.9s linear infinite; }
+@keyframes sh-rotate { to { transform: rotate(360deg); } }

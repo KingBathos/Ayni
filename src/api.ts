@@ -330,5 +330,32 @@ export const api = {
     const qs = since ? `?since=${encodeURIComponent(since)}` : '';
     return this.request<any>(`/api/v1/sync/changes${qs}`);
   },
+
+  // ——— RENIEC: consulta de DNI para autocompletar nombres ———
+  async lookupDni(dni: string): Promise<{
+    dni: string;
+    nombres: string;
+    apellido_paterno: string;
+    apellido_materno: string;
+    nombre_completo: string;
+    source: 'reniec' | 'mock';
+  }> {
+    return this.request(`/api/v1/reniec/dni/${encodeURIComponent(dni)}`);
+  },
+
+  // ——— Verificación de correo por código (OTP) ———
+  async requestEmailCode(email: string): Promise<{ sent: boolean; channel: 'email' | 'dev'; dev_code?: string }> {
+    return this.request('/api/v1/otp/email/request', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  async verifyEmailCode(email: string, code: string): Promise<{ verified: boolean }> {
+    return this.request('/api/v1/otp/email/verify', {
+      method: 'POST',
+      body: JSON.stringify({ email, code }),
+    });
+  },
 };
 

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Geolocation } from '@capacitor/geolocation';
+import React, { useState } from 'react';
+import { Eye, EyeOff, ChevronLeft, Check, Search, Loader2 } from 'lucide-react';
 import { api } from './api';
 import './AuthModal.css';
 
@@ -8,635 +8,392 @@ interface AuthModalProps {
   onClose?: () => void;
 }
 
-interface DocSpec {
-  name: string;
-  exactLength: number;
-  minLength?: number;
-  maxLength: number;
-  isNumericOnly: boolean;
-  hint: string;
-  placeholder: string;
-}
+const DEFAULT_NEIGHBORHOOD = 'Sector Central / Santa Rosa';
+const DEFAULT_DISTRICT = 'San Juan de Lurigancho';
 
-const DOC_RULES: Record<string, DocSpec> = {
-  DNI: {
-    name: 'DNI',
-    exactLength: 8,
-    maxLength: 8,
-    isNumericOnly: true,
-    hint: 'Exactamente 8 dígitos numéricos',
-    placeholder: 'Ej. 72345678',
-  },
-  CE: {
-    name: 'Carné de Extranjería',
-    exactLength: 9,
-    maxLength: 9,
-    isNumericOnly: true,
-    hint: 'Exactamente 9 dígitos numéricos',
-    placeholder: 'Ej. 001234567',
-  },
-  PASAPORTE: {
-    name: 'Pasaporte',
-    exactLength: 0,
-    minLength: 8,
-    maxLength: 9,
-    isNumericOnly: false,
-    hint: 'Entre 8 y 9 caracteres alfanuméricos',
-    placeholder: 'Ej. A1234567',
-  },
-  RUC: {
-    name: 'RUC 10',
-    exactLength: 11,
-    maxLength: 11,
-    isNumericOnly: true,
-    hint: 'Exactamente 11 dígitos numéricos',
-    placeholder: 'Ej. 10723456781',
-  },
-};
+export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
+  const [view, setView] = useState<'login' | 'register'>('login');
 
-const DOC_OPTIONS = [
-  { value: 'DNI', label: 'DNI (8 dígitos)' },
-  { value: 'CE', label: 'CARNÉ EXTRANJERÍA (9 dígitos)' },
-  { value: 'PASAPORTE', label: 'PASAPORTE (8-9 caracteres)' },
-  { value: 'RUC', label: 'RUC 10 (11 dígitos)' },
-];
-
-export function AuthModal({ onSuccess }: AuthModalProps) {
-  // 'login' | 'register_step1' | 'register_step2'
-  const [authMode, setAuthMode] = useState<'login' | 'register_step1' | 'register_step2'>('login');
-  const [isLoading, setIsLoading] = useState(false);
-  
-  // Login form
-  const [docType, setDocType] = useState('DNI');
-  const [docNumber, setDocNumber] = useState('');
+  // ---------- LOGIN ----------
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
 
-  // Register form states
-  const [regDocType, setRegDocType] = useState('DNI');
-  const [regDocNumber, setRegDocNumber] = useState('');
-  const [regFirstName, setRegFirstName] = useState('');
-  const [regLastName, setRegLastName] = useState('');
-  const [regPassword, setRegPassword] = useState('');
-  const [regDistrict, setRegDistrict] = useState('San Juan de Lurigancho');
-  const [regNeighborhood, setRegNeighborhood] = useState('Sector Central / Santa Rosa');
-
-  // Automatic GPS Detection states
-  const [isDetectingGps, setIsDetectingGps] = useState(false);
-  const [gpsDetectedBadge, setGpsDetectedBadge] = useState<string | null>(null);
-  const [gpsError, setGpsError] = useState<string | null>(null);
-
-  // Formateador estricto de entrada
-  const handleDocInput = (type: string, val: string, setter: (v: string) => void) => {
-    const rule = DOC_RULES[type] || DOC_RULES.DNI;
-    let formatted = val;
-    if (rule.isNumericOnly) {
-      formatted = formatted.replace(/\D/g, '');
-    } else {
-      formatted = formatted.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-    }
-    formatted = formatted.slice(0, rule.maxLength);
-    setter(formatted);
-  };
-
-  // Validador estricto de dígitos
-  const validateDocNumber = (type: string, value: string): { valid: boolean; message: string } => {
-    const rule = DOC_RULES[type] || DOC_RULES.DNI;
-    const trimmed = value.trim();
-
-    if (!trimmed) {
-      return { valid: false, message: `Por favor ingresa tu número de ${rule.name}.` };
-    }
-
-    if (rule.isNumericOnly && !/^\d+$/.test(trimmed)) {
-      return { valid: false, message: `El ${rule.name} solo puede contener números.` };
-    }
-
-    if (!rule.isNumericOnly && !/^[A-Za-z0-9]+$/.test(trimmed)) {
-      return { valid: false, message: `El ${rule.name} solo puede contener letras y números.` };
-    }
-
-    if (rule.exactLength > 0 && trimmed.length !== rule.exactLength) {
-      return {
-        valid: false,
-        message: `El ${rule.name} debe tener exactamente ${rule.exactLength} dígitos (ingresaste ${trimmed.length}).`,
-      };
-    }
-
-    if (rule.minLength && trimmed.length < rule.minLength) {
-      return {
-        valid: false,
-        message: `El ${rule.name} debe tener al menos ${rule.minLength} caracteres.`,
-      };
-    }
-
-    return { valid: true, message: '' };
-  };
-
-  // Detección automática por GPS satelital con geocodificación inversa
-  const detectLocationAutomatically = async () => {
-    setIsDetectingGps(true);
-    setGpsError(null);
-
-    let lat: number | null = null;
-    let lon: number | null = null;
-
-    try {
-      // 1. Solicitar y verificar permisos de forma nativa en Android con Capacitor
-      let perm = await Geolocation.checkPermissions();
-      if (perm.location !== 'granted') {
-        perm = await Geolocation.requestPermissions();
-      }
-
-      const position = await Geolocation.getCurrentPosition({
-        enableHighAccuracy: true,
-        timeout: 12000,
-      });
-      lat = position.coords.latitude;
-      lon = position.coords.longitude;
-    } catch (capError) {
-      console.warn('Capacitor Geolocation error, probando Web Geolocation...', capError);
-      if (navigator.geolocation) {
-        try {
-          const webPos = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              enableHighAccuracy: true,
-              timeout: 9000,
-            });
-          });
-          lat = webPos.coords.latitude;
-          lon = webPos.coords.longitude;
-        } catch (webErr) {
-          console.warn('Web Geolocation también falló:', webErr);
-        }
-      }
-    }
-
-    if (lat !== null && lon !== null) {
-      let detectedAddress = '';
-      let detectedDistrict = 'San Juan de Lurigancho';
-
-      // 2. Geocodificación inversa con Nominatim OpenStreetMap
-      try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`,
-          { headers: { 'Accept-Language': 'es' } }
-        );
-        if (res.ok) {
-          const data = await res.json();
-          const road = data.address?.road || data.address?.pedestrian || '';
-          const suburb = data.address?.suburb || data.address?.neighbourhood || data.address?.quarter || '';
-          const cityDist = data.address?.city_district || data.address?.county || data.address?.city || '';
-          if (cityDist) detectedDistrict = cityDist;
-
-          if (road && suburb) {
-            detectedAddress = `${road}, ${suburb}`;
-          } else if (suburb) {
-            detectedAddress = `${suburb}`;
-          } else if (data.display_name) {
-            detectedAddress = data.display_name.split(',').slice(0, 3).join(',');
-          }
-        }
-      } catch (e) {
-        console.warn('Nominatim reverse geocoding warning:', e);
-      }
-
-      // Si Nominatim no responde o está offline, aproximar por cuadrante en Lima
-      if (!detectedAddress) {
-        if (lat > -12.0) {
-          detectedAddress = 'Zona Alta / El Mirador';
-          detectedDistrict = 'San Juan de Lurigancho';
-        } else if (lat < -12.18) {
-          detectedAddress = 'Sector 1 / Villa El Salvador';
-          detectedDistrict = 'Villa El Salvador';
-        } else if (lon < -77.03) {
-          detectedAddress = 'Cercado de Lima / Barrios Altos';
-          detectedDistrict = 'Lima Cercado';
-        } else {
-          detectedAddress = 'Sector Central / Santa Rosa';
-          detectedDistrict = 'San Juan de Lurigancho';
-        }
-      }
-
-      setRegNeighborhood(detectedAddress);
-      setRegDistrict(detectedDistrict);
-      setGpsDetectedBadge(`${detectedAddress} (${detectedDistrict})`);
-    } else {
-      setGpsError('No se pudo acceder al GPS satelital. Puedes escribir tu dirección o barrio manualmente abajo.');
-    }
-
-    setIsDetectingGps(false);
-  };
-
-  // Pedir permiso y detectar GPS automáticamente al entrar a Paso 2
-  useEffect(() => {
-    if (authMode === 'register_step2') {
-      detectLocationAutomatically();
-    }
-  }, [authMode]);
-
-  // Envío de Login
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Si no es email directo, validar número de documento según tipo
-    if (!docNumber.includes('@')) {
-      const check = validateDocNumber(docType, docNumber);
-      if (!check.valid) {
-        alert(`⚠️ ${check.message}`);
-        return;
-      }
-    }
-
-    if (!password.trim()) {
-      alert('Por favor ingrese su contraseña.');
+    setLoginError('');
+    if (!email.trim() || !password.trim()) {
+      setLoginError('Ingresa tu correo y tu contraseña.');
       return;
     }
-
-    setIsLoading(true);
+    setLoginLoading(true);
     try {
-      await api.login(docNumber.trim(), password.trim());
+      await api.login(email.trim(), password.trim());
       const me = await api.getMe();
       onSuccess({
         name: me.display_name,
-        documentNumber: me.phone || me.email || docNumber,
-        neighborhood: me.profile?.public_area_label || 'Zárate / San Juan de Lurigancho',
-        district: 'San Juan de Lurigancho',
+        documentNumber: me.phone || me.email || email,
+        neighborhood: me.profile?.public_area_label || DEFAULT_NEIGHBORHOOD,
+        district: DEFAULT_DISTRICT,
       });
-    } catch {
-      onSuccess({
-        name: docNumber === '72345678' ? 'María Quispe' : (docNumber.includes('@') ? docNumber.split('@')[0] : `Vecino (${docNumber})`),
-        documentNumber: docNumber,
-        neighborhood: 'Sector Central / Santa Rosa',
-        district: 'San Juan de Lurigancho',
-      });
+    } catch (err: any) {
+      setLoginError(err?.message || 'Correo o contraseña incorrectos.');
     } finally {
-      setIsLoading(false);
+      setLoginLoading(false);
     }
   };
 
-  // Paso 1 de Registro: Validación estricta
-  const handleRegisterStep1 = (e: React.FormEvent) => {
-    e.preventDefault();
-    const check = validateDocNumber(regDocType, regDocNumber);
-    if (!check.valid) {
-      alert(`⚠️ ${check.message}`);
-      return;
-    }
+  // ---------- REGISTRO (3 pasos) ----------
+  const [regStep, setRegStep] = useState<1 | 2 | 3>(1);
+  const [docType, setDocType] = useState<'DNI' | 'CE'>('DNI');
+  const [docNumber, setDocNumber] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [reniecLoading, setReniecLoading] = useState(false);
+  const [reniecSource, setReniecSource] = useState<'reniec' | 'mock' | null>(null);
+  const [regError, setRegError] = useState('');
 
-    if (!regFirstName.trim() || !regLastName.trim()) {
-      alert('Por favor ingrese sus nombres y apellidos completos.');
-      return;
-    }
+  const [phone, setPhone] = useState('');
 
-    setAuthMode('register_step2');
+  const [regEmail, setRegEmail] = useState('');
+  const [code, setCode] = useState('');
+  const [codeSent, setCodeSent] = useState(false);
+  const [devCode, setDevCode] = useState<string | null>(null);
+  const [sendingCode, setSendingCode] = useState(false);
+  const [finishing, setFinishing] = useState(false);
+
+  const docLen = docType === 'DNI' ? 8 : 9;
+
+  const resetReg = () => {
+    setRegStep(1); setDocNumber(''); setFullName(''); setReniecSource(null);
+    setPhone(''); setRegEmail(''); setCode(''); setCodeSent(false); setDevCode(null);
+    setRegError('');
   };
 
-  // Paso 2 de Registro: Confirmación y Ubicación
-  const handleRegisterStep2 = async (e: React.FormEvent) => {
+  // Paso 1 → buscar en RENIEC y pasar al paso 2
+  const handleStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!regPassword.trim() || regPassword.length < 6) {
-      alert('Por favor crea una contraseña de al menos 6 caracteres.');
+    setRegError('');
+    if (docNumber.length !== docLen) {
+      setRegError(`El ${docType} debe tener ${docLen} dígitos.`);
       return;
     }
-
-    const finalNeighborhood = regNeighborhood.trim() || 'Sector Central / Santa Rosa';
-
-    setIsLoading(true);
-    const fullName = `${regFirstName} ${regLastName}`.trim();
+    // CE no se consulta en RENIEC: el usuario escribe su nombre.
+    if (docType === 'CE') {
+      if (!fullName.trim()) { setRegError('Escribe tus nombres y apellidos.'); return; }
+      setRegStep(2);
+      return;
+    }
+    setReniecLoading(true);
     try {
+      const r = await api.lookupDni(docNumber);
+      setFullName(r.nombre_completo);
+      setReniecSource(r.source);
+      setRegStep(2);
+    } catch (err: any) {
+      setRegError(err?.message || 'No se pudo consultar el DNI. Escribe tu nombre manualmente.');
+      // Permitir continuar manual si RENIEC falla
+      setReniecSource(null);
+    } finally {
+      setReniecLoading(false);
+    }
+  };
+
+  // Paso 2 → teléfono
+  const handleStep2 = (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegError('');
+    if (!fullName.trim()) { setRegError('Confirma tus nombres y apellidos.'); return; }
+    if (phone.length !== 9) { setRegError('El teléfono debe tener 9 dígitos.'); return; }
+    setRegStep(3);
+  };
+
+  // Paso 3a → enviar código al correo
+  const sendCode = async () => {
+    setRegError('');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(regEmail.trim())) {
+      setRegError('Ingresa un correo válido.');
+      return;
+    }
+    setSendingCode(true);
+    try {
+      const r = await api.requestEmailCode(regEmail.trim());
+      setCodeSent(true);
+      setDevCode(r.dev_code || null); // en modo demo llega el código aquí
+    } catch (err: any) {
+      setRegError(err?.message || 'No se pudo enviar el código.');
+    } finally {
+      setSendingCode(false);
+    }
+  };
+
+  // Paso 3b → verificar código y crear cuenta
+  const handleFinish = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegError('');
+    if (code.length < 6) { setRegError('Ingresa el código de 6 dígitos.'); return; }
+    setFinishing(true);
+    try {
+      await api.verifyEmailCode(regEmail.trim(), code.trim());
+      // La contraseña inicial es el número de documento (se puede cambiar luego).
       await api.register({
-        display_name: fullName,
-        email: regDocNumber.includes('@') ? regDocNumber : undefined,
-        phone: !regDocNumber.includes('@') ? regDocNumber : undefined,
-        password: regPassword,
+        display_name: fullName.trim(),
+        email: regEmail.trim(),
+        phone: phone,
+        password: docNumber,
         role: 'vecino',
       });
       onSuccess({
-        name: fullName,
-        documentNumber: regDocNumber,
-        neighborhood: finalNeighborhood,
-        district: regDistrict,
+        name: fullName.trim(),
+        documentNumber: docNumber,
+        neighborhood: DEFAULT_NEIGHBORHOOD,
+        district: DEFAULT_DISTRICT,
       });
-    } catch {
-      onSuccess({
-        name: fullName,
-        documentNumber: regDocNumber,
-        neighborhood: finalNeighborhood,
-        district: regDistrict,
-      });
+    } catch (err: any) {
+      setRegError(err?.message || 'No se pudo completar el registro.');
     } finally {
-      setIsLoading(false);
+      setFinishing(false);
     }
   };
 
-  const loginRule = DOC_RULES[docType] || DOC_RULES.DNI;
-  const regRule = DOC_RULES[regDocType] || DOC_RULES.DNI;
+  const onlyDigits = (v: string, max: number) => v.replace(/\D/g, '').slice(0, max);
 
+  // ============================ RENDER ============================
   return (
-    <div className="auth-overlay">
-      <div className="auth-card">
-        {/* Marca Ayni */}
-        <div className="auth-brand">
-          <div className="ayni-vector-logo">
-            <div className="ring ring-red"></div>
-            <div className="ring ring-gold"></div>
-            <div className="ring-center-dot"></div>
-          </div>
-          <div className="ayni-wordmark">
-            <span className="char-red">a</span>
-            <span className="char-gold">y</span>
-            <span className="char-red">n</span>
-            <span className="char-gold">i</span>
-          </div>
-          <p className="auth-slogan">HOY POR TI, MAÑANA POR MÍ</p>
+    <div className="sh-overlay">
+      <div className="sh-screen">
+
+        {/* ---------- BANNER ---------- */}
+        <div className="sh-banner">
+          {(view === 'register') && (
+            <button
+              type="button"
+              className="sh-back"
+              onClick={() => { if (regStep > 1) setRegStep((s) => (s - 1) as 1 | 2 | 3); else { resetReg(); setView('login'); } }}
+              aria-label="Volver"
+            >
+              <ChevronLeft size={22} />
+            </button>
+          )}
+          {view === 'login' && onClose && (
+            <button type="button" className="sh-back" onClick={onClose} aria-label="Cerrar">
+              <ChevronLeft size={22} />
+            </button>
+          )}
+          <img
+            className="sh-banner-img"
+            src="/shalom-login-banner.png"
+            alt="Bienvenido a Ayni"
+          />
         </div>
 
-        {/* Pestañas de Modo */}
-        <div className="auth-mode-switch">
-          <button 
-            type="button" 
-            className={`auth-tab-btn ${authMode === 'login' ? 'active' : ''}`}
-            onClick={() => setAuthMode('login')}
-          >
-            INGRESAR SESIÓN
-          </button>
-          <button 
-            type="button" 
-            className={`auth-tab-btn ${authMode.startsWith('register') ? 'active' : ''}`}
-            onClick={() => setAuthMode('register_step1')}
-          >
-            REGISTRARME
-          </button>
-        </div>
+        {/* ---------- TARJETA ---------- */}
+        <div className="sh-card">
 
-        {/* ================= LOGIN VIEW ================= */}
-        {authMode === 'login' && (
-          <form onSubmit={handleLogin} className="auth-form">
-            <div className="auth-field">
-              <label>TIPO DE DOCUMENTACIÓN</label>
-              <div className="select-wrapper">
-                <select 
-                  value={docType} 
-                  onChange={e => {
-                    const newType = e.target.value;
-                    setDocType(newType);
-                    setDocNumber('');
-                  }}
-                  className="auth-input select-input"
-                >
-                  {DOC_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-                <div className="select-arrow">▼</div>
+          {/* ===================== LOGIN ===================== */}
+          {view === 'login' && (
+            <form onSubmit={handleLogin} className="sh-form">
+              <h1 className="sh-title">Iniciar sesión</h1>
+              <p className="sh-subtitle">Ingresa tus datos para acceder a tu cuenta vecinal.</p>
+
+              <div className="sh-field">
+                <input
+                  type="email"
+                  className="sh-input"
+                  placeholder="Correo electrónico"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                />
               </div>
-            </div>
 
-            <div className="auth-field">
-              <div className="doc-field-header">
-                <label>N° DOCUMENTACIÓN</label>
-                <span className={`doc-counter ${loginRule.exactLength > 0 && docNumber.length === loginRule.exactLength ? 'complete' : 'incomplete'}`}>
-                  {loginRule.exactLength > 0 
-                    ? `${docNumber.length}/${loginRule.exactLength} dígitos`
-                    : `${docNumber.length} caracteres`}
-                </span>
-              </div>
-              <input 
-                type="text" 
-                maxLength={loginRule.maxLength}
-                placeholder={loginRule.placeholder}
-                value={docNumber}
-                onChange={e => handleDocInput(docType, e.target.value, setDocNumber)}
-                className="auth-input mono-font"
-                required
-              />
-              <small className="field-note">{loginRule.hint}</small>
-            </div>
-
-            <div className="auth-field">
-              <label>CONTRASEÑA</label>
-              <input 
-                type="password" 
-                placeholder="*********"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                className="auth-input mono-font"
-                required
-              />
-            </div>
-
-            <button type="submit" className="auth-submit-btn" disabled={isLoading}>
-              {isLoading ? 'VERIFICANDO...' : 'INGRESAR SESIÓN'}
-            </button>
-
-            <div className="auth-helper-links">
-              <span className="quick-fill" onClick={() => { setDocType('DNI'); setDocNumber('72345678'); setPassword('123456'); }}>
-                Usar DNI demo (72345678)
-              </span>
-            </div>
-          </form>
-        )}
-
-        {/* ================= REGISTER STEP 1 VIEW ================= */}
-        {authMode === 'register_step1' && (
-          <form onSubmit={handleRegisterStep1} className="auth-form">
-            <div className="auth-field">
-              <label>TIPO DE DOCUMENTACIÓN</label>
-              <div className="select-wrapper">
-                <select 
-                  value={regDocType} 
-                  onChange={e => {
-                    const newType = e.target.value;
-                    setRegDocType(newType);
-                    setRegDocNumber('');
-                  }}
-                  className="auth-input select-input"
-                >
-                  {DOC_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-                <div className="select-arrow">▼</div>
-              </div>
-            </div>
-
-            <div className="auth-field">
-              <div className="doc-field-header">
-                <label>N° DOCUMENTACIÓN</label>
-                <span className={`doc-counter ${regRule.exactLength > 0 && regDocNumber.length === regRule.exactLength ? 'complete' : 'incomplete'}`}>
-                  {regRule.exactLength > 0 
-                    ? `${regDocNumber.length}/${regRule.exactLength} dígitos`
-                    : `${regDocNumber.length} caracteres`}
-                </span>
-              </div>
-              <input 
-                type="text" 
-                maxLength={regRule.maxLength}
-                placeholder={regRule.placeholder}
-                value={regDocNumber}
-                onChange={e => handleDocInput(regDocType, e.target.value, setRegDocNumber)}
-                className="auth-input mono-font"
-                required
-              />
-              <small className="field-note">{regRule.hint}</small>
-            </div>
-
-            <div className="auth-field">
-              <label>NOMBRE COMPLETO</label>
-              <input 
-                type="text" 
-                placeholder="Ingresa tus nombres"
-                value={regFirstName}
-                onChange={e => setRegFirstName(e.target.value)}
-                className="auth-input"
-                required
-              />
-            </div>
-
-            <div className="auth-field">
-              <label>APELLIDO COMPLETO</label>
-              <input 
-                type="text" 
-                placeholder="Ingresa tus apellidos"
-                value={regLastName}
-                onChange={e => setRegLastName(e.target.value)}
-                className="auth-input"
-                required
-              />
-            </div>
-
-            <button type="submit" className="auth-submit-btn">
-              CONTINUAR (PASO 1/2)
-            </button>
-          </form>
-        )}
-
-        {/* ================= REGISTER STEP 2 VIEW ================= */}
-        {authMode === 'register_step2' && (
-          <form onSubmit={handleRegisterStep2} className="auth-form">
-            <div className="auth-field">
-              <label>N° DOCUMENTACIÓN (CONFIRMADO)</label>
-              <input 
-                type="text" 
-                disabled
-                value={`${regDocType}: ${regDocNumber}`}
-                className="auth-input mono-font disabled-input"
-              />
-            </div>
-
-            <div className="auth-field">
-              <label>APELLIDO Y NOMBRE REGISTRADO</label>
-              <input 
-                type="text" 
-                disabled
-                value={`${regLastName}, ${regFirstName}`}
-                className="auth-input disabled-input"
-              />
-            </div>
-
-            {/* UBICACIÓN AUTOMÁTICA POR GPS ESTILO TAXI APP */}
-            <div className="auth-field">
-              <label>BARRIO O ZONA RESIDENCIAL</label>
-
-              <div className="taxi-address-card">
-                <div className={`taxi-icon-box ${isDetectingGps ? 'is-loading' : ''}`}>
-                  {isDetectingGps ? (
-                    <div className="real-spinner" />
-                  ) : (
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
-                      <circle cx="15.5" cy="4.5" r="2.5" />
-                      <path d="M14 8.5h-1.5c-.7 0-1.4.3-1.9.8l-4.2 4.2 1.4 1.4 3.2-3.2v9.3h2.5v-6h1.5v6H17.5V12c0-1.9-1.6-3.5-3.5-3.5z" />
-                    </svg>
-                  )}
-                </div>
-
-                <div className="taxi-text-container">
-                  <span className="taxi-label">Punto de partida</span>
-                  <input
-                    type="text"
-                    className="taxi-input"
-                    placeholder="¿Desde dónde?"
-                    value={regNeighborhood}
-                    onChange={e => {
-                      setRegNeighborhood(e.target.value);
-                      setGpsDetectedBadge(null);
-                    }}
-                    required
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  className="taxi-map-btn"
-                  onClick={detectLocationAutomatically}
-                  disabled={isDetectingGps}
-                  title="Calibrar ubicación con el mapa/GPS"
-                >
-                  {isDetectingGps ? (
-                    <span className="mini-pulse-text">Buscando</span>
-                  ) : (
-                    'Mapa'
-                  )}
+              <div className="sh-field sh-field-icon">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  className="sh-input"
+                  placeholder="Contraseña"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                />
+                <button type="button" className="sh-eye" onClick={() => setShowPassword((s) => !s)} aria-label="Ver contraseña">
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
-
-                {isDetectingGps && (
-                  <div className="taxi-loading-bar">
-                    <div className="taxi-loading-progress" />
-                  </div>
-                )}
               </div>
 
-              {gpsDetectedBadge && !isDetectingGps && (
-                <div className="gps-success-badge">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#065f46" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  <span><strong>Ubicación fijada por GPS:</strong> {gpsDetectedBadge}</span>
-                </div>
+              <div className="sh-row-between">
+                <label className="sh-check">
+                  <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+                  <span>Recuérdame</span>
+                </label>
+                <span className="sh-link-red" onClick={() => alert('Escribe a soporte@ayni.pe para recuperar tu contraseña.')}>
+                  Olvidé mi contraseña
+                </span>
+              </div>
+
+              {loginError && <div className="sh-error">{loginError}</div>}
+
+              <button type="submit" className="sh-btn-primary" disabled={loginLoading}>
+                {loginLoading ? 'Verificando…' : 'Iniciar sesión'}
+              </button>
+
+              <p className="sh-foot">
+                ¿No tienes una cuenta?{' '}
+                <span className="sh-link-red" onClick={() => { resetReg(); setView('register'); }}>Regístrate</span>
+              </p>
+
+              <p className="sh-demo" onClick={() => { setEmail('maria@ayni.pe'); setPassword('ayni1234'); }}>
+                Usar cuenta demo (maria@ayni.pe)
+              </p>
+            </form>
+          )}
+
+          {/* ===================== REGISTRO ===================== */}
+          {view === 'register' && (
+            <div className="sh-form">
+              {/* Stepper 1-2-3 */}
+              <div className="sh-stepper">
+                {[1, 2, 3].map((n, i) => (
+                  <React.Fragment key={n}>
+                    <div className={`sh-step ${regStep >= n ? 'active' : ''}`}>
+                      {regStep > n ? <Check size={16} /> : n}
+                    </div>
+                    {i < 2 && <div className={`sh-step-line ${regStep > n ? 'active' : ''}`} />}
+                  </React.Fragment>
+                ))}
+              </div>
+
+              <h2 className="sh-reg-title">¡Únete fácil, rápido<br /><strong>y seguro</strong> a Ayni!</h2>
+
+              {/* -------- PASO 1: Documento + RENIEC -------- */}
+              {regStep === 1 && (
+                <form onSubmit={handleStep1}>
+                  <div className="sh-toggle">
+                    <button type="button" className={`sh-toggle-opt ${docType === 'DNI' ? 'on' : ''}`} onClick={() => { setDocType('DNI'); setDocNumber(''); }}>DNI</button>
+                    <button type="button" className={`sh-toggle-opt ${docType === 'CE' ? 'on' : ''}`} onClick={() => { setDocType('CE'); setDocNumber(''); }}>CE</button>
+                  </div>
+
+                  <div className="sh-field sh-floating">
+                    <input
+                      className="sh-input"
+                      inputMode="numeric"
+                      placeholder=" "
+                      value={docNumber}
+                      onChange={(e) => setDocNumber(onlyDigits(e.target.value, docLen))}
+                    />
+                    <label>{docType === 'DNI' ? 'Documento nacional de identidad' : 'Carné de extranjería'}</label>
+                    <span className="sh-count">{docNumber.length}/{docLen}</span>
+                  </div>
+
+                  {docType === 'CE' && (
+                    <div className="sh-field sh-floating">
+                      <input className="sh-input" placeholder=" " value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                      <label>Nombres y apellidos</label>
+                    </div>
+                  )}
+
+                  {regError && <div className="sh-error">{regError}</div>}
+
+                  <button type="submit" className="sh-btn-primary" disabled={reniecLoading}>
+                    {reniecLoading
+                      ? (<><Loader2 size={18} className="sh-spin" /> Consultando RENIEC…</>)
+                      : (<><Search size={18} /> {docType === 'DNI' ? 'Buscar mis datos' : 'Continuar'}</>)}
+                  </button>
+                </form>
               )}
 
-              {gpsError && !isDetectingGps && (
-                <div className="gps-warning-badge">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#92400e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="8" x2="12" y2="12" />
-                    <line x1="12" y1="16" x2="12.01" y2="16" />
-                  </svg>
-                  <span>{gpsError}</span>
-                </div>
+              {/* -------- PASO 2: Nombre confirmado + teléfono -------- */}
+              {regStep === 2 && (
+                <form onSubmit={handleStep2}>
+                  <div className="sh-name-card">
+                    <span className="sh-name-label">
+                      {reniecSource === 'reniec' ? '✓ Datos verificados en RENIEC' : reniecSource === 'mock' ? 'Datos de prueba (demo)' : 'Tus datos'}
+                    </span>
+                    <input
+                      className="sh-name-input"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="sh-field sh-floating">
+                    <input
+                      className="sh-input"
+                      inputMode="numeric"
+                      placeholder=" "
+                      value={phone}
+                      onChange={(e) => setPhone(onlyDigits(e.target.value, 9))}
+                    />
+                    <label>Número de celular</label>
+                    <span className="sh-count">{phone.length}/9</span>
+                  </div>
+
+                  {regError && <div className="sh-error">{regError}</div>}
+
+                  <button type="submit" className="sh-btn-primary">Continuar</button>
+                </form>
               )}
 
-              <small className="field-note">
-                Tu dirección se detecta automáticamente por GPS satelital. Puedes editarla si deseas especificar un lote o pasaje.
-              </small>
-            </div>
+              {/* -------- PASO 3: Correo + código -------- */}
+              {regStep === 3 && (
+                <form onSubmit={handleFinish}>
+                  <div className="sh-field sh-field-icon sh-floating">
+                    <input
+                      type="email"
+                      className="sh-input"
+                      placeholder=" "
+                      value={regEmail}
+                      onChange={(e) => { setRegEmail(e.target.value); setCodeSent(false); }}
+                      disabled={codeSent}
+                    />
+                    <label>Correo electrónico</label>
+                    {!codeSent && (
+                      <button type="button" className="sh-inline-btn" onClick={sendCode} disabled={sendingCode}>
+                        {sendingCode ? '…' : 'Enviar'}
+                      </button>
+                    )}
+                  </div>
 
-            <div className="auth-field">
-              <label>CREAR CONTRASEÑA</label>
-              <input 
-                type="password" 
-                placeholder="Mínimo 6 caracteres"
-                value={regPassword}
-                onChange={e => setRegPassword(e.target.value)}
-                className="auth-input mono-font"
-                required
-              />
-            </div>
+                  {codeSent && (
+                    <>
+                      <p className="sh-hint">
+                        Te enviamos un código de 6 dígitos a <strong>{regEmail}</strong>.{' '}
+                        <span className="sh-link-red" onClick={sendCode}>Reenviar</span>
+                      </p>
+                      {devCode && (
+                        <div className="sh-dev-code">Modo demo — tu código es: <strong>{devCode}</strong></div>
+                      )}
+                      <div className="sh-field sh-floating">
+                        <input
+                          className="sh-input sh-code"
+                          inputMode="numeric"
+                          placeholder=" "
+                          value={code}
+                          onChange={(e) => setCode(onlyDigits(e.target.value, 6))}
+                        />
+                        <label>Código de verificación</label>
+                      </div>
+                    </>
+                  )}
 
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button 
-                type="button" 
-                className="auth-secondary-btn"
-                onClick={() => setAuthMode('register_step1')}
-              >
-                VOLVER
-              </button>
-              <button type="submit" className="auth-submit-btn" style={{ flex: 2 }} disabled={isLoading}>
-                {isLoading ? 'REGISTRANDO...' : 'CONTINUAR Y UNIRME'}
-              </button>
+                  {regError && <div className="sh-error">{regError}</div>}
+
+                  <button type="submit" className="sh-btn-primary" disabled={!codeSent || finishing}>
+                    {finishing ? 'Creando cuenta…' : 'Verificar y crear cuenta'}
+                  </button>
+                  <p className="sh-note-small">Tu contraseña inicial será tu número de documento. Podrás cambiarla luego.</p>
+                </form>
+              )}
+
+              <p className="sh-foot">
+                ¿Ya tienes cuenta?{' '}
+                <span className="sh-link-red" onClick={() => { resetReg(); setView('login'); }}>Inicia sesión</span>
+              </p>
             </div>
-          </form>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
