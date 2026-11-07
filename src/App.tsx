@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Store, MapPin, Wifi, WifiOff, Radio, Users, HeartHandshake,
   AlertTriangle, Star, CheckCircle2, Plus, Search, RefreshCw,
-  Info, User as UserIcon, ShieldCheck, BatteryMedium, SignalHigh,
+  Info, User as UserIcon, ShieldCheck,
   Bell, ChevronRight, Heart, Clock, Bookmark, CreditCard, Settings,
   HelpCircle, LogOut, ArrowLeft, Camera, Calendar, Send, Navigation,
   Zap, Wrench, Hammer, Sparkles, GraduationCap, Utensils, MoreHorizontal,
@@ -138,17 +138,6 @@ export function App() {
   return (
     <div className="phone">
 
-      {/* Status Bar */}
-      <div className="sbar">
-        <span style={{ fontWeight: 700 }}>9:41</span>
-        <div className="sbar-notch" />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <SignalHigh size={14} />
-          {isOnline ? <Wifi size={14} /> : <WifiOff size={14} color="#D83B35" />}
-          <BatteryMedium size={16} />
-        </div>
-      </div>
-
       {/* ========== WELCOME SCREEN ========== */}
       {view === 'welcome' && (
         <div className="welcome-screen">
@@ -185,14 +174,16 @@ export function App() {
             </div>
           </div>
 
-          <button className="btn btn-coral btn-block" style={{ marginBottom: 12, borderRadius: 'var(--radius-full)' }}
-            onClick={() => { setIsAuthModalOpen(true); }}>
-            Comenzar
-          </button>
-          <button style={{ background: 'none', border: 'none', color: 'var(--gray-500)', fontSize: '0.88rem', fontWeight: 600, cursor: 'pointer' }}
-            onClick={() => setIsAuthModalOpen(true)}>
-            Iniciar sesión
-          </button>
+          <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <button className="btn btn-coral btn-block" style={{ marginBottom: 12, borderRadius: 'var(--radius-full)' }}
+              onClick={() => { setIsAuthModalOpen(true); }}>
+              Comenzar
+            </button>
+            <button style={{ background: 'none', border: 'none', color: 'var(--gray-500)', fontSize: '0.88rem', fontWeight: 600, cursor: 'pointer' }}
+              onClick={() => setIsAuthModalOpen(true)}>
+              Iniciar sesión
+            </button>
+          </div>
         </div>
       )}
 
