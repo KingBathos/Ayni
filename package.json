@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:backend": "cd backend && uvicorn app.main:app --reload --port 8000",
+    "sync:mobile": "vite build && npx cap sync",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview"

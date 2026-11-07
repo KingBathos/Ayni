@@ -20,21 +20,43 @@ Ayni es una plataforma web y aplicativo móvil diseñada para conectar vecinos y
 
 ## 💻 Instrucciones para Ejecutar
 
+### 1. Aplicación Móvil / Frontend (React + Vite + Capacitor)
 ```bash
-# 1. Instalar dependencias
+# Instalar dependencias
 npm install
 
-# 2. Iniciar servidor de desarrollo
+# Iniciar interfaz móvil en navegador
 npm run dev
 
-# 3. Compilar para producción
-npm run build
+# Sincronizar cambios a Android nativo
+npm run sync:mobile
 ```
+
+### 2. Backend API (FastAPI + SQLite/PostgreSQL)
+```bash
+# Entrar a la carpeta backend
+cd backend
+
+# Crear y activar entorno virtual Python
+python -m venv .venv
+.venv\Scripts\Activate.ps1    # En Windows PowerShell
+# source .venv/bin/activate    # En Linux / Mac
+
+# Instalar dependencias del backend
+pip install -r requirements.txt
+
+# Iniciar servidor API con auto-reload
+uvicorn app.main:app --reload --port 8000
+```
+- **Documentación Swagger:** `http://127.0.0.1:8000/docs`
+- **Health check:** `http://127.0.0.1:8000/health`
+- **Usuarios de prueba:** `maria@ayni.pe`, `jose@ayni.pe`, `rosa@ayni.pe`, `pedro@ayni.pe` (clave: `ayni1234`)
 
 ---
 
-## 🛠️ Stack Tecnológico
+## 🛠️ Stack Tecnológico Unificado
 
-- **Frontend:** React 19 + TypeScript + Vite + Lucide Icons
-- **Offline / Local Data:** Arquitectura offline-first con SQLite / Store-and-Forward ready
-- **Base de Datos Recomendada:** PostgreSQL + PostGIS (incluye script SQL en la documentación)
+- **Frontend & Móvil:** React 19 + TypeScript + Vite + Capacitor (Android Nativo) + Leaflet / OpenStreetMap + Lucide Icons
+- **Backend:** Python + FastAPI + SQLAlchemy + Pydantic v2 + OAuth2 / JWT
+- **Persistencia:** SQLite (Local) / PostgreSQL + PostGIS (Producción)
+- **Offline / Resiliencia:** Arquitectura Offline-First con encolamiento local y sincronización idempotente Store-and-Forward (`/api/v1/sync/batch`)

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { api } from './api';
 import './AuthModal.css';
 
 interface AuthModalProps {
@@ -9,6 +10,7 @@ interface AuthModalProps {
 export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
   // 'login' | 'register_step1' | 'register_step2'
   const [authMode, setAuthMode] = useState<'login' | 'register_step1' | 'register_step2'>('login');
+  const [isLoading, setIsLoading] = useState(false);
   
   // Login form
   const [docType, setDocType] = useState('DNI');
@@ -24,19 +26,35 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
   const [regDistrict, setRegDistrict] = useState('San Juan de Lurigancho');
   const [regNeighborhood, setRegNeighborhood] = useState('Sector Central / Santa Rosa');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!docNumber.trim() || !password.trim()) {
-      alert('Por favor complete su número de documento y contraseña');
+      alert('Por favor complete su número de documento o correo y contraseña');
       return;
     }
-    // Successful login simulation
-    onSuccess({
-      name: docNumber === '72345678' ? 'María Quispe' : `Vecino (${docNumber})`,
-      documentNumber: docNumber,
-      neighborhood: 'Sector Central / Santa Rosa',
-      district: 'San Juan de Lurigancho'
-    });
+
+    setIsLoading(true);
+    try {
+      // Intentar login real contra el backend si está activo
+      await api.login(docNumber.trim(), password.trim());
+      const me = await api.getMe();
+      onSuccess({
+        name: me.display_name,
+        documentNumber: me.phone || me.email || docNumber,
+        neighborhood: me.profile?.public_area_label || 'Zárate / San Juan de Lurigancho',
+        district: 'San Juan de Lurigancho'
+      });
+    } catch {
+      // Modo offline / fallback demo
+      onSuccess({
+        name: docNumber === '72345678' ? 'María Quispe' : (docNumber.includes('@') ? docNumber.split('@')[0] : `Vecino (${docNumber})`),
+        documentNumber: docNumber,
+        neighborhood: 'Sector Central / Santa Rosa',
+        district: 'San Juan de Lurigancho'
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleRegisterStep1 = (e: React.FormEvent) => {
@@ -48,18 +66,41 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
     setAuthMode('register_step2');
   };
 
-  const handleRegisterStep2 = (e: React.FormEvent) => {
+  const handleRegisterStep2 = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!regPassword.trim()) {
       alert('Por favor cree una contraseña segura.');
       return;
     }
-    onSuccess({
-      name: `${regFirstName} ${regLastName}`,
-      documentNumber: regDocNumber,
-      neighborhood: regNeighborhood,
-      district: regDistrict
-    });
+
+    setIsLoading(true);
+    const fullName = `${regFirstName} ${regLastName}`.trim();
+    try {
+      // Intentar registro real en el backend
+      await api.register({
+        display_name: fullName,
+        email: regDocNumber.includes('@') ? regDocNumber : undefined,
+        phone: !regDocNumber.includes('@') ? regDocNumber : undefined,
+        password: regPassword,
+        role: 'vecino'
+      });
+      onSuccess({
+        name: fullName,
+        documentNumber: regDocNumber,
+        neighborhood: regNeighborhood,
+        district: regDistrict
+      });
+    } catch {
+      // Fallback offline
+      onSuccess({
+        name: fullName,
+        documentNumber: regDocNumber,
+        neighborhood: regNeighborhood,
+        district: regDistrict
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

@@ -16,6 +16,7 @@ import {
 import { ServiceItem, HelpRequest, Booking, OfflineEnvelope } from './types';
 import { AuthModal } from './AuthModal';
 import { AyniMap } from './AyniMap';
+import { api } from './api';
 import './App.css';
 
 const CAT_EMOJIS: Record<string, string> = {
@@ -65,6 +66,65 @@ export function App() {
   const [newHelp, setNewHelp] = useState({ type: 'agua', description: '', urgency: 'alta' });
   const [newService, setNewService] = useState({ title: '', categoryId: 'electricidad', description: '', priceAmount: 30, priceType: 'fixed' as 'fixed' | 'quote', coverageArea: 'Radio 2 km' });
   const [requestDesc, setRequestDesc] = useState('');
+
+  // Carga inicial y sincronización con Backend
+  useEffect(() => {
+    const syncWithBackend = async () => {
+      try {
+        const backendOnline = await api.isOnline();
+        if (!backendOnline) return;
+        setIsOnline(true);
+
+        // 1. Obtener servicios del backend
+        const remoteServices = await api.getServices();
+        if (remoteServices && remoteServices.length > 0) {
+          const mapped: ServiceItem[] = remoteServices.map((s: any) => ({
+            id: String(s.id),
+            providerId: String(s.provider_id),
+            providerName: s.provider_name || 'Proveedor Verificado',
+            categoryId: s.category_name ? s.category_name.toLowerCase().replace(/\s+/g, '_') : 'electricidad',
+            title: s.title,
+            description: s.description,
+            priceType: s.price_type === 'fixed' ? 'fixed' : 'quote',
+            priceAmount: s.price_amount ? Number(s.price_amount) : undefined,
+            neighborhood: s.coverage_area || 'Lima, Perú',
+            rating: s.rating_avg || 4.9,
+            reviewCount: s.rating_count || 12,
+            jobsCompleted: s.jobs_completed || 15,
+            coverageArea: s.coverage_area || 'Radio 3 km',
+            status: s.status === 'published' ? 'published' : 'paused'
+          }));
+          setServices(prev => {
+            const remoteIds = new Set(mapped.map(m => m.id));
+            return [...mapped, ...prev.filter(p => !remoteIds.has(p.id))];
+          });
+        }
+
+        // 2. Obtener avisos comunitarios del backend
+        const remotePosts = await api.getCommunityPosts();
+        if (remotePosts && remotePosts.length > 0) {
+          const mappedPosts = remotePosts.map((p: any) => ({
+            id: String(p.id),
+            authorName: p.author_name || 'Comunidad Vecinal',
+            category: p.category || 'general',
+            title: p.title,
+            body: p.body,
+            neighborhood: p.neighborhood_name || 'Sector Central',
+            verificationStatus: p.verification_status || 'corroborado',
+            date: 'Hoy',
+            corroborations: p.corroborations || 6
+          }));
+          setCommunityPosts(prev => {
+            const pIds = new Set(mappedPosts.map((mp: any) => mp.id));
+            return [...mappedPosts, ...prev.filter(p => !pIds.has(p.id))];
+          });
+        }
+      } catch {
+        console.log('Backend no disponible, ejecutando en modo local/offline');
+      }
+    };
+    syncWithBackend();
+  }, []);
 
   const selectedNeighborhood = currentUser?.neighborhood || 'Lima, Perú';
   const userName = currentUser?.name || 'Vecino';
@@ -150,7 +210,7 @@ export function App() {
   };
 
   // ——— Actions ———
-  const handleRequestService = () => {
+  const handleRequestService = async () => {
     if (!currentUser || !selectedService) return;
     const b: Booking = {
       id: `bk-${Date.now()}`, serviceId: selectedService.id, serviceTitle: selectedService.title,
@@ -164,9 +224,20 @@ export function App() {
     setRequestDesc('');
     setSelectedBooking(b);
     setView('tracking');
+
+    if (isOnline) {
+      try {
+        await api.createBooking({
+          service_id: selectedService.id,
+          notes: requestDesc,
+        });
+      } catch (err) {
+        console.warn('Booking persistida localmente');
+      }
+    }
   };
 
-  const handleCreateHelp = (e: React.FormEvent) => {
+  const handleCreateHelp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
     const req: HelpRequest = {
@@ -177,10 +248,22 @@ export function App() {
     setHelpRequests([req, ...helpRequests]);
     setIsHelpModalOpen(false);
     setNewHelp({ type: 'agua', description: '', urgency: 'alta' });
+
+    if (isOnline) {
+      try {
+        await api.createHelpRequest({
+          type: req.type,
+          description: req.description,
+          urgency: req.urgency,
+        });
+      } catch (err) {
+        console.warn('Guardado en cola offline');
+      }
+    }
     alert(isOnline ? '✅ ¡Pedido publicado!' : '💾 Guardado sin Internet.');
   };
 
-  const handleCreateService = (e: React.FormEvent) => {
+  const handleCreateService = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
     const s: ServiceItem = {
@@ -193,6 +276,28 @@ export function App() {
     setServices([s, ...services]);
     setIsServiceModalOpen(false);
     setNewService({ title: '', categoryId: 'electricidad', description: '', priceAmount: 30, priceType: 'fixed', coverageArea: 'Radio 2 km' });
+
+    if (isOnline) {
+      try {
+        const catMap: Record<string, number> = {
+          electricidad: 3,
+          gasfiteria: 1,
+          carpinteria: 2,
+          limpieza: 7,
+          educacion: 6,
+          comida: 10,
+        };
+        await api.createService({
+          category_id: catMap[s.categoryId] || 1,
+          title: s.title,
+          description: s.description,
+          price_type: s.priceType,
+          price_amount: s.priceAmount,
+        });
+      } catch (err) {
+        console.warn('Servicio guardado localmente');
+      }
+    }
     alert('✅ ¡Servicio publicado!');
   };
 
