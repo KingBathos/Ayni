@@ -40,7 +40,17 @@ const PRO_EMOJIS: Record<string, string> = {
 type ViewType = 'welcome' | 'home' | 'explore' | 'requests' | 'map' | 'profile' | 'pro-detail' | 'request-form' | 'tracking';
 
 export function App() {
-  const [view, setView] = useState<ViewType>('welcome');
+  const [view, setView] = useState<ViewType>(() => {
+    try {
+      const done = localStorage.getItem('ayni_onboarding_completed');
+      return done === 'true' ? 'home' : 'welcome';
+    } catch {
+      return 'welcome';
+    }
+  });
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingStageText, setLoadingStageText] = useState('Iniciando recursos de Ayni...');
+  const [isResourcesLoaded, setIsResourcesLoaded] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
 
   const [currentUser, setCurrentUser] = useState<{
@@ -125,6 +135,37 @@ export function App() {
     };
     syncWithBackend();
   }, []);
+
+  // Simulación de carga fluida de recursos en primer inicio
+  useEffect(() => {
+    if (view !== 'welcome') return;
+
+    setIsResourcesLoaded(false);
+    setLoadingProgress(15);
+    setLoadingStageText('Verificando base de datos local...');
+
+    const t1 = setTimeout(() => {
+      setLoadingProgress(45);
+      setLoadingStageText('Cargando oficios y directorio vecinal...');
+    }, 450);
+
+    const t2 = setTimeout(() => {
+      setLoadingProgress(80);
+      setLoadingStageText('Iniciando protocolo de resiliencia y modo offline...');
+    }, 950);
+
+    const t3 = setTimeout(() => {
+      setLoadingProgress(100);
+      setLoadingStageText('¡Recursos listos para usar!');
+      setIsResourcesLoaded(true);
+    }, 1500);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [view]);
 
   const selectedNeighborhood = currentUser?.neighborhood || 'Lima, Perú';
   const userName = currentUser?.name || 'Vecino';
@@ -317,7 +358,7 @@ export function App() {
   return (
     <div className="phone">
 
-      {/* ========== WELCOME SCREEN ========== */}
+      {/* ========== WELCOME SCREEN / CARGA INICIAL ========== */}
       {view === 'welcome' && (
         <div className="welcome-screen">
           <div className="welcome-rings">
@@ -331,37 +372,54 @@ export function App() {
             <span style={{ color: '#FF875C' }}>i</span>
           </div>
           <p className="welcome-tagline">
-            La ayuda que necesitas, más cerca.
+            “Hoy por ti, mañana por mí”
           </p>
 
           <div className="welcome-features">
             <div className="welcome-feat">
-              <div className="welcome-feat-icon"><CheckCircle size={16} color="#2E9D72" /></div>
-              Profesionales verificados
+              <div className="welcome-feat-icon"><Users size={16} color="#2E9D72" /></div>
+              Colaboración y oficios vecinales
             </div>
             <div className="welcome-feat">
-              <div className="welcome-feat-icon"><Clock size={16} color="#FF875C" /></div>
-              Solicita en segundos
+              <div className="welcome-feat-icon"><HeartHandshake size={16} color="#FF875C" /></div>
+              Red solidaria y auxilio mutuo
             </div>
             <div className="welcome-feat">
-              <div className="welcome-feat-icon"><MapPin size={16} color="#D83B35" /></div>
-              Encuentra cerca de ti
+              <div className="welcome-feat-icon"><ShieldCheck size={16} color="#D83B35" /></div>
+              Reputación y confianza verificada
             </div>
             <div className="welcome-feat">
-              <div className="welcome-feat-icon"><Star size={16} color="#F59E0B" /></div>
-              Califica y confía
+              <div className="welcome-feat-icon"><Radio size={16} color="#0EA5E9" /></div>
+              Resiliencia y modo offline (BLE)
             </div>
           </div>
 
-          <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <button className="btn btn-coral btn-block" style={{ marginBottom: 12, borderRadius: 'var(--radius-full)' }}
-              onClick={() => { setIsAuthModalOpen(true); }}>
-              Comenzar
-            </button>
-            <button style={{ background: 'none', border: 'none', color: 'var(--gray-500)', fontSize: '0.88rem', fontWeight: 600, cursor: 'pointer' }}
-              onClick={() => setIsAuthModalOpen(true)}>
-              Iniciar sesión
-            </button>
+          <div style={{ width: '100%', maxWidth: 300, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            {!isResourcesLoaded ? (
+              <div className="welcome-loading-container">
+                <div className="welcome-progress-bar">
+                  <div className="welcome-progress-fill" style={{ width: `${loadingProgress}%` }} />
+                </div>
+                <div className="welcome-loading-info">
+                  <span className="welcome-loading-text">{loadingStageText}</span>
+                  <span className="welcome-loading-pct">{loadingProgress}%</span>
+                </div>
+              </div>
+            ) : (
+              <button
+                className="btn btn-coral btn-block fade-in-btn"
+                style={{ borderRadius: 'var(--radius-full)' }}
+                onClick={() => {
+                  try {
+                    localStorage.setItem('ayni_onboarding_completed', 'true');
+                  } catch {}
+                  navigateTo('home');
+                  setIsAuthModalOpen(true);
+                }}
+              >
+                Comenzar
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -869,6 +927,16 @@ export function App() {
                       alert(`📡 Estado de Red: ${isOnline ? 'En línea (Conectado)' : 'Modo Sin Conexión'}\n\n🔗 Servidor API configurado:\n${api.getBaseUrl()}\n\n📦 Cola offline: ${offlineQueue.length} paquetes pendientes.`);
                     }
                   },
+                  {
+                    icon: <Clock size={18} color="var(--orange)" />,
+                    label: 'Reiniciar pantalla de bienvenida (Demo)',
+                    action: () => {
+                      try {
+                        localStorage.removeItem('ayni_onboarding_completed');
+                      } catch {}
+                      navigateTo('welcome');
+                    }
+                  },
                   { icon: <HelpCircle size={18} color="var(--gray-500)" />, label: 'Ayuda y soporte', action: () => alert('Ayni Soporte Vecinal - Hackathon UTP · El Comercio 2026') },
                 ].map((item, i) => (
                   <div key={i} className="profile-menu-item" onClick={item.action}>
@@ -880,7 +948,11 @@ export function App() {
               </div>
 
               <button className="btn btn-outline btn-block" style={{ marginTop: 16, color: 'var(--coral)' }}
-                onClick={() => { setCurrentUser(null); navigateTo('welcome'); }}>
+                onClick={() => {
+                  api.clearToken();
+                  setCurrentUser(null);
+                  setIsAuthModalOpen(true);
+                }}>
                 <LogOut size={18} /> Cerrar sesión
               </button>
             </div>

@@ -931,25 +931,27 @@ body {
 }
 
 .welcome-tagline {
-  font-size: 1.05rem;
-  color: var(--gray-600);
-  font-weight: 500;
-  max-width: 260px;
+  font-size: 1.15rem;
+  font-style: italic;
+  font-weight: 700;
+  color: var(--carbon);
+  max-width: 290px;
   line-height: 1.4;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
+  letter-spacing: 0.3px;
 }
 
 .welcome-features {
   text-align: left;
   width: 100%;
-  max-width: 280px;
-  margin-bottom: 28px;
+  max-width: 300px;
+  margin-bottom: 24px;
 }
 
 .welcome-feat {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   padding: 8px 0;
   font-size: 0.88rem;
   font-weight: 600;
@@ -957,14 +959,73 @@ body {
 }
 
 .welcome-feat-icon {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   background: var(--cream);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+/* Loading state styles */
+.welcome-loading-container {
+  width: 100%;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.welcome-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 9999px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.08);
+}
+
+.welcome-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--coral), var(--orange));
+  border-radius: 9999px;
+  transition: width 0.35s ease;
+}
+
+.welcome-loading-info {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 0.78rem;
+}
+
+.welcome-loading-text {
+  color: var(--gray-500);
+  font-weight: 600;
+}
+
+.welcome-loading-pct {
+  color: var(--coral);
+  font-weight: 800;
+}
+
+.fade-in-btn {
+  animation: fadeInButton 0.4s ease-out forwards;
+}
+
+@keyframes fadeInButton {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ===== HELP REQUEST CARDS ===== */
