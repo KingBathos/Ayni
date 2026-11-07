@@ -222,52 +222,160 @@
   color: #16a34a;
 }
 
-/* Automatic GPS & Address Location styles */
-.gps-live-status {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #2563eb;
-}
-
-.gps-live-status.blink {
-  animation: pulse-gps 1.2s infinite ease-in-out;
-}
-
-@keyframes pulse-gps {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-
-.address-input-container {
-  display: flex;
-  gap: 8px;
-  align-items: center;
+/* Estilo Taxi App (inDrive / Uber style) con animación de carga real */
+.taxi-address-card {
   position: relative;
-}
-
-.gps-refresh-inline-btn {
-  padding: 12px 14px;
-  background: #eff6ff;
-  border: 1.5px solid #bfdbfe;
-  color: #1d4ed8;
-  border-radius: 10px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s;
   display: flex;
   align-items: center;
-  gap: 4px;
+  background: #ffffff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 10px 14px;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+  overflow: hidden;
 }
 
-.gps-refresh-inline-btn:hover {
-  background: #dbeafe;
+.taxi-address-card:focus-within {
+  border-color: #D83B35;
+  box-shadow: 0 3px 12px rgba(216, 59, 53, 0.12);
 }
 
-.gps-refresh-inline-btn:disabled {
-  opacity: 0.6;
+.taxi-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: #D83B35;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease;
+}
+
+.taxi-icon-box.is-loading {
+  background: #D83B35;
+}
+
+/* Spinner real con animación CSS pura (sin emojis) */
+.real-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: taxi-spin 0.75s linear infinite;
+}
+
+@keyframes taxi-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.taxi-text-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.taxi-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #6b7280;
+  line-height: 1.1;
+  margin-bottom: 3px;
+  text-transform: none;
+}
+
+.taxi-input {
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1f2937;
+  width: 100%;
+  line-height: 1.2;
+}
+
+.taxi-input::placeholder {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.taxi-map-btn {
+  background: #f3f4f6;
+  color: #1f2937;
+  border: none;
+  border-radius: 9999px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.taxi-map-btn:hover {
+  background: #e5e7eb;
+}
+
+.taxi-map-btn:active {
+  transform: scale(0.97);
+}
+
+.taxi-map-btn:disabled {
+  opacity: 0.7;
   cursor: not-allowed;
+}
+
+.mini-pulse-text {
+  font-size: 0.75rem;
+  color: #6b7280;
+  animation: pulse-text 1s infinite alternate;
+}
+
+@keyframes pulse-text {
+  from { opacity: 0.5; }
+  to { opacity: 1; }
+}
+
+/* Barra de progreso animada al pie de la tarjeta */
+.taxi-loading-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2.5px;
+  background: #fee2e2;
+  overflow: hidden;
+}
+
+.taxi-loading-progress {
+  width: 40%;
+  height: 100%;
+  background: #D83B35;
+  border-radius: 2px;
+  animation: taxi-progress 1.2s infinite ease-in-out;
+}
+
+@keyframes taxi-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
 }
 
 .gps-success-badge {
@@ -290,6 +398,9 @@
   border-radius: 8px;
   font-size: 0.76rem;
   line-height: 1.3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .field-note {

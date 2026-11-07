@@ -534,52 +534,80 @@ export function AuthModal({ onSuccess }: AuthModalProps) {
               />
             </div>
 
-            {/* UBICACIÓN AUTOMÁTICA POR GPS */}
+            {/* UBICACIÓN AUTOMÁTICA POR GPS ESTILO TAXI APP */}
             <div className="auth-field">
-              <div className="doc-field-header">
-                <label>BARRIO O ZONA RESIDENCIAL</label>
-                {isDetectingGps && (
-                  <span className="gps-live-status blink">🔄 Detectando GPS...</span>
-                )}
-              </div>
+              <label>BARRIO O ZONA RESIDENCIAL</label>
 
-              <div className="address-input-container">
-                <input
-                  type="text"
-                  placeholder="Ej. Av. Las Flores 450 o Barrio Central"
-                  value={regNeighborhood}
-                  onChange={e => {
-                    setRegNeighborhood(e.target.value);
-                    setGpsDetectedBadge(null);
-                  }}
-                  className="auth-input"
-                  required
-                />
+              <div className="taxi-address-card">
+                <div className={`taxi-icon-box ${isDetectingGps ? 'is-loading' : ''}`}>
+                  {isDetectingGps ? (
+                    <div className="real-spinner" />
+                  ) : (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
+                      <circle cx="15.5" cy="4.5" r="2.5" />
+                      <path d="M14 8.5h-1.5c-.7 0-1.4.3-1.9.8l-4.2 4.2 1.4 1.4 3.2-3.2v9.3h2.5v-6h1.5v6H17.5V12c0-1.9-1.6-3.5-3.5-3.5z" />
+                    </svg>
+                  )}
+                </div>
+
+                <div className="taxi-text-container">
+                  <span className="taxi-label">Punto de partida</span>
+                  <input
+                    type="text"
+                    className="taxi-input"
+                    placeholder="¿Desde dónde?"
+                    value={regNeighborhood}
+                    onChange={e => {
+                      setRegNeighborhood(e.target.value);
+                      setGpsDetectedBadge(null);
+                    }}
+                    required
+                  />
+                </div>
+
                 <button
                   type="button"
-                  className="gps-refresh-inline-btn"
+                  className="taxi-map-btn"
                   onClick={detectLocationAutomatically}
                   disabled={isDetectingGps}
-                  title="Actualizar con mi ubicación GPS actual"
+                  title="Calibrar ubicación con el mapa/GPS"
                 >
-                  {isDetectingGps ? '🔄...' : '📍 GPS'}
+                  {isDetectingGps ? (
+                    <span className="mini-pulse-text">Buscando</span>
+                  ) : (
+                    'Mapa'
+                  )}
                 </button>
+
+                {isDetectingGps && (
+                  <div className="taxi-loading-bar">
+                    <div className="taxi-loading-progress" />
+                  </div>
+                )}
               </div>
 
               {gpsDetectedBadge && !isDetectingGps && (
                 <div className="gps-success-badge">
-                  <span>✓ <strong>Ubicación detectada por GPS:</strong> {gpsDetectedBadge}</span>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#065f46" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <span><strong>Ubicación fijada por GPS:</strong> {gpsDetectedBadge}</span>
                 </div>
               )}
 
               {gpsError && !isDetectingGps && (
                 <div className="gps-warning-badge">
-                  <span>⚠️ {gpsError}</span>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#92400e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  <span>{gpsError}</span>
                 </div>
               )}
 
               <small className="field-note">
-                🛡️ Tu dirección se detecta automáticamente por GPS para conectarte con tus vecinos más cercanos. Puedes editarla si deseas.
+                Tu dirección se detecta automáticamente por GPS satelital. Puedes editarla si deseas especificar un lote o pasaje.
               </small>
             </div>
 
