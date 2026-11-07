@@ -18,7 +18,10 @@ import {
   ArrowRight,
   ShieldCheck,
   RefreshCw,
-  Info
+  Info,
+  User as UserIcon,
+  LogOut,
+  LogIn
 } from 'lucide-react';
 import { 
   INITIAL_SERVICES, 
@@ -28,12 +31,28 @@ import {
   INITIAL_CATEGORIES 
 } from './mockData';
 import { ServiceItem, HelpRequest, CommunityPost, Booking, OfflineEnvelope } from './types';
+import { AuthModal } from './AuthModal';
 import './App.css';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<'services' | 'community' | 'solidarity' | 'map' | 'offline'>('services');
   const [isOnline, setIsOnline] = useState<boolean>(true);
-  const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>('San Juan / Los Robles');
+  
+  // Current Authenticated User state
+  const [currentUser, setCurrentUser] = useState<{
+    name: string;
+    documentNumber: string;
+    neighborhood: string;
+    district: string;
+  } | null>({
+    name: 'María Quispe',
+    documentNumber: '72345678',
+    neighborhood: 'Sector Central / Santa Rosa',
+    district: 'San Juan de Lurigancho'
+  });
+
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const selectedNeighborhood = currentUser ? currentUser.neighborhood : 'Sector Central / Santa Rosa';
   
   // Data states
   const [services, setServices] = useState<ServiceItem[]>(INITIAL_SERVICES);
@@ -75,12 +94,16 @@ export function App() {
 
   // Action: Request service (Creates a booking)
   const handleRequestService = (srv: ServiceItem) => {
+    if (!currentUser) {
+      setIsAuthModalOpen(true);
+      return;
+    }
     const newBooking: Booking = {
       id: `bk-${Date.now()}`,
       serviceId: srv.id,
       serviceTitle: srv.title,
-      clientId: 'usr-me',
-      clientName: 'María (Tú)',
+      clientId: currentUser.documentNumber,
+      clientName: currentUser.name,
       providerId: srv.providerId,
       providerName: srv.providerName,
       status: 'solicitado',
@@ -125,10 +148,14 @@ export function App() {
   // Action: Create Help Request (Supports OFFLINE-FIRST)
   const handleCreateHelp = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentUser) {
+      setIsAuthModalOpen(true);
+      return;
+    }
     const req: HelpRequest = {
       id: `help-${Date.now()}`,
-      authorName: 'Tú (Vecino)',
-      authorId: 'usr-me',
+      authorName: currentUser.name,
+      authorId: currentUser.documentNumber,
       type: newHelp.type,
       description: newHelp.description,
       urgency: newHelp.urgency,
@@ -164,10 +191,14 @@ export function App() {
   // Action: Create New Service
   const handleCreateService = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentUser) {
+      setIsAuthModalOpen(true);
+      return;
+    }
     const serviceItem: ServiceItem = {
       id: `srv-${Date.now()}`,
-      providerId: 'usr-me',
-      providerName: 'Tú (Proveedor Local)',
+      providerId: currentUser.documentNumber,
+      providerName: currentUser.name,
       categoryId: newService.categoryId,
       title: newService.title,
       description: newService.description,
@@ -231,17 +262,28 @@ export function App() {
       {/* Header */}
       <header className="app-header">
         <div className="brand-section">
-          <div className="logo-badge">AYNI</div>
-          <div>
-            <h1 className="brand-title">Ayni Vecinal</h1>
-            <p className="brand-subtitle">Tecnología de colaboración comunitaria & economía local</p>
+          {/* Logo brand with identical colors */}
+          <div className="header-logo-container" onClick={() => setIsAuthModalOpen(true)} title="Ver Identidad Ayni">
+            <div className="header-mini-rings">
+              <div className="mini-ring red"></div>
+              <div className="mini-ring gold"></div>
+            </div>
+            <div>
+              <span className="header-brand-name">
+                <span style={{ color: '#c0152f' }}>a</span>
+                <span style={{ color: '#e59d18' }}>y</span>
+                <span style={{ color: '#c0152f' }}>n</span>
+                <span style={{ color: '#e59d18' }}>i</span>
+              </span>
+              <span className="header-brand-tagline">Hoy por ti, mañana por mí</span>
+            </div>
           </div>
         </div>
 
         <div className="header-status-bar">
           <div className="location-chip">
             <MapPin size={16} />
-            <span>Zona: {selectedNeighborhood}</span>
+            <span>{selectedNeighborhood}</span>
           </div>
 
           <button 
@@ -252,15 +294,26 @@ export function App() {
             {isOnline ? (
               <>
                 <Wifi size={16} />
-                <span>En Línea (Cloud)</span>
+                <span>En Línea</span>
               </>
             ) : (
               <>
                 <WifiOff size={16} />
-                <span>Modo Sin Conexión (Offline-First)</span>
+                <span>Modo Offline (BLE)</span>
               </>
             )}
           </button>
+
+          {currentUser ? (
+            <div className="user-profile-badge" onClick={() => setIsAuthModalOpen(true)}>
+              <UserIcon size={16} />
+              <span className="user-profile-name">{currentUser.name}</span>
+            </div>
+          ) : (
+            <button className="btn btn-primary" style={{ padding: '6px 14px' }} onClick={() => setIsAuthModalOpen(true)}>
+              <LogIn size={14} /> Ingresar
+            </button>
+          )}
         </div>
       </header>
 
@@ -340,7 +393,7 @@ export function App() {
               <div>
                 <h2 className="section-title">Oportunidades y Servicios Locales</h2>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-                  Conecta con trabajadores y técnicos de tu propio barrio sin intermediarios especulativos.
+                  Conecta con trabajadores y técnicos de tu propio barrio sin comisiones abusivas.
                 </p>
               </div>
               <div style={{ display: 'flex', gap: '10px' }}>
@@ -549,7 +602,7 @@ export function App() {
                         className="btn btn-outline" 
                         style={{ fontSize: '0.8rem', padding: '6px 12px' }}
                         onClick={() => {
-                          setHelpRequests(helpRequests.map(h => h.id === req.id ? { ...h, status: 'en_coordinacion', helperName: 'Tú' } : h));
+                          setHelpRequests(helpRequests.map(h => h.id === req.id ? { ...h, status: 'en_coordinacion', helperName: currentUser?.name || 'Tú' } : h));
                           alert('¡Gracias por brindar tu ayuda! Se ha abierto el canal de coordinación.');
                         }}
                       >
@@ -730,6 +783,17 @@ export function App() {
           </div>
         )}
       </main>
+
+      {/* ================= MODAL DE INICIO DE SESIÓN / REGISTRO (IDENTIDAD AYNI) ================= */}
+      {isAuthModalOpen && (
+        <AuthModal 
+          onSuccess={(user) => {
+            setCurrentUser(user);
+            setIsAuthModalOpen(false);
+          }}
+          onClose={() => setIsAuthModalOpen(false)}
+        />
+      )}
 
       {/* ================= MODAL: PUBLICAR SERVICIO ================= */}
       {isServiceModalOpen && (
@@ -955,4 +1019,3 @@ export function App() {
 }
 
 export default App;
-

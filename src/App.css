@@ -54,6 +54,81 @@ body {
   z-index: 50;
 }
 
+/* App Brand & User Section */
+.header-logo-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.header-mini-rings {
+  position: relative;
+  width: 44px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+}
+
+.mini-ring {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border-width: 5px;
+  border-style: solid;
+}
+
+.mini-ring.red {
+  border-color: #c0152f;
+  left: 0;
+  z-index: 2;
+}
+
+.mini-ring.gold {
+  border-color: #e59d18;
+  right: 0;
+  z-index: 1;
+}
+
+.header-brand-name {
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  line-height: 1;
+  display: block;
+}
+
+.header-brand-tagline {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: 0.5px;
+  display: block;
+}
+
+.user-profile-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f1f5f9;
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.user-profile-badge:hover {
+  background: #e2e8f0;
+}
+
+.user-profile-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
 .brand-section {
   display: flex;
   align-items: center;
