@@ -15,6 +15,7 @@ import {
 } from './mockData';
 import { ServiceItem, HelpRequest, Booking, OfflineEnvelope } from './types';
 import { AuthModal } from './AuthModal';
+import { AyniMap } from './AyniMap';
 import './App.css';
 
 const CAT_EMOJIS: Record<string, string> = {
@@ -697,29 +698,13 @@ export function App() {
             <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--carbon)' }}>Mapa</h3>
           </div>
 
-          <div className="body" style={{ padding: 0 }}>
-            <div className="map-box" style={{ borderRadius: 0, height: '100%', minHeight: 700 }}>
-              <div style={{ position: 'absolute', top: 14, left: 14, right: 14 }}>
-                <div className="search-bar" style={{ background: 'var(--white)', boxShadow: 'var(--shadow-md)' }}>
-                  <Search size={18} color="#9ca3af" />
-                  <input type="text" placeholder="Buscar en el mapa..." />
-                </div>
-              </div>
-
-              <div style={{ position: 'absolute', top: 80, left: 14, background: 'white', padding: '4px 10px', borderRadius: 10, fontSize: '0.78rem', fontWeight: 700, boxShadow: 'var(--shadow-sm)' }}>
-                📍 {selectedNeighborhood}
-              </div>
-
-              <div className="map-pin" style={{ top: '35%', left: '30%' }} onClick={() => { setSelectedService(services[0]); navigateTo('pro-detail'); }}>
-                <Store size={12} color="var(--coral)" /> José (Electricidad)
-              </div>
-              <div className="map-pin" style={{ top: '55%', left: '65%' }} onClick={() => { setSelectedService(services[1]); navigateTo('pro-detail'); }}>
-                <Store size={12} color="var(--coral)" /> Carmen (Gasfitería)
-              </div>
-              <div className="map-pin solidarity" style={{ top: '70%', left: '40%' }}>
-                <AlertTriangle size={12} color="var(--orange)" /> Auxilio: Agua
-              </div>
-            </div>
+          <div className="body" style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
+            <AyniMap
+              services={services}
+              helpRequests={helpRequests}
+              neighborhood={selectedNeighborhood}
+              onSelectService={openProDetail}
+            />
           </div>
         </>
       )}
