@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Geolocation } from '@capacitor/geolocation';
 import { api } from './api';
 import './AuthModal.css';
 
@@ -53,6 +54,13 @@ const DOC_RULES: Record<string, DocSpec> = {
   },
 };
 
+const DOC_OPTIONS = [
+  { value: 'DNI', label: 'DNI (8 dígitos)' },
+  { value: 'CE', label: 'CARNÉ EXTRANJERÍA (9 dígitos)' },
+  { value: 'PASAPORTE', label: 'PASAPORTE (8-9 caracteres)' },
+  { value: 'RUC', label: 'RUC 10 (11 dígitos)' },
+];
+
 export function AuthModal({ onSuccess }: AuthModalProps) {
   // 'login' | 'register_step1' | 'register_step2'
   const [authMode, setAuthMode] = useState<'login' | 'register_step1' | 'register_step2'>('login');
@@ -72,11 +80,10 @@ export function AuthModal({ onSuccess }: AuthModalProps) {
   const [regDistrict, setRegDistrict] = useState('San Juan de Lurigancho');
   const [regNeighborhood, setRegNeighborhood] = useState('Sector Central / Santa Rosa');
 
-  // Hybrid Location states (GPS vs Manual)
-  const [locMode, setLocMode] = useState<'gps' | 'manual'>('gps');
-  const [manualAddress, setManualAddress] = useState('');
+  // Automatic GPS Detection states
   const [isDetectingGps, setIsDetectingGps] = useState(false);
   const [gpsDetectedBadge, setGpsDetectedBadge] = useState<string | null>(null);
+  const [gpsError, setGpsError] = useState<string | null>(null);
 
   // Formateador estricto de entrada
   const handleDocInput = (type: string, val: string, setter: (v: string) => void) => {
@@ -125,50 +132,107 @@ export function AuthModal({ onSuccess }: AuthModalProps) {
     return { valid: true, message: '' };
   };
 
-  // Detección automática por GPS
-  const handleDetectGps = () => {
-    if (!navigator.geolocation) {
-      alert('Tu dispositivo no soporta geolocalización o no está habilitada. Puedes escribir tu dirección manualmente.');
-      setLocMode('manual');
-      return;
+  // Detección automática por GPS satelital con geocodificación inversa
+  const detectLocationAutomatically = async () => {
+    setIsDetectingGps(true);
+    setGpsError(null);
+
+    let lat: number | null = null;
+    let lon: number | null = null;
+
+    try {
+      // 1. Solicitar y verificar permisos de forma nativa en Android con Capacitor
+      let perm = await Geolocation.checkPermissions();
+      if (perm.location !== 'granted') {
+        perm = await Geolocation.requestPermissions();
+      }
+
+      const position = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 12000,
+      });
+      lat = position.coords.latitude;
+      lon = position.coords.longitude;
+    } catch (capError) {
+      console.warn('Capacitor Geolocation error, probando Web Geolocation...', capError);
+      if (navigator.geolocation) {
+        try {
+          const webPos = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 9000,
+            });
+          });
+          lat = webPos.coords.latitude;
+          lon = webPos.coords.longitude;
+        } catch (webErr) {
+          console.warn('Web Geolocation también falló:', webErr);
+        }
+      }
     }
 
-    setIsDetectingGps(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        let detectedNeighborhood = 'Sector Central / Santa Rosa';
-        let detectedDistrict = 'San Juan de Lurigancho';
+    if (lat !== null && lon !== null) {
+      let detectedAddress = '';
+      let detectedDistrict = 'San Juan de Lurigancho';
 
-        // Mapeo geográfico de cuadrante en Lima
-        if (latitude > -12.0) {
-          detectedNeighborhood = 'Zona Alta / El Mirador';
+      // 2. Geocodificación inversa con Nominatim OpenStreetMap
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`,
+          { headers: { 'Accept-Language': 'es' } }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const road = data.address?.road || data.address?.pedestrian || '';
+          const suburb = data.address?.suburb || data.address?.neighbourhood || data.address?.quarter || '';
+          const cityDist = data.address?.city_district || data.address?.county || data.address?.city || '';
+          if (cityDist) detectedDistrict = cityDist;
+
+          if (road && suburb) {
+            detectedAddress = `${road}, ${suburb}`;
+          } else if (suburb) {
+            detectedAddress = `${suburb}`;
+          } else if (data.display_name) {
+            detectedAddress = data.display_name.split(',').slice(0, 3).join(',');
+          }
+        }
+      } catch (e) {
+        console.warn('Nominatim reverse geocoding warning:', e);
+      }
+
+      // Si Nominatim no responde o está offline, aproximar por cuadrante en Lima
+      if (!detectedAddress) {
+        if (lat > -12.0) {
+          detectedAddress = 'Zona Alta / El Mirador';
           detectedDistrict = 'San Juan de Lurigancho';
-        } else if (latitude < -12.18) {
-          detectedNeighborhood = 'Sector 1 / Villa El Salvador';
+        } else if (lat < -12.18) {
+          detectedAddress = 'Sector 1 / Villa El Salvador';
           detectedDistrict = 'Villa El Salvador';
-        } else if (longitude < -77.03) {
-          detectedNeighborhood = 'Cercado de Lima / Barrios Altos';
+        } else if (lon < -77.03) {
+          detectedAddress = 'Cercado de Lima / Barrios Altos';
           detectedDistrict = 'Lima Cercado';
         } else {
-          detectedNeighborhood = 'Zárate / Los Robles';
+          detectedAddress = 'Sector Central / Santa Rosa';
           detectedDistrict = 'San Juan de Lurigancho';
         }
+      }
 
-        setRegNeighborhood(detectedNeighborhood);
-        setRegDistrict(detectedDistrict);
-        setGpsDetectedBadge(`${detectedNeighborhood} (${detectedDistrict})`);
-        setIsDetectingGps(false);
-      },
-      (err) => {
-        console.warn('GPS error:', err);
-        setIsDetectingGps(false);
-        alert('No se pudo obtener la señal GPS o denegaste el permiso. Puedes ingresar tu dirección manualmente.');
-        setLocMode('manual');
-      },
-      { enableHighAccuracy: true, timeout: 9000 }
-    );
+      setRegNeighborhood(detectedAddress);
+      setRegDistrict(detectedDistrict);
+      setGpsDetectedBadge(`${detectedAddress} (${detectedDistrict})`);
+    } else {
+      setGpsError('No se pudo acceder al GPS satelital. Puedes escribir tu dirección o barrio manualmente abajo.');
+    }
+
+    setIsDetectingGps(false);
   };
+
+  // Pedir permiso y detectar GPS automáticamente al entrar a Paso 2
+  useEffect(() => {
+    if (authMode === 'register_step2') {
+      detectLocationAutomatically();
+    }
+  }, [authMode]);
 
   // Envío de Login
   const handleLogin = async (e: React.FormEvent) => {
@@ -227,7 +291,7 @@ export function AuthModal({ onSuccess }: AuthModalProps) {
     setAuthMode('register_step2');
   };
 
-  // Paso 2 de Registro: Confirmación y Ubicación Híbrida
+  // Paso 2 de Registro: Confirmación y Ubicación
   const handleRegisterStep2 = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!regPassword.trim() || regPassword.length < 6) {
@@ -235,9 +299,7 @@ export function AuthModal({ onSuccess }: AuthModalProps) {
       return;
     }
 
-    const finalNeighborhood = locMode === 'manual' && manualAddress.trim()
-      ? manualAddress.trim()
-      : regNeighborhood;
+    const finalNeighborhood = regNeighborhood.trim() || 'Sector Central / Santa Rosa';
 
     setIsLoading(true);
     const fullName = `${regFirstName} ${regLastName}`.trim();
@@ -322,10 +384,9 @@ export function AuthModal({ onSuccess }: AuthModalProps) {
                   }}
                   className="auth-input select-input"
                 >
-                  <option value="DNI">DNI (8 dígitos)</option>
-                  <option value="CE">CARNÉ EXTRANJERÍA (9 dígitos)</option>
-                  <option value="PASAPORTE">PASAPORTE (8-9 caracteres)</option>
-                  <option value="RUC">RUC 10 (11 dígitos)</option>
+                  {DOC_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
                 </select>
                 <div className="select-arrow">▼</div>
               </div>
@@ -391,9 +452,9 @@ export function AuthModal({ onSuccess }: AuthModalProps) {
                   }}
                   className="auth-input select-input"
                 >
-                  <option value="DNI">DNI (8 dígitos)</option>
-                  <option value="CE">CARNÉ EXTRANJERÍA (9 dígitos)</option>
-                  <option value="PASAPORTE">PASAPORTE (8-9 caracteres)</option>
+                  {DOC_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
                 </select>
                 <div className="select-arrow">▼</div>
               </div>
@@ -473,92 +534,52 @@ export function AuthModal({ onSuccess }: AuthModalProps) {
               />
             </div>
 
-            {/* OPCIÓN HÍBRIDA: GPS O MANUAL */}
+            {/* UBICACIÓN AUTOMÁTICA POR GPS */}
             <div className="auth-field">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                <label style={{ margin: 0 }}>BARRIO O ZONA RESIDENCIAL</label>
-                <div className="loc-mode-toggle">
-                  <button
-                    type="button"
-                    className={`loc-toggle-btn ${locMode === 'gps' ? 'active' : ''}`}
-                    onClick={() => setLocMode('gps')}
-                  >
-                    📍 GPS
-                  </button>
-                  <button
-                    type="button"
-                    className={`loc-toggle-btn ${locMode === 'manual' ? 'active' : ''}`}
-                    onClick={() => setLocMode('manual')}
-                  >
-                    ✏️ Manual
-                  </button>
-                </div>
+              <div className="doc-field-header">
+                <label>BARRIO O ZONA RESIDENCIAL</label>
+                {isDetectingGps && (
+                  <span className="gps-live-status blink">🔄 Detectando GPS...</span>
+                )}
               </div>
 
-              {locMode === 'gps' ? (
-                <div className="gps-section">
-                  <button
-                    type="button"
-                    className="gps-action-btn"
-                    onClick={handleDetectGps}
-                    disabled={isDetectingGps}
-                  >
-                    {isDetectingGps ? (
-                      <>🔄 Accediendo al GPS satelital...</>
-                    ) : (
-                      <>📍 Asignar barrio con mi ubicación GPS</>
-                    )}
-                  </button>
+              <div className="address-input-container">
+                <input
+                  type="text"
+                  placeholder="Ej. Av. Las Flores 450 o Barrio Central"
+                  value={regNeighborhood}
+                  onChange={e => {
+                    setRegNeighborhood(e.target.value);
+                    setGpsDetectedBadge(null);
+                  }}
+                  className="auth-input"
+                  required
+                />
+                <button
+                  type="button"
+                  className="gps-refresh-inline-btn"
+                  onClick={detectLocationAutomatically}
+                  disabled={isDetectingGps}
+                  title="Actualizar con mi ubicación GPS actual"
+                >
+                  {isDetectingGps ? '🔄...' : '📍 GPS'}
+                </button>
+              </div>
 
-                  {gpsDetectedBadge && (
-                    <div className="gps-success-badge">
-                      <span>✓ <strong>Barrio asignado:</strong> {gpsDetectedBadge}</span>
-                    </div>
-                  )}
-
-                  <div className="select-wrapper">
-                    <select 
-                      value={regNeighborhood} 
-                      onChange={e => {
-                        setRegNeighborhood(e.target.value);
-                        setGpsDetectedBadge(null);
-                      }}
-                      className="auth-input select-input"
-                    >
-                      <option value="Sector Central / Santa Rosa">Sector Central / Santa Rosa (SJL)</option>
-                      <option value="Zárate / Los Robles">Zárate / Los Robles (SJL)</option>
-                      <option value="Zona Alta / El Mirador">Zona Alta / El Mirador (SJL)</option>
-                      <option value="Barrio Las Flores / Manzana F">Barrio Las Flores / Manzana F (SJL)</option>
-                      <option value="Cercado de Lima / Barrios Altos">Cercado de Lima / Barrios Altos</option>
-                      <option value="Sector 1 / Villa El Salvador">Sector 1 (Villa El Salvador)</option>
-                      <option value="La Pascana / El Retablo">La Pascana / El Retablo (Comas)</option>
-                    </select>
-                    <div className="select-arrow">▼</div>
-                  </div>
+              {gpsDetectedBadge && !isDetectingGps && (
+                <div className="gps-success-badge">
+                  <span>✓ <strong>Ubicación detectada por GPS:</strong> {gpsDetectedBadge}</span>
                 </div>
-              ) : (
-                <div className="manual-address-section">
-                  <input
-                    type="text"
-                    placeholder="Escribe tu calle, jirón o barrio (ej. Av. Las Flores 450)"
-                    value={manualAddress}
-                    onChange={e => {
-                      setManualAddress(e.target.value);
-                      if (e.target.value.trim()) {
-                        setRegNeighborhood(e.target.value.trim());
-                      }
-                    }}
-                    className="auth-input"
-                    required
-                  />
-                  <small style={{ fontSize: '0.72rem', color: '#6b7280' }}>
-                    Se asignará tu cuadrante barrial aproximado de manera automática.
-                  </small>
+              )}
+
+              {gpsError && !isDetectingGps && (
+                <div className="gps-warning-badge">
+                  <span>⚠️ {gpsError}</span>
                 </div>
               )}
 
               <small className="field-note">
-                🛡️ Tu dirección exacta nunca se publicará ni se expondrá a terceros (Principio de Privacidad Ayni).
+                🛡️ Tu dirección se detecta automáticamente por GPS para conectarte con tus vecinos más cercanos. Puedes editarla si deseas.
               </small>
             </div>
 
