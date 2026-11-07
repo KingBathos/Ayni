@@ -23,7 +23,7 @@ export function getApiBaseUrl(): string {
   //   http://192.168.1.8:8000 — cámbiala desde la app en
   //   Perfil → "Configuración de Servidor API".
   if (Capacitor.isNativePlatform()) {
-    return 'http://10.0.2.2:8000';
+    return 'https://ayni-backend-e0ts.onrender.com';
   }
 
   return 'http://localhost:8000';
