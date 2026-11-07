@@ -1,7 +1,7 @@
 # AYNI - Plataforma de Colaboración Vecinal y Resiliencia Comunitaria
 *Propuesta y Prototipo para la Hackathon UTP – El Comercio 2026*
 
-Ayni es una plataforma web y móvil diseñada para conectar vecinos y comunidades locales bajo dos ejes centrales:
+Ayni es una plataforma web y aplicativo móvil diseñada para conectar vecinos y comunidades locales bajo dos ejes centrales:
 1. **Economía y empleabilidad de proximidad:** Descubrimiento de oficios locales (electricistas, gasfiteros, etc.) con contrataciones seguras y reputación verificada.
 2. **Solidaridad y funcionamiento offline-first:** Red comunitaria para avisos vecinales, peticiones solidarias de emergencia y simulación de conectividad store-and-forward / BLE mesh cuando cae el Internet.
 
