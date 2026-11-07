@@ -1,0 +1,65 @@
+name: Build Android APK
+
+# Se ejecuta automáticamente al hacer push a main/master,
+# y también puedes lanzarlo a mano desde la pestaña "Actions" de GitHub.
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Baja el código del repo
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      # 2. Node para construir la app web (React + Vite)
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Instalar dependencias web
+        run: npm install
+
+      # 3. Construye la web (genera la carpeta dist/)
+      - name: Construir web (vite build)
+        run: npm run build
+
+      # 4. Copia la web al proyecto Android nativo
+      - name: Sincronizar con Capacitor (cap sync)
+        run: npx cap sync android
+
+      # 5. Java (JDK 21) para compilar con Gradle
+      - name: Instalar JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      # 6. SDK de Android + aceptar licencias
+      - name: Preparar Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Instalar plataforma Android 36
+        run: sdkmanager "platform-tools" "platforms;android-36"
+
+      # 7. Compila el APK de depuración (instalable, sin firma de Play Store)
+      - name: Dar permisos a gradlew
+        run: chmod +x ./gradlew
+        working-directory: android
+
+      - name: Compilar APK (assembleDebug)
+        run: ./gradlew assembleDebug --stacktrace
+        working-directory: android
+
+      # 8. Sube el APK como artifact descargable
+      - name: Subir APK a Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ayni-app-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

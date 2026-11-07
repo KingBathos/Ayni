@@ -16,10 +16,14 @@ export function getApiBaseUrl(): string {
   const envUrl = (import.meta as any).env?.VITE_API_URL;
   if (envUrl) return envUrl.replace(/\/+$/, '');
 
-  // En Android nativo (celular físico o emulador) localhost apunta al propio teléfono.
-  // Usamos la IP de red local de tu PC para que el celular físico pueda conectarse.
+  // En Android nativo, "localhost" apunta al propio teléfono, no a tu PC.
+  // - EMULADOR de Android Studio: 10.0.2.2 es un alias que llega a tu PC (localhost del PC).
+  //   Funciona sin configurar nada, por eso es el valor por defecto.
+  // - CELULAR FÍSICO (mismo WiFi que la PC): usa la IP local de tu PC, p. ej.
+  //   http://192.168.1.8:8000 — cámbiala desde la app en
+  //   Perfil → "Configuración de Servidor API".
   if (Capacitor.isNativePlatform()) {
-    return 'http://192.168.1.63:8000';
+    return 'http://10.0.2.2:8000';
   }
 
   return 'http://localhost:8000';
