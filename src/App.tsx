@@ -10,18 +10,14 @@ import {
   AlertTriangle, 
   Star, 
   CheckCircle2, 
-  Clock, 
   Plus, 
   Search, 
-  Filter, 
-  Send, 
-  ArrowRight,
-  ShieldCheck,
   RefreshCw,
   Info,
   User as UserIcon,
-  LogOut,
-  LogIn
+  ShieldCheck,
+  BatteryMedium,
+  SignalHigh
 } from 'lucide-react';
 import { 
   INITIAL_SERVICES, 
@@ -35,10 +31,11 @@ import { AuthModal } from './AuthModal';
 import './App.css';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'services' | 'community' | 'solidarity' | 'map' | 'offline'>('services');
+  // Mobile Bottom Tabs: 'services' | 'solidarity' | 'community' | 'map' | 'offline'
+  const [activeTab, setActiveTab] = useState<'services' | 'solidarity' | 'community' | 'map' | 'offline'>('services');
   const [isOnline, setIsOnline] = useState<boolean>(true);
   
-  // Current Authenticated User state
+  // Current Authenticated User state (Starts with user logged in, can switch)
   const [currentUser, setCurrentUser] = useState<{
     name: string;
     documentNumber: string;
@@ -52,26 +49,26 @@ export function App() {
   });
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const selectedNeighborhood = currentUser ? currentUser.neighborhood : 'Sector Central / Santa Rosa';
-  
-  // Data states
+  const selectedNeighborhood = currentUser ? currentUser.neighborhood : 'Sector Central';
+
+  // Core Data States
   const [services, setServices] = useState<ServiceItem[]>(INITIAL_SERVICES);
   const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>(INITIAL_COMMUNITY_POSTS);
   const [helpRequests, setHelpRequests] = useState<HelpRequest[]>(INITIAL_HELP_REQUESTS);
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
   const [offlineQueue, setOfflineQueue] = useState<OfflineEnvelope[]>([]);
-  
-  // Filters & Search
+
+  // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  
+
   // Modals
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [selectedBookingForReview, setSelectedBookingForReview] = useState<Booking | null>(null);
-  
-  // Form States
+
+  // Forms
   const [newService, setNewService] = useState({
     title: '',
     categoryId: 'electricidad',
@@ -92,7 +89,7 @@ export function App() {
     comment: ''
   });
 
-  // Action: Request service (Creates a booking)
+  // Action: Request service
   const handleRequestService = (srv: ServiceItem) => {
     if (!currentUser) {
       setIsAuthModalOpen(true);
@@ -107,20 +104,18 @@ export function App() {
       providerId: srv.providerId,
       providerName: srv.providerName,
       status: 'solicitado',
-      date: 'Recién solicitado',
+      date: 'Hoy, ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       hasReview: false,
-      notes: 'Solicitud realizada a través de la red vecinal.'
+      notes: 'Solicitud realizada a través de la app Ayni.'
     };
     setBookings([newBooking, ...bookings]);
-    alert(`¡Solicitud enviada a ${srv.providerName}! Podrás verla en tus contrataciones activas.`);
+    alert(`¡Solicitud enviada a ${srv.providerName}!`);
   };
 
-  // Action: Complete service
   const handleCompleteBooking = (bookingId: string) => {
     setBookings(bookings.map(b => b.id === bookingId ? { ...b, status: 'completado' } : b));
   };
 
-  // Action: Add Review (Verified reputation)
   const handleSubmitReview = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBookingForReview) return;
@@ -129,7 +124,6 @@ export function App() {
       b.id === selectedBookingForReview.id ? { ...b, hasReview: true } : b
     ));
 
-    // Update provider's review count
     setServices(services.map(srv => {
       if (srv.id === selectedBookingForReview.serviceId) {
         const newCount = srv.reviewCount + 1;
@@ -142,10 +136,10 @@ export function App() {
     setIsReviewModalOpen(false);
     setSelectedBookingForReview(null);
     setReviewForm({ rating: 5, comment: '' });
-    alert('¡Valoración verificada registrada con éxito! Solo clientes con servicios cerrados pueden calificar.');
+    alert('¡Valoración verificada registrada!');
   };
 
-  // Action: Create Help Request (Supports OFFLINE-FIRST)
+  // Help Request (Online/Offline)
   const handleCreateHelp = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) {
@@ -167,28 +161,27 @@ export function App() {
 
     if (isOnline) {
       setHelpRequests([req, ...helpRequests]);
-      alert('¡Solicitud de ayuda solidaria publicada en la red comunitaria!');
+      alert('¡Solicitud de auxilio publicada!');
     } else {
-      // Offline queue simulation
       const envelope: OfflineEnvelope = {
         id: `env-${Date.now()}`,
         type: 'help_request',
         payload: req,
-        createdAt: new Date().toLocaleTimeString(),
+        createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         status: 'local',
         hops: 0,
         hopLimit: 4
       };
       setOfflineQueue([envelope, ...offlineQueue]);
       setHelpRequests([req, ...helpRequests]);
-      alert('⚠️ Sin conexión: Tu solicitud se ha guardado en el almacenamiento local SQLite/Store-and-forward. Se transmitirá por radio BLE o sincronizará cuando haya red.');
+      alert('⚠️ Guardado en SQLite local. Listo para retransmitir por BLE Store-and-Forward.');
     }
 
     setIsHelpModalOpen(false);
     setNewHelp({ type: 'agua', description: '', urgency: 'alta' });
   };
 
-  // Action: Create New Service
+  // Create Service
   const handleCreateService = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) {
@@ -221,17 +214,16 @@ export function App() {
       priceType: 'fixed',
       coverageArea: 'Radio 2 km'
     });
-    alert('¡Tu servicio ha sido publicado en el catálogo vecinal!');
+    alert('¡Servicio publicado!');
   };
 
-  // Offline mesh simulation triggers
+  // Mesh relay simulation
   const handleSimulateMeshRelay = (envelopeId: string) => {
     setOfflineQueue(offlineQueue.map(env => {
       if (env.id === envelopeId) {
-        const nextHops = env.hops + 1;
         return { 
           ...env, 
-          hops: nextHops, 
+          hops: env.hops + 1, 
           status: 'retransmitido' 
         };
       }
@@ -241,14 +233,13 @@ export function App() {
 
   const handleSyncOnline = () => {
     if (!isOnline) {
-      alert('Debes activar la conexión a Internet primero para sincronizar con el servidor central.');
+      alert('Activa la conexión para sincronizar con la nube central.');
       return;
     }
     setOfflineQueue(offlineQueue.map(env => ({ ...env, status: 'sincronizado' })));
-    alert('¡Todos los paquetes locales pendientes han sido sincronizados con la API central de Ayni!');
+    alert('¡Cola de paquetes sincronizada!');
   };
 
-  // Filtered Services
   const filteredServices = services.filter(srv => {
     const matchesCategory = selectedCategory === 'all' || srv.categoryId === selectedCategory;
     const matchesSearch = srv.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -258,356 +249,204 @@ export function App() {
   });
 
   return (
-    <div className="app-container">
-      {/* Header */}
-      <header className="app-header">
-        <div className="brand-section">
-          {/* Logo brand with identical colors */}
-          <div className="header-logo-container" onClick={() => setIsAuthModalOpen(true)} title="Ver Identidad Ayni">
-            <div className="header-mini-rings">
-              <div className="mini-ring red"></div>
-              <div className="mini-ring gold"></div>
-            </div>
-            <div>
-              <span className="header-brand-name">
-                <span style={{ color: '#c0152f' }}>a</span>
-                <span style={{ color: '#e59d18' }}>y</span>
-                <span style={{ color: '#c0152f' }}>n</span>
-                <span style={{ color: '#e59d18' }}>i</span>
-              </span>
-              <span className="header-brand-tagline">Hoy por ti, mañana por mí</span>
-            </div>
+    <div className="mobile-device-wrapper">
+      
+      {/* Phone Status Bar (Mock Native iOS/Android) */}
+      <div className="phone-status-bar">
+        <span>09:41</span>
+        <div className="status-notch"></div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <SignalHigh size={12} />
+          <BatteryMedium size={14} />
+        </div>
+      </div>
+
+      {/* Top Mobile Header */}
+      <header className="mobile-header">
+        <div className="mobile-brand-pill" onClick={() => setIsAuthModalOpen(true)}>
+          <div className="mobile-mini-rings">
+            <div className="m-ring red"></div>
+            <div className="m-ring gold"></div>
+          </div>
+          <div className="mobile-logo-text">
+            <span style={{ color: '#c0152f' }}>a</span>
+            <span style={{ color: '#e59d18' }}>y</span>
+            <span style={{ color: '#c0152f' }}>n</span>
+            <span style={{ color: '#e59d18' }}>i</span>
           </div>
         </div>
 
-        <div className="header-status-bar">
-          <div className="location-chip">
-            <MapPin size={16} />
-            <span>{selectedNeighborhood}</span>
-          </div>
-
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button 
-            className={`offline-toggle-btn ${isOnline ? 'online' : 'offline'}`}
+            className={`offline-pill ${isOnline ? 'online' : 'offline'}`}
             onClick={() => setIsOnline(!isOnline)}
-            title="Alternar simulación de conectividad a Internet"
+            title="Toca para simular corte de Internet"
           >
             {isOnline ? (
               <>
-                <Wifi size={16} />
-                <span>En Línea</span>
+                <Wifi size={12} />
+                <span>Online</span>
               </>
             ) : (
               <>
-                <WifiOff size={16} />
-                <span>Modo Offline (BLE)</span>
+                <WifiOff size={12} />
+                <span>Offline BLE</span>
               </>
             )}
           </button>
 
-          {currentUser ? (
-            <div className="user-profile-badge" onClick={() => setIsAuthModalOpen(true)}>
-              <UserIcon size={16} />
-              <span className="user-profile-name">{currentUser.name}</span>
-            </div>
-          ) : (
-            <button className="btn btn-primary" style={{ padding: '6px 14px' }} onClick={() => setIsAuthModalOpen(true)}>
-              <LogIn size={14} /> Ingresar
-            </button>
-          )}
+          <div 
+            onClick={() => setIsAuthModalOpen(true)}
+            style={{ 
+              width: '30px', 
+              height: '30px', 
+              borderRadius: '50%', 
+              background: '#f1f5f9', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              cursor: 'pointer',
+              border: '1.5px solid #cbd5e1'
+            }}
+          >
+            <UserIcon size={16} color="#334155" />
+          </div>
         </div>
       </header>
 
       {/* Offline Alert Strip */}
       {!isOnline && (
-        <div className="offline-banner">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Radio size={18} />
-            <strong>Operando en modo de emergencia / sin conectividad:</strong> Las funciones esenciales se guardan localmente y operan vía BLE/Mesh vecinal.
+        <div className="mobile-offline-banner">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Radio size={14} color="#b91c1c" />
+            <span>Sin Internet: Operando vía BLE local</span>
           </div>
           <button 
-            className="btn btn-outline" 
-            style={{ padding: '4px 10px', fontSize: '0.75rem', borderColor: '#fde68a' }}
             onClick={() => setActiveTab('offline')}
+            style={{ background: 'none', border: 'none', color: '#c0152f', fontWeight: 'bold', fontSize: '0.7rem', cursor: 'pointer' }}
           >
-            Ver Centro de Conectividad ({offlineQueue.filter(q => q.status !== 'sincronizado').length} pendientes)
+            Ver cola ({offlineQueue.filter(q => q.status !== 'sincronizado').length})
           </button>
         </div>
       )}
 
-      {/* Navigation tabs */}
-      <nav className="nav-bar">
-        <button 
-          className={`nav-tab ${activeTab === 'services' ? 'active' : ''}`}
-          onClick={() => setActiveTab('services')}
-        >
-          <Store size={18} />
-          <span>Servicios y Oficios</span>
-        </button>
+      {/* Mobile Screen Scrollable View */}
+      <div className="mobile-screen-body">
 
-        <button 
-          className={`nav-tab ${activeTab === 'solidarity' ? 'active' : ''}`}
-          onClick={() => setActiveTab('solidarity')}
-        >
-          <HeartHandshake size={18} />
-          <span>Ayuda Solidaria</span>
-          {helpRequests.filter(h => h.status === 'abierta').length > 0 && (
-            <span className="badge badge-warning">{helpRequests.filter(h => h.status === 'abierta').length}</span>
-          )}
-        </button>
-
-        <button 
-          className={`nav-tab ${activeTab === 'community' ? 'active' : ''}`}
-          onClick={() => setActiveTab('community')}
-        >
-          <Users size={18} />
-          <span>Tablón Comunitario</span>
-        </button>
-
-        <button 
-          className={`nav-tab ${activeTab === 'map' ? 'active' : ''}`}
-          onClick={() => setActiveTab('map')}
-        >
-          <MapPin size={18} />
-          <span>Mapa de Cobertura</span>
-        </button>
-
-        <button 
-          className={`nav-tab ${activeTab === 'offline' ? 'active' : ''}`}
-          onClick={() => setActiveTab('offline')}
-        >
-          <Radio size={18} />
-          <span>Centro Offline & BLE</span>
-          {offlineQueue.filter(q => q.status !== 'sincronizado').length > 0 && (
-            <span className="badge badge-danger">{offlineQueue.filter(q => q.status !== 'sincronizado').length}</span>
-          )}
-        </button>
-      </nav>
-
-      {/* Main Content Area */}
-      <main className="main-content">
-        
-        {/* ================= TAB 1: SERVICIOS Y ECONOMÍA LOCAL ================= */}
+        {/* ================= TAB 1: SERVICIOS Y OFICIOS ================= */}
         {activeTab === 'services' && (
           <div>
-            <div className="section-header">
-              <div>
-                <h2 className="section-title">Oportunidades y Servicios Locales</h2>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-                  Conecta con trabajadores y técnicos de tu propio barrio sin comisiones abusivas.
-                </p>
-              </div>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button className="btn btn-primary" onClick={() => setIsServiceModalOpen(true)}>
-                  <Plus size={16} /> Ofrecer un Servicio
-                </button>
-              </div>
+            {/* Search Input */}
+            <div style={{ position: 'relative', marginBottom: '10px' }}>
+              <Search size={15} style={{ position: 'absolute', left: '10px', top: '12px', color: '#94a3b8' }} />
+              <input 
+                type="text" 
+                placeholder="Buscar electricista, gasfitero..."
+                className="m-search-input"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
 
-            {/* Filter Pills & Search */}
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
-              <div style={{ position: 'relative', minWidth: '260px' }}>
-                <Search size={16} style={{ position: 'absolute', left: '12px', top: '11px', color: 'var(--text-muted)' }} />
-                <input 
-                  type="text" 
-                  placeholder="Buscar por oficio, técnico o palabra clave..." 
-                  className="form-control"
-                  style={{ paddingLeft: '36px' }}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {/* Category horizontal scrolling pills */}
+            <div className="horizontal-scroll">
+              <button 
+                className={`m-pill ${selectedCategory === 'all' ? 'active' : ''}`}
+                onClick={() => setSelectedCategory('all')}
+              >
+                Todos
+              </button>
+              {INITIAL_CATEGORIES.map(cat => (
                 <button 
-                  className={`pill-filter ${selectedCategory === 'all' ? 'active' : ''}`}
-                  onClick={() => setSelectedCategory('all')}
+                  key={cat.id} 
+                  className={`m-pill ${selectedCategory === cat.id ? 'active' : ''}`}
+                  onClick={() => setSelectedCategory(cat.id)}
                 >
-                  Todas las categorías
+                  {cat.name}
                 </button>
-                {INITIAL_CATEGORIES.map(cat => (
-                  <button 
-                    key={cat.id} 
-                    className={`pill-filter ${selectedCategory === cat.id ? 'active' : ''}`}
-                    onClick={() => setSelectedCategory(cat.id)}
-                  >
-                    {cat.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* List of Services */}
-            <div className="grid-3">
-              {filteredServices.map(srv => (
-                <div key={srv.id} className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                      <span className="badge badge-primary">
-                        {INITIAL_CATEGORIES.find(c => c.id === srv.categoryId)?.name || 'Oficio'}
-                      </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', fontWeight: 'bold', color: '#b45309' }}>
-                        <Star size={15} fill="#f59e0b" color="#f59e0b" />
-                        <span>{srv.rating}</span>
-                        <span style={{ color: 'var(--text-muted)', fontWeight: 'normal' }}>({srv.reviewCount})</span>
-                      </div>
-                    </div>
-
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '6px', color: '#1e293b' }}>
-                      {srv.title}
-                    </h3>
-                    <p style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '12px', lineHeight: '1.4' }}>
-                      {srv.description}
-                    </p>
-
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                      <strong>Proveedor:</strong> {srv.providerName}
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '14px' }}>
-                      <MapPin size={14} />
-                      <span>{srv.neighborhood} • {srv.coverageArea}</span>
-                    </div>
-                  </div>
-
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Tarifa estimada</span>
-                      <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--primary)' }}>
-                        {srv.priceType === 'fixed' ? `S/ ${srv.priceAmount}` : 'A cotizar'}
-                      </span>
-                    </div>
-
-                    <button className="btn btn-primary" onClick={() => handleRequestService(srv)}>
-                      Solicitar
-                    </button>
-                  </div>
-                </div>
               ))}
             </div>
 
-            {/* User's Bookings & Verifiable Reputation Flow */}
-            <div style={{ marginTop: '36px' }}>
-              <div className="section-header">
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <ShieldCheck size={20} color="var(--primary)" />
-                  Tus Contrataciones y Reputación Verificada
-                </h3>
-              </div>
+            {/* Service Cards */}
+            {filteredServices.map(srv => (
+              <div key={srv.id} className="m-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+                  <span className="m-badge m-badge-primary">
+                    {INITIAL_CATEGORIES.find(c => c.id === srv.categoryId)?.name || 'Oficio'}
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.75rem', fontWeight: 700, color: '#b45309' }}>
+                    <Star size={13} fill="#f59e0b" color="#f59e0b" />
+                    <span>{srv.rating}</span>
+                    <span style={{ color: '#94a3b8', fontWeight: 'normal' }}>({srv.reviewCount})</span>
+                  </div>
+                </div>
 
-              <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
-                  <thead style={{ background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
-                    <tr>
-                      <th style={{ padding: '12px 16px' }}>Servicio</th>
-                      <th style={{ padding: '12px 16px' }}>Proveedor</th>
-                      <th style={{ padding: '12px 16px' }}>Fecha</th>
-                      <th style={{ padding: '12px 16px' }}>Estado</th>
-                      <th style={{ padding: '12px 16px', textAlign: 'right' }}>Acción</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bookings.map(b => (
-                      <tr key={b.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '12px 16px', fontWeight: 600 }}>{b.serviceTitle}</td>
-                        <td style={{ padding: '12px 16px' }}>{b.providerName}</td>
-                        <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>{b.date}</td>
-                        <td style={{ padding: '12px 16px' }}>
-                          {b.status === 'completado' && <span className="badge badge-success">Completado</span>}
-                          {b.status === 'en_proceso' && <span className="badge badge-warning">En proceso</span>}
-                          {b.status === 'solicitado' && <span className="badge badge-primary">Solicitado</span>}
-                        </td>
-                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                          {b.status === 'en_proceso' || b.status === 'solicitado' ? (
-                            <button 
-                              className="btn btn-outline" 
-                              style={{ fontSize: '0.8rem', padding: '4px 10px' }}
-                              onClick={() => handleCompleteBooking(b.id)}
-                            >
-                              <CheckCircle2 size={14} color="#10b981" /> Marcar Realizado
-                            </button>
-                          ) : !b.hasReview ? (
-                            <button 
-                              className="btn btn-primary" 
-                              style={{ fontSize: '0.8rem', padding: '4px 10px' }}
-                              onClick={() => {
-                                setSelectedBookingForReview(b);
-                                setIsReviewModalOpen(true);
-                              }}
-                            >
-                              <Star size={14} /> Dejar Valoración
-                            </button>
-                          ) : (
-                            <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600 }}>
-                              ✓ Calificado
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
+                <h4 style={{ fontSize: '0.92rem', fontWeight: 700, marginBottom: '4px', color: '#0f172a' }}>
+                  {srv.title}
+                </h4>
 
-        {/* ================= TAB 2: AYUDA SOLIDARIA ================= */}
-        {activeTab === 'solidarity' && (
-          <div>
-            <div className="section-header">
-              <div>
-                <h2 className="section-title">Cadena de Favores y Solidaridad Vecinal</h2>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-                  Peticiones no comerciales de asistencia ante emergencias o necesidades comunitarias.
+                <p style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '10px', lineHeight: '1.3' }}>
+                  {srv.description}
                 </p>
-              </div>
-              <button className="btn btn-primary" onClick={() => setIsHelpModalOpen(true)}>
-                <Plus size={16} /> Solicitar Ayuda Mutua
-              </button>
-            </div>
 
-            <div className="grid-2">
-              {helpRequests.map(req => (
-                <div key={req.id} className="card" style={{ borderLeft: req.urgency === 'alta' ? '4px solid #ef4444' : '4px solid #f59e0b' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <span className={`badge ${req.urgency === 'alta' ? 'badge-danger' : 'badge-warning'}`}>
-                        Urgencia {req.urgency.toUpperCase()}
-                      </span>
-                      <span className="badge badge-primary">
-                        Necesidad: {req.type.toUpperCase()}
-                      </span>
-                      {req.isOfflineCreated && (
-                        <span className="badge badge-warning" title="Creado sin conexión a Internet">
-                          <Radio size={12} /> Creado Offline
-                        </span>
-                      )}
-                    </div>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{req.date}</span>
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: '#64748b', marginBottom: '10px' }}>
+                  <MapPin size={12} color="#c0152f" />
+                  <span>{srv.neighborhood}</span>
+                </div>
 
-                  <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '6px' }}>{req.description}</h3>
-
-                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '14px' }}>
-                    <span>Publicado por <strong>{req.authorName}</strong> en <em>{req.neighborhood}</em></span>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: '10px' }}>
-                    <span style={{ fontSize: '0.82rem' }}>
-                      Estado: <strong>{req.status === 'abierta' ? 'Esperando voluntario' : req.status === 'en_coordinacion' ? `Coordinando con ${req.helperName}` : 'Atendida'}</strong>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '8px' }}>
+                  <div>
+                    <span style={{ fontSize: '0.65rem', color: '#94a3b8', display: 'block' }}>Estimado</span>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#c0152f' }}>
+                      {srv.priceType === 'fixed' ? `S/ ${srv.priceAmount}` : 'A cotizar'}
                     </span>
+                  </div>
+                  <button className="m-btn m-btn-primary" style={{ padding: '6px 12px' }} onClick={() => handleRequestService(srv)}>
+                    Solicitar
+                  </button>
+                </div>
+              </div>
+            ))}
 
-                    {req.status === 'abierta' && (
+            {/* My Active Bookings Section */}
+            <div style={{ marginTop: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                <ShieldCheck size={16} color="#c0152f" />
+                <h4 style={{ fontSize: '0.88rem', fontWeight: 700 }}>Tus Solicitudes & Calificación</h4>
+              </div>
+
+              {bookings.map(b => (
+                <div key={b.id} className="m-card" style={{ background: '#fff', borderLeft: '4px solid #c0152f' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>{b.serviceTitle}</span>
+                    <span className="m-badge m-badge-gold">{b.status}</span>
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '8px' }}>
+                    Técnico: <strong>{b.providerName}</strong> • {b.date}
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
+                    {b.status === 'en_proceso' || b.status === 'solicitado' ? (
                       <button 
-                        className="btn btn-outline" 
-                        style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+                        className="m-btn m-btn-outline" 
+                        style={{ fontSize: '0.72rem', padding: '4px 8px' }}
+                        onClick={() => handleCompleteBooking(b.id)}
+                      >
+                        <CheckCircle2 size={12} color="#10b981" /> Marcar Trabajo Listo
+                      </button>
+                    ) : !b.hasReview ? (
+                      <button 
+                        className="m-btn m-btn-primary" 
+                        style={{ fontSize: '0.72rem', padding: '4px 8px' }}
                         onClick={() => {
-                          setHelpRequests(helpRequests.map(h => h.id === req.id ? { ...h, status: 'en_coordinacion', helperName: currentUser?.name || 'Tú' } : h));
-                          alert('¡Gracias por brindar tu ayuda! Se ha abierto el canal de coordinación.');
+                          setSelectedBookingForReview(b);
+                          setIsReviewModalOpen(true);
                         }}
                       >
-                        <HeartHandshake size={14} color="var(--primary)" /> Ofrecer mi apoyo
+                        <Star size={12} /> Calificar (Verificada)
                       </button>
+                    ) : (
+                      <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 700 }}>✓ Evaluado</span>
                     )}
                   </div>
                 </div>
@@ -616,175 +455,251 @@ export function App() {
           </div>
         )}
 
+        {/* ================= TAB 2: AYUDA SOLIDARIA ================= */}
+        {activeTab === 'solidarity' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Red de Auxilio Vecinal</h3>
+                <p style={{ fontSize: '0.72rem', color: '#64748b' }}>Cadena de favores no comercial</p>
+              </div>
+              <button className="m-btn m-btn-primary" style={{ padding: '6px 10px', fontSize: '0.75rem' }} onClick={() => setIsHelpModalOpen(true)}>
+                <Plus size={14} /> Pedir Ayuda
+              </button>
+            </div>
+
+            {helpRequests.map(req => (
+              <div key={req.id} className="m-card" style={{ borderLeft: req.urgency === 'alta' ? '4px solid #ef4444' : '4px solid #e59d18' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <span className={`m-badge ${req.urgency === 'alta' ? 'm-badge-urgent' : 'm-badge-gold'}`}>
+                      {req.urgency.toUpperCase()}
+                    </span>
+                    <span className="m-badge m-badge-primary">{req.type}</span>
+                  </div>
+                  <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>{req.date}</span>
+                </div>
+
+                <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#1e293b', margin: '6px 0' }}>
+                  {req.description}
+                </p>
+
+                <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '8px' }}>
+                  Por: <strong>{req.authorName}</strong> ({req.neighborhood})
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '6px' }}>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                    {req.status === 'abierta' ? 'Esperando apoyo' : `En curso con ${req.helperName}`}
+                  </span>
+
+                  {req.status === 'abierta' && (
+                    <button 
+                      className="m-btn m-btn-outline" 
+                      style={{ fontSize: '0.72rem', padding: '4px 8px' }}
+                      onClick={() => {
+                        setHelpRequests(helpRequests.map(h => h.id === req.id ? { ...h, status: 'en_coordinacion', helperName: currentUser?.name || 'Tú' } : h));
+                        alert('¡Apoyo ofrecido!');
+                      }}
+                    >
+                      <HeartHandshake size={12} color="#c0152f" /> Apoyar
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* ================= TAB 3: TABLÓN COMUNITARIO ================= */}
         {activeTab === 'community' && (
           <div>
-            <div className="section-header">
-              <div>
-                <h2 className="section-title">Anuncios y Alertas Comunitarias</h2>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-                  Avisos de cortes de suministros, comunicados vecinales y reportes oficiales verificados.
-                </p>
-              </div>
+            <div style={{ marginBottom: '12px' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Avisos y Alertas Barriales</h3>
+              <p style={{ fontSize: '0.72rem', color: '#64748b' }}>Cortes de servicios y noticias de la zona</p>
             </div>
 
-            <div className="grid-2">
-              {communityPosts.map(post => (
-                <div key={post.id} className="card">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span className={`badge ${post.verificationStatus === 'corroborado' ? 'badge-success' : 'badge-warning'}`}>
-                      {post.verificationStatus === 'corroborado' ? '✓ Corroborado por vecinos' : 'Aviso reportado'}
-                    </span>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{post.date}</span>
-                  </div>
-
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '8px', color: '#1e293b' }}>
-                    {post.title}
-                  </h3>
-                  <p style={{ fontSize: '0.88rem', color: '#475569', marginBottom: '12px' }}>
-                    {post.body}
-                  </p>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    <span>Emisor: <strong>{post.authorName}</strong> ({post.neighborhood})</span>
-                    <button 
-                      className="btn btn-outline" 
-                      style={{ fontSize: '0.75rem', padding: '4px 8px' }}
-                      onClick={() => {
-                        setCommunityPosts(communityPosts.map(p => p.id === post.id ? { ...p, corroborations: p.corroborations + 1, verificationStatus: 'corroborado' } : p));
-                      }}
-                    >
-                      👍 Corroborar ({post.corroborations})
-                    </button>
-                  </div>
+            {communityPosts.map(post => (
+              <div key={post.id} className="m-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span className={`m-badge ${post.verificationStatus === 'corroborado' ? 'm-badge-success' : 'm-badge-gold'}`}>
+                    {post.verificationStatus === 'corroborado' ? '✓ Corroborado' : 'Aviso vecinal'}
+                  </span>
+                  <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>{post.date}</span>
                 </div>
-              ))}
-            </div>
+
+                <h4 style={{ fontSize: '0.88rem', fontWeight: 700, margin: '4px 0', color: '#0f172a' }}>
+                  {post.title}
+                </h4>
+
+                <p style={{ fontSize: '0.78rem', color: '#475569', marginBottom: '8px' }}>
+                  {post.body}
+                </p>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.7rem', color: '#94a3b8' }}>
+                  <span>{post.authorName}</span>
+                  <button 
+                    className="m-btn m-btn-outline" 
+                    style={{ fontSize: '0.68rem', padding: '3px 6px' }}
+                    onClick={() => {
+                      setCommunityPosts(communityPosts.map(p => p.id === post.id ? { ...p, corroborations: p.corroborations + 1, verificationStatus: 'corroborado' } : p));
+                    }}
+                  >
+                    👍 Corroborar ({post.corroborations})
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
-        {/* ================= TAB 4: MAPA DE COBERTURA ================= */}
+        {/* ================= TAB 4: MAPA ================= */}
         {activeTab === 'map' && (
           <div>
-            <div className="section-header">
-              <div>
-                <h2 className="section-title">Mapa Comunitario de Proximidad</h2>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-                  Muestra zonas y cobertura aproximada protegiendo la privacidad y domicilio exacto de los vecinos.
-                </p>
-              </div>
+            <div style={{ marginBottom: '10px' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Mapa de Proximidad Vecinal</h3>
+              <p style={{ fontSize: '0.72rem', color: '#64748b' }}>Privacidad garantizada: no muestra domicilios exactos</p>
             </div>
 
-            <div className="map-canvas">
-              <div style={{ position: 'absolute', top: '16px', left: '16px', background: 'rgba(255,255,255,0.95)', padding: '8px 14px', borderRadius: '8px', fontSize: '0.82rem', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
-                <strong>Sector:</strong> {selectedNeighborhood} • Cuadrante Seguro
+            <div className="mobile-map-box">
+              <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'rgba(255,255,255,0.95)', padding: '4px 8px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 700 }}>
+                {selectedNeighborhood}
               </div>
 
-              {/* Mock interactive pins */}
-              <div className="map-node" style={{ top: '35%', left: '30%' }} onClick={() => alert('Electricista: José Ramírez\nCobertura: Radio 3km\nValoración: 4.9')}>
-                <Store size={14} color="var(--primary)" />
-                <span>José Ramírez (Electricidad)</span>
+              <div className="m-pin" style={{ top: '30%', left: '35%' }} onClick={() => alert('Electricista: José Ramírez')}>
+                <Store size={12} color="#c0152f" />
+                <span>José (Luz)</span>
               </div>
 
-              <div className="map-node" style={{ top: '60%', left: '55%' }} onClick={() => alert('Gasfitería: Carmen Morales\nCobertura: Sector Central\nValoración: 4.8')}>
-                <Store size={14} color="var(--primary)" />
-                <span>Carmen Morales (Gasfitería)</span>
+              <div className="m-pin" style={{ top: '55%', left: '60%' }} onClick={() => alert('Gasfitería: Carmen Morales')}>
+                <Store size={12} color="#c0152f" />
+                <span>Carmen (Agua)</span>
               </div>
 
-              <div className="map-node solidarity" style={{ top: '45%', left: '75%' }} onClick={() => alert('Alerta Solidaria: Familia Mendoza necesita agua potable')}>
-                <AlertTriangle size={14} color="#ef4444" />
-                <span>Urgente: Agua Potable</span>
-              </div>
-
-              <div className="map-node" style={{ top: '75%', left: '25%' }} onClick={() => alert('Carpintería: Pedro Quispe\nCobertura: Todo el distrito')}>
-                <Store size={14} color="var(--primary)" />
-                <span>Pedro Quispe (Melamina)</span>
-              </div>
-
-              <div style={{ position: 'absolute', bottom: '16px', right: '16px', background: 'rgba(255,255,255,0.9)', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Simulación cartográfica OpenStreetMap / PostGIS
+              <div className="m-pin solidarity" style={{ top: '75%', left: '40%' }} onClick={() => alert('Alerta de Agua Potable')}>
+                <AlertTriangle size={12} color="#e59d18" />
+                <span>Auxilio Agua</span>
               </div>
             </div>
           </div>
         )}
 
-        {/* ================= TAB 5: CENTRO OFFLINE & STORE-AND-FORWARD ================= */}
+        {/* ================= TAB 5: CENTRO OFFLINE & BLE ================= */}
         {activeTab === 'offline' && (
           <div>
-            <div className="section-header">
-              <div>
-                <h2 className="section-title">Centro de Conectividad & Protocolo Resiliente (BLE/Mesh)</h2>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-                  Arquitectura tolerante a desconexiones: almacena en cola local, retransmite por saltos (Store-and-Forward) y sincroniza al volver Internet.
-                </p>
-              </div>
-
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button className="btn btn-outline" onClick={handleSyncOnline}>
-                  <RefreshCw size={16} /> Sincronizar Cola al Servidor
-                </button>
-              </div>
+            <div style={{ marginBottom: '12px' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Centro de Red Offline (BLE)</h3>
+              <p style={{ fontSize: '0.72rem', color: '#64748b' }}>Store-and-forward tolerante a desastres y cortes</p>
             </div>
 
-            <div style={{ background: '#f1f5f9', padding: '16px', borderRadius: 'var(--radius)', marginBottom: '24px', display: 'flex', gap: '16px', alignItems: 'center' }}>
-              <Info size={24} color="var(--primary)" />
-              <div style={{ fontSize: '0.85rem', color: '#334155' }}>
-                <strong>¿Cómo funciona el diferenciador técnico de Ayni?</strong><br />
-                En casos de cortes masivos de red (desastres, fallas de suministro), los mensajes se firman en sobres criptográficos locales. Al cruzarte físicamente con otro vecino que tenga la app con Bluetooth LE activado, los paquetes se intercambian de forma anónima hasta alcanzar un nodo con conexión a Internet.
-              </div>
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', padding: '10px', borderRadius: '10px', marginBottom: '12px', fontSize: '0.72rem', color: '#991b1b' }}>
+              <Radio size={14} style={{ display: 'inline', marginRight: '4px' }} />
+              <strong>Protocolo Mesh Directo:</strong> Los teléfonos intercambian sobres cifrados vía Bluetooth al cruzarse en la calle.
             </div>
 
-            <div className="card">
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '14px' }}>
-                Cola Local de Retransmisión (Sobres en Espera de Tránsito)
-              </h3>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+              <button className="m-btn m-btn-outline" style={{ fontSize: '0.75rem' }} onClick={handleSyncOnline}>
+                <RefreshCw size={12} /> Sincronizar cola al servidor
+              </button>
+            </div>
 
-              {offlineQueue.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
-                  <Radio size={36} style={{ margin: '0 auto 10px', display: 'block', opacity: 0.5 }} />
-                  No hay paquetes pendientes en la cola local. Todas las solicitudes están sincronizadas con la nube.
+            {offlineQueue.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px 10px', color: '#94a3b8', fontSize: '0.78rem' }}>
+                <Radio size={30} style={{ margin: '0 auto 6px', display: 'block', opacity: 0.4 }} />
+                No hay paquetes en espera. Todo sincronizado.
+              </div>
+            ) : (
+              offlineQueue.map(item => (
+                <div key={item.id} className="m-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>Sobre {item.id.slice(-6)}</span>
+                    <span className={`m-badge ${item.status === 'sincronizado' ? 'm-badge-success' : 'm-badge-gold'}`}>
+                      {item.status.toUpperCase()}
+                    </span>
+                  </div>
+
+                  <p style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                    {item.payload.description}
+                  </p>
+
+                  <div style={{ fontSize: '0.68rem', color: '#94a3b8', margin: '4px 0' }}>
+                    Saltos: {item.hops} de {item.hopLimit} • {item.createdAt}
+                  </div>
+
+                  {item.status !== 'sincronizado' && (
+                    <button 
+                      className="m-btn m-btn-primary" 
+                      style={{ fontSize: '0.7rem', padding: '4px 8px', marginTop: '6px', width: '100%' }}
+                      onClick={() => handleSimulateMeshRelay(item.id)}
+                    >
+                      <Radio size={12} /> Simular Salto Bluetooth Vecino (+1 Salto)
+                    </button>
+                  )}
                 </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {offlineQueue.map(item => (
-                    <div key={item.id} style={{ border: '1px solid var(--border)', borderRadius: '8px', padding: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                      <div>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '4px' }}>
-                          <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Sobre #{item.id}</span>
-                          <span className={`badge ${item.status === 'sincronizado' ? 'badge-success' : item.status === 'retransmitido' ? 'badge-primary' : 'badge-warning'}`}>
-                            {item.status.toUpperCase()}
-                          </span>
-                        </div>
-                        <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                          <strong>Contenido:</strong> Solicitud de {item.payload.type} - "{item.payload.description.slice(0, 45)}..."
-                        </p>
-                        <p style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                          Saltos efectuados: <strong>{item.hops}</strong> de máx {item.hopLimit} • Creado: {item.createdAt}
-                        </p>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        {item.status !== 'sincronizado' && (
-                          <button 
-                            className="btn btn-outline" 
-                            style={{ fontSize: '0.78rem', padding: '6px 12px' }}
-                            onClick={() => handleSimulateMeshRelay(item.id)}
-                            title="Simula que este teléfono transmitió por Bluetooth el paquete a un vecino cercano"
-                          >
-                            <Radio size={14} /> Simular Salto Bluetooth (+1 Salto)
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+              ))
+            )}
           </div>
         )}
-      </main>
 
-      {/* ================= MODAL DE INICIO DE SESIÓN / REGISTRO (IDENTIDAD AYNI) ================= */}
+      </div>
+
+      {/* Floating Action Button for Services tab */}
+      {activeTab === 'services' && (
+        <button 
+          className="mobile-fab" 
+          onClick={() => setIsServiceModalOpen(true)}
+          title="Ofrecer Servicio"
+        >
+          <Plus size={24} />
+        </button>
+      )}
+
+      {/* Mobile Bottom Navigation Bar (5 Primary Tabs) */}
+      <nav className="mobile-bottom-nav">
+        <button 
+          className={`nav-item-btn ${activeTab === 'services' ? 'active' : ''}`}
+          onClick={() => setActiveTab('services')}
+        >
+          <Store size={20} />
+          <span>Servicios</span>
+        </button>
+
+        <button 
+          className={`nav-item-btn ${activeTab === 'solidarity' ? 'active' : ''}`}
+          onClick={() => setActiveTab('solidarity')}
+        >
+          <HeartHandshake size={20} />
+          <span>Solidaridad</span>
+          {helpRequests.filter(h => h.status === 'abierta').length > 0 && <div className="nav-dot" />}
+        </button>
+
+        <button 
+          className={`nav-item-btn ${activeTab === 'community' ? 'active' : ''}`}
+          onClick={() => setActiveTab('community')}
+        >
+          <Users size={20} />
+          <span>Comunidad</span>
+        </button>
+
+        <button 
+          className={`nav-item-btn ${activeTab === 'map' ? 'active' : ''}`}
+          onClick={() => setActiveTab('map')}
+        >
+          <MapPin size={20} />
+          <span>Mapa</span>
+        </button>
+
+        <button 
+          className={`nav-item-btn ${activeTab === 'offline' ? 'active' : ''}`}
+          onClick={() => setActiveTab('offline')}
+        >
+          <Radio size={20} />
+          <span>Offline BLE</span>
+          {offlineQueue.filter(q => q.status !== 'sincronizado').length > 0 && <div className="nav-dot" />}
+        </button>
+      </nav>
+
+      {/* ================= MODAL DE INICIO DE SESIÓN / REGISTRO ================= */}
       {isAuthModalOpen && (
         <AuthModal 
           onSuccess={(user) => {
@@ -795,193 +710,167 @@ export function App() {
         />
       )}
 
-      {/* ================= MODAL: PUBLICAR SERVICIO ================= */}
+      {/* Modal: Publicar Servicio */}
       {isServiceModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '16px' }}>Publicar Oferta de Servicio Vecinal</h3>
-            <form onSubmit={handleCreateService}>
-              <div className="form-group">
-                <label>Título del Servicio o Habilidad</label>
+        <div className="auth-overlay">
+          <div className="auth-card" style={{ maxWidth: '360px', padding: '24px 20px' }}>
+            <button className="auth-close-btn" onClick={() => setIsServiceModalOpen(false)}>✕</button>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '14px', textTransform: 'uppercase', color: '#0f172a' }}>
+              Ofrecer Servicio Local
+            </h3>
+            <form onSubmit={handleCreateService} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div className="auth-field">
+                <label>OFICIO O ESPECIALIDAD</label>
                 <input 
                   type="text" 
-                  required
-                  placeholder="Ej: Reparación de cerraduras y puertas"
-                  className="form-control"
+                  required 
+                  placeholder="Ej: Pintor de interiores"
+                  className="auth-input"
                   value={newService.title}
                   onChange={e => setNewService({ ...newService, title: e.target.value })}
                 />
               </div>
 
-              <div className="form-group">
-                <label>Categoría</label>
-                <select 
-                  className="form-control"
-                  value={newService.categoryId}
-                  onChange={e => setNewService({ ...newService, categoryId: e.target.value })}
-                >
-                  {INITIAL_CATEGORIES.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+              <div className="auth-field">
+                <label>CATEGORÍA</label>
+                <div className="select-wrapper">
+                  <select 
+                    className="auth-input select-input"
+                    value={newService.categoryId}
+                    onChange={e => setNewService({ ...newService, categoryId: e.target.value })}
+                  >
+                    {INITIAL_CATEGORIES.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  <div className="select-arrow">▼</div>
+                </div>
               </div>
 
-              <div className="form-group">
-                <label>Descripción detallada</label>
+              <div className="auth-field">
+                <label>DESCRIPCIÓN</label>
                 <textarea 
-                  required
-                  rows={3}
-                  placeholder="Explica qué incluye, experiencia o herramientas..."
-                  className="form-control"
+                  required 
+                  rows={2}
+                  className="auth-input"
+                  placeholder="Detalla lo que realizas..."
                   value={newService.description}
                   onChange={e => setNewService({ ...newService, description: e.target.value })}
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div className="form-group">
-                  <label>Tipo de Precio</label>
-                  <select 
-                    className="form-control"
-                    value={newService.priceType}
-                    onChange={e => setNewService({ ...newService, priceType: e.target.value as any })}
-                  >
-                    <option value="fixed">Monto fijo (S/)</option>
-                    <option value="quote">A cotizar según visita</option>
-                  </select>
-                </div>
-
-                {newService.priceType === 'fixed' && (
-                  <div className="form-group">
-                    <label>Precio Base (S/)</label>
-                    <input 
-                      type="number"
-                      min={5}
-                      className="form-control"
-                      value={newService.priceAmount}
-                      onChange={e => setNewService({ ...newService, priceAmount: Number(e.target.value) })}
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label>Zona de Cobertura Aproximada (sin dirección exacta)</label>
+              <div className="auth-field">
+                <label>TARIFA ESTIMADA (S/)</label>
                 <input 
-                  type="text"
-                  placeholder="Ej: Barrio Los Cedros y manzanas adyacentes"
-                  className="form-control"
-                  value={newService.coverageArea}
-                  onChange={e => setNewService({ ...newService, coverageArea: e.target.value })}
+                  type="number" 
+                  min={5}
+                  className="auth-input mono-font"
+                  value={newService.priceAmount}
+                  onChange={e => setNewService({ ...newService, priceAmount: Number(e.target.value) })}
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
-                <button type="button" className="btn btn-outline" onClick={() => setIsServiceModalOpen(false)}>
-                  Cancelar
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Publicar Servicio
-                </button>
-              </div>
+              <button type="submit" className="auth-submit-btn" style={{ marginTop: '6px' }}>
+                PUBLICAR OFICIO
+              </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* ================= MODAL: SOLICITUD DE AYUDA ================= */}
+      {/* Modal: Solicitar Ayuda Mutua */}
       {isHelpModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '8px' }}>Solicitud de Ayuda Solidaria</h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
-              Para pedidos de auxilio, colaboración no comercial y suministros de emergencia.
+        <div className="auth-overlay">
+          <div className="auth-card" style={{ maxWidth: '360px', padding: '24px 20px' }}>
+            <button className="auth-close-btn" onClick={() => setIsHelpModalOpen(false)}>✕</button>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '6px', color: '#c0152f' }}>
+              SOLICITAR AYUDA MUTUA
+            </h3>
+            <p style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '12px' }}>
+              Petición solidaria comunitaria sin fines de lucro.
             </p>
 
-            <form onSubmit={handleCreateHelp}>
-              <div className="form-group">
-                <label>Tipo de Recurso Requerido</label>
-                <select 
-                  className="form-control"
-                  value={newHelp.type}
-                  onChange={e => setNewHelp({ ...newHelp, type: e.target.value as any })}
-                >
-                  <option value="agua">Agua potable</option>
-                  <option value="alimentos">Alimentos / Raciones</option>
-                  <option value="herramientas">Herramientas / Escaleras</option>
-                  <option value="transporte">Traslado / Transporte de emergencia</option>
-                  <option value="cuidado">Cuidado de adultos mayores o niños</option>
-                  <option value="otro">Otro apoyo comunitario</option>
-                </select>
+            <form onSubmit={handleCreateHelp} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div className="auth-field">
+                <label>RECURSO REQUERIDO</label>
+                <div className="select-wrapper">
+                  <select 
+                    className="auth-input select-input"
+                    value={newHelp.type}
+                    onChange={e => setNewHelp({ ...newHelp, type: e.target.value as any })}
+                  >
+                    <option value="agua">Agua potable</option>
+                    <option value="alimentos">Alimentos / Raciones</option>
+                    <option value="herramientas">Herramientas / Escaleras</option>
+                    <option value="transporte">Traslado / Transporte</option>
+                    <option value="cuidado">Cuidado de personas</option>
+                    <option value="otro">Otro auxilio</option>
+                  </select>
+                  <div className="select-arrow">▼</div>
+                </div>
               </div>
 
-              <div className="form-group">
-                <label>Nivel de Urgencia</label>
-                <select 
-                  className="form-control"
-                  value={newHelp.urgency}
-                  onChange={e => setNewHelp({ ...newHelp, urgency: e.target.value as any })}
-                >
-                  <option value="alta">Alta (Emergencia inmediata)</option>
-                  <option value="media">Media (Dentro del día)</option>
-                  <option value="baja">Baja (Sin urgencia crítica)</option>
-                </select>
+              <div className="auth-field">
+                <label>NIVEL DE URGENCIA</label>
+                <div className="select-wrapper">
+                  <select 
+                    className="auth-input select-input"
+                    value={newHelp.urgency}
+                    onChange={e => setNewHelp({ ...newHelp, urgency: e.target.value as any })}
+                  >
+                    <option value="alta">Alta (Emergencia inmediata)</option>
+                    <option value="media">Media (Dentro del día)</option>
+                    <option value="baja">Baja (Sin urgencia crítica)</option>
+                  </select>
+                  <div className="select-arrow">▼</div>
+                </div>
               </div>
 
-              <div className="form-group">
-                <label>Descripción de lo que necesitas</label>
+              <div className="auth-field">
+                <label>¿QUÉ SE NECESITA?</label>
                 <textarea 
-                  required
-                  rows={3}
-                  placeholder="Detalla de forma breve y clara lo requerido para que un vecino pueda coordinar contigo..."
-                  className="form-control"
+                  required 
+                  rows={2}
+                  className="auth-input"
+                  placeholder="Explica brevemente para que un vecino pueda coordinar..."
                   value={newHelp.description}
                   onChange={e => setNewHelp({ ...newHelp, description: e.target.value })}
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
-                <button type="button" className="btn btn-outline" onClick={() => setIsHelpModalOpen(false)}>
-                  Cancelar
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  {isOnline ? 'Publicar Solicitud' : 'Guardar en Cola Offline'}
-                </button>
-              </div>
+              <button type="submit" className="auth-submit-btn" style={{ marginTop: '6px' }}>
+                {isOnline ? 'PUBLICAR AL BARRIO' : 'GUARDAR EN COLA OFFLINE'}
+              </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* ================= MODAL: VALORACIÓN VERIFICADA ================= */}
+      {/* Modal: Calificar Servicio */}
       {isReviewModalOpen && selectedBookingForReview && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '8px' }}>
-              Valoración Verificada de Servicio
+        <div className="auth-overlay">
+          <div className="auth-card" style={{ maxWidth: '360px', padding: '24px 20px' }}>
+            <button className="auth-close-btn" onClick={() => setIsReviewModalOpen(false)}>✕</button>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '6px', color: '#0f172a' }}>
+              VALORACIÓN VERIFICADA
             </h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
-              Estás evaluando a <strong>{selectedBookingForReview.providerName}</strong> por el servicio <em>{selectedBookingForReview.serviceTitle}</em>.
+            <p style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '12px' }}>
+              Para <strong>{selectedBookingForReview.providerName}</strong>
             </p>
 
-            <form onSubmit={handleSubmitReview}>
-              <div className="form-group">
-                <label>Puntuación (1 a 5 estrellas)</label>
-                <div style={{ display: 'flex', gap: '8px' }}>
+            <form onSubmit={handleSubmitReview} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div className="auth-field">
+                <label>CALIFICACIÓN</label>
+                <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                   {[1, 2, 3, 4, 5].map(val => (
                     <button 
                       key={val} 
                       type="button"
                       onClick={() => setReviewForm({ ...reviewForm, rating: val })}
-                      style={{ 
-                        background: 'none', 
-                        border: 'none', 
-                        cursor: 'pointer',
-                        padding: '4px'
-                      }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}
                     >
                       <Star 
-                        size={28} 
+                        size={24} 
                         fill={val <= reviewForm.rating ? '#f59e0b' : 'none'} 
                         color="#f59e0b" 
                       />
@@ -990,30 +879,26 @@ export function App() {
                 </div>
               </div>
 
-              <div className="form-group">
-                <label>Comentario y opinión para la comunidad</label>
+              <div className="auth-field">
+                <label>COMENTARIO</label>
                 <textarea 
-                  required
-                  rows={3}
-                  placeholder="¿Cómo fue la atención, puntualidad y cumplimiento del técnico?"
-                  className="form-control"
+                  required 
+                  rows={2}
+                  className="auth-input"
+                  placeholder="¿Cómo fue la calidad y puntualidad?"
                   value={reviewForm.comment}
                   onChange={e => setReviewForm({ ...reviewForm, comment: e.target.value })}
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
-                <button type="button" className="btn btn-outline" onClick={() => setIsReviewModalOpen(false)}>
-                  Cancelar
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Confirmar y Publicar Reseña
-                </button>
-              </div>
+              <button type="submit" className="auth-submit-btn">
+                ENVIAR CALIFICACIÓN
+              </button>
             </form>
           </div>
         </div>
       )}
+
     </div>
   );
 }
