@@ -848,11 +848,30 @@ export function App() {
 
               <div className="card" style={{ padding: '4px 14px', marginTop: 12 }}>
                 {[
-                  { icon: <HelpCircle size={18} color="var(--gray-500)" />, label: 'Ayuda y soporte' },
-                  { icon: <Settings size={18} color="var(--gray-500)" />, label: 'Configuración' },
-                  { icon: <Radio size={18} color="var(--coral)" />, label: 'Centro Offline (BLE)' },
+                  {
+                    icon: <Settings size={18} color="var(--gray-500)" />,
+                    label: 'Configuración de Servidor API',
+                    action: async () => {
+                      const current = api.getBaseUrl();
+                      const next = window.prompt('URL del Servidor Backend API (para celular o PC):', current);
+                      if (next && next.trim() && next !== current) {
+                        api.setApiBaseUrl(next.trim());
+                        const isUp = await api.isOnline();
+                        alert(isUp ? '✅ ¡Conexión exitosa con el Backend!' : '⚠️ Servidor guardado, pero no responde en este momento.');
+                        window.location.reload();
+                      }
+                    }
+                  },
+                  {
+                    icon: <Radio size={18} color="var(--coral)" />,
+                    label: 'Centro Offline (BLE)',
+                    action: () => {
+                      alert(`📡 Estado de Red: ${isOnline ? 'En línea (Conectado)' : 'Modo Sin Conexión'}\n\n🔗 Servidor API configurado:\n${api.getBaseUrl()}\n\n📦 Cola offline: ${offlineQueue.length} paquetes pendientes.`);
+                    }
+                  },
+                  { icon: <HelpCircle size={18} color="var(--gray-500)" />, label: 'Ayuda y soporte', action: () => alert('Ayni Soporte Vecinal - Hackathon UTP · El Comercio 2026') },
                 ].map((item, i) => (
-                  <div key={i} className="profile-menu-item">
+                  <div key={i} className="profile-menu-item" onClick={item.action}>
                     <div className="profile-menu-icon">{item.icon}</div>
                     <span className="profile-menu-text">{item.label}</span>
                     <ChevronRight size={18} color="var(--gray-300)" />

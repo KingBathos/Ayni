@@ -3,8 +3,27 @@
  * Diseñado con tolerancia a fallos: si el backend no está disponible o la app está offline,
  * devuelve o almacena los datos localmente.
  */
+import { Capacitor } from '@capacitor/core';
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
+const API_URL_KEY = 'ayni_api_base_url';
+
+export function getApiBaseUrl(): string {
+  try {
+    const saved = localStorage.getItem(API_URL_KEY);
+    if (saved) return saved.replace(/\/+$/, '');
+  } catch {}
+
+  const envUrl = (import.meta as any).env?.VITE_API_URL;
+  if (envUrl) return envUrl.replace(/\/+$/, '');
+
+  // En Android nativo (celular físico o emulador) localhost apunta al propio teléfono.
+  // Usamos la IP de red local de tu PC para que el celular físico pueda conectarse.
+  if (Capacitor.isNativePlatform()) {
+    return 'http://192.168.1.63:8000';
+  }
+
+  return 'http://localhost:8000';
+}
 
 const TOKEN_KEY = 'ayni_auth_token';
 const USER_KEY = 'ayni_auth_user';
@@ -87,11 +106,27 @@ export const api = {
     } catch {}
   },
 
+  setApiBaseUrl(url: string) {
+    try {
+      localStorage.setItem(API_URL_KEY, url.trim().replace(/\/+$/, ''));
+    } catch {}
+  },
+
+  resetApiBaseUrl() {
+    try {
+      localStorage.removeItem(API_URL_KEY);
+    } catch {}
+  },
+
+  getBaseUrl(): string {
+    return getApiBaseUrl();
+  },
+
   async isOnline(): Promise<boolean> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
-      const res = await fetch(`${API_BASE_URL}/health`, {
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
+      const res = await fetch(`${getApiBaseUrl()}/health`, {
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
@@ -115,7 +150,7 @@ export const api = {
       headers['Content-Type'] = 'application/json';
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(`${getApiBaseUrl()}${endpoint}`, {
       ...options,
       headers,
     });
@@ -292,3 +327,4 @@ export const api = {
     return this.request<any>(`/api/v1/sync/changes${qs}`);
   },
 };
+
