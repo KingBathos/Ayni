@@ -40,12 +40,13 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      # 6. SDK de Android + aceptar licencias
+      # 6. SDK de Android + aceptar licencias.
+      # IMPORTANTE: 'packages' evita el paquete obsoleto "tools" (ya no existe en el
+      # repositorio de Google) e instala directamente lo que sí necesitamos.
       - name: Preparar Android SDK
         uses: android-actions/setup-android@v3
-
-      - name: Instalar plataforma Android 36
-        run: sdkmanager "platform-tools" "platforms;android-36"
+        with:
+          packages: 'platform-tools platforms;android-36'
 
       # 7. Compila el APK de depuración (instalable, sin firma de Play Store)
       - name: Dar permisos a gradlew
