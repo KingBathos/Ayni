@@ -22,7 +22,8 @@
   --radius: 14px;
   --radius-sm: 10px;
   --radius-full: 9999px;
-  --app-w: 412px;
+  --safe-top: max(44px, env(safe-area-inset-top, 44px));
+  --safe-bottom: max(12px, env(safe-area-inset-bottom, 12px));
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
   --shadow-lg: 0 10px 25px rgba(0,0,0,0.12);
@@ -67,6 +68,10 @@ body {
 }
 
 @media (min-width: 600px) {
+  :root {
+    --safe-top: 14px;
+    --safe-bottom: 14px;
+  }
   body {
     background: #eef1f6;
     align-items: center;
@@ -86,12 +91,14 @@ body {
   display: none !important;
 }
 
-/* ===== HEADER ===== */
-.app-header {
+/* ===== TOP BAR & HEADER ===== */
+.app-header,
+.top-bar {
   background: var(--white);
-  padding: 12px 18px;
-  padding-top: max(12px, env(safe-area-inset-top, 12px));
+  padding: 10px 18px 12px;
+  padding-top: calc(var(--safe-top) + 8px);
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .header-top {
@@ -790,6 +797,9 @@ body {
   justify-content: center;
   z-index: 200;
   padding: 16px;
+  padding-top: calc(var(--safe-top, 44px) + 16px);
+  padding-bottom: calc(var(--safe-bottom, 12px) + 16px);
+  box-sizing: border-box;
 }
 
 .modal-card {
@@ -885,8 +895,8 @@ body {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  padding-top: max(24px, env(safe-area-inset-top, 24px));
-  padding-bottom: max(24px, env(safe-area-inset-bottom, 24px));
+  padding-top: calc(var(--safe-top) + 16px);
+  padding-bottom: calc(var(--safe-bottom) + 16px);
   text-align: center;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;

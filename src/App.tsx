@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { App as CapApp } from '@capacitor/app';
 import {
   Store, MapPin, Wifi, WifiOff, Radio, Users, HeartHandshake,
   AlertTriangle, Star, CheckCircle2, Plus, Search, RefreshCw,
@@ -68,11 +69,83 @@ export function App() {
   const userName = currentUser?.name || 'Vecino';
   const userInitial = userName.charAt(0).toUpperCase();
 
+  const viewRef = useRef(view);
+  viewRef.current = view;
+
+  const previousViewRef = useRef<ViewType>('home');
+
+  const modalsRef = useRef({
+    isAuthModalOpen,
+    isHelpModalOpen,
+    isServiceModalOpen
+  });
+  modalsRef.current = {
+    isAuthModalOpen,
+    isHelpModalOpen,
+    isServiceModalOpen
+  };
+
+  const navigateTo = (nextView: ViewType) => {
+    if (viewRef.current !== nextView) {
+      previousViewRef.current = viewRef.current;
+      setView(nextView);
+    }
+  };
+
+  const handleBack = useCallback(() => {
+    // 1. Close open modals first
+    if (modalsRef.current.isAuthModalOpen) {
+      setIsAuthModalOpen(false);
+      return;
+    }
+    if (modalsRef.current.isHelpModalOpen) {
+      setIsHelpModalOpen(false);
+      return;
+    }
+    if (modalsRef.current.isServiceModalOpen) {
+      setIsServiceModalOpen(false);
+      return;
+    }
+
+    // 2. Views hierarchy
+    const cur = viewRef.current;
+    if (cur === 'request-form') {
+      setView('pro-detail');
+      return;
+    }
+    if (cur === 'pro-detail') {
+      setView(previousViewRef.current === 'home' ? 'home' : 'explore');
+      return;
+    }
+    if (cur === 'tracking') {
+      setView('requests');
+      return;
+    }
+    if (cur === 'explore' || cur === 'requests' || cur === 'map' || cur === 'profile') {
+      setView('home');
+      return;
+    }
+    if (cur === 'home' || cur === 'welcome') {
+      CapApp.exitApp();
+      return;
+    }
+  }, []);
+
+  useEffect(() => {
+    const listenerPromise = CapApp.addListener('backButton', () => {
+      handleBack();
+    });
+
+    return () => {
+      listenerPromise.then(handle => handle.remove()).catch(() => {});
+    };
+  }, [handleBack]);
+
   // ——— Login handler ———
   const handleLogin = (user: any) => {
     setCurrentUser(user);
     setIsAuthModalOpen(false);
-    setView('home');
+    navigateTo('home');
   };
 
   // ——— Actions ———
@@ -131,7 +204,7 @@ export function App() {
 
   const openProDetail = (srv: ServiceItem) => {
     setSelectedService(srv);
-    setView('pro-detail');
+    navigateTo('pro-detail');
   };
 
   // ——— Render ———
@@ -212,7 +285,7 @@ export function App() {
               <MapPin size={14} /> {selectedNeighborhood} <ChevronRight size={14} />
             </div>
 
-            <div className="search-bar" onClick={() => setView('explore')}>
+            <div className="search-bar" onClick={() => navigateTo('explore')}>
               <Search size={18} color="#9ca3af" />
               <input type="text" placeholder="Buscar servicios..." readOnly
                 style={{ cursor: 'pointer' }} />
@@ -233,14 +306,14 @@ export function App() {
               <div className="sec"><h3>Categorías</h3></div>
               <div className="cat-grid">
                 {INITIAL_CATEGORIES.map(c => (
-                  <div key={c.id} className="cat-item" onClick={() => { setSelectedCategory(c.id); setView('explore'); }}>
+                  <div key={c.id} className="cat-item" onClick={() => { setSelectedCategory(c.id); navigateTo('explore'); }}>
                     <div className={`cat-icon ${CAT_CSS[c.id] || ''}`}>
                       {CAT_EMOJIS[c.id] || '📋'}
                     </div>
                     <div className="cat-label">{c.name}</div>
                   </div>
                 ))}
-                <div className="cat-item" onClick={() => { setSelectedCategory('all'); setView('explore'); }}>
+                <div className="cat-item" onClick={() => { setSelectedCategory('all'); navigateTo('explore'); }}>
                   <div className="cat-icon more"><MoreHorizontal size={20} color="#6b7280" /></div>
                   <div className="cat-label">Ver todas</div>
                 </div>
@@ -255,7 +328,7 @@ export function App() {
               {/* Featured Professionals */}
               <div className="sec">
                 <h3>Profesionales destacados</h3>
-                <button className="sec-link" onClick={() => setView('explore')}>Ver todos</button>
+                <button className="sec-link" onClick={() => navigateTo('explore')}>Ver todos</button>
               </div>
 
               {services.slice(0, 3).map(srv => (
@@ -342,9 +415,9 @@ export function App() {
       {/* ========== EXPLORE / SEARCH SCREEN ========== */}
       {view === 'explore' && (
         <>
-          <div style={{ background: 'var(--white)', padding: '10px 18px 0' }}>
+          <div className="top-bar">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <button className="icon-circle" onClick={() => setView('home')}><ArrowLeft size={18} /></button>
+              <button className="icon-circle" onClick={handleBack}><ArrowLeft size={18} /></button>
               <div className="search-bar" style={{ flex: 1 }}>
                 <Search size={18} color="#9ca3af" />
                 <input type="text" placeholder="Buscar servicios..." value={searchQuery}
@@ -387,8 +460,8 @@ export function App() {
       {/* ========== PROFESSIONAL DETAIL ========== */}
       {view === 'pro-detail' && selectedService && (
         <>
-          <div style={{ background: 'var(--white)', padding: '8px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <button className="icon-circle" onClick={() => setView('explore')}><ArrowLeft size={18} /></button>
+          <div className="top-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 10 }}>
+            <button className="icon-circle" onClick={handleBack}><ArrowLeft size={18} /></button>
             <button className="icon-circle"><Heart size={18} color="#d1d5db" /></button>
           </div>
 
@@ -438,7 +511,7 @@ export function App() {
               </div>
 
               <button className="btn btn-coral btn-block" style={{ borderRadius: 'var(--radius-full)' }}
-                onClick={() => setView('request-form')}>
+                onClick={() => navigateTo('request-form')}>
                 Solicitar servicio
               </button>
             </div>
@@ -449,8 +522,8 @@ export function App() {
       {/* ========== SERVICE REQUEST FORM ========== */}
       {view === 'request-form' && selectedService && (
         <>
-          <div style={{ background: 'var(--white)', padding: '8px 18px', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button className="icon-circle" onClick={() => setView('pro-detail')}><ArrowLeft size={18} /></button>
+          <div className="top-bar" style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 12 }}>
+            <button className="icon-circle" onClick={handleBack}><ArrowLeft size={18} /></button>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--carbon)' }}>Solicitar servicio</h3>
           </div>
 
@@ -513,8 +586,8 @@ export function App() {
       {/* ========== TRACKING SCREEN ========== */}
       {view === 'tracking' && (
         <>
-          <div style={{ background: 'var(--white)', padding: '8px 18px', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button className="icon-circle" onClick={() => setView('requests')}><ArrowLeft size={18} /></button>
+          <div className="top-bar" style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 12 }}>
+            <button className="icon-circle" onClick={handleBack}><ArrowLeft size={18} /></button>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--carbon)' }}>Seguimiento de servicio</h3>
           </div>
 
@@ -580,7 +653,7 @@ export function App() {
       {/* ========== REQUESTS LIST (Solicitudes) ========== */}
       {view === 'requests' && (
         <>
-          <div style={{ background: 'var(--white)', padding: '12px 18px', borderBottom: '1px solid var(--gray-200)' }}>
+          <div className="top-bar" style={{ borderBottom: '1px solid var(--gray-200)', paddingBottom: 14 }}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--carbon)' }}>Mis solicitudes</h3>
           </div>
 
@@ -595,7 +668,7 @@ export function App() {
               ) : (
                 bookings.map(b => (
                   <div key={b.id} className="card" style={{ cursor: 'pointer' }}
-                    onClick={() => { setSelectedBooking(b); setSelectedService(services.find(s => s.id === b.serviceId) || null); setView('tracking'); }}>
+                    onClick={() => { setSelectedBooking(b); setSelectedService(services.find(s => s.id === b.serviceId) || null); navigateTo('tracking'); }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                       <span style={{ fontWeight: 700, color: 'var(--carbon)', fontSize: '0.92rem' }}>{b.serviceTitle}</span>
                       <span className="tag" style={{
@@ -619,7 +692,7 @@ export function App() {
       {/* ========== MAP ========== */}
       {view === 'map' && (
         <>
-          <div style={{ background: 'var(--white)', padding: '12px 18px', borderBottom: '1px solid var(--gray-200)', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="top-bar" style={{ borderBottom: '1px solid var(--gray-200)', display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 14 }}>
             <MapPin size={20} color="var(--coral)" />
             <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--carbon)' }}>Mapa</h3>
           </div>
@@ -637,10 +710,10 @@ export function App() {
                 📍 {selectedNeighborhood}
               </div>
 
-              <div className="map-pin" style={{ top: '35%', left: '30%' }} onClick={() => { setSelectedService(services[0]); setView('pro-detail'); }}>
+              <div className="map-pin" style={{ top: '35%', left: '30%' }} onClick={() => { setSelectedService(services[0]); navigateTo('pro-detail'); }}>
                 <Store size={12} color="var(--coral)" /> José (Electricidad)
               </div>
-              <div className="map-pin" style={{ top: '55%', left: '65%' }} onClick={() => { setSelectedService(services[1]); setView('pro-detail'); }}>
+              <div className="map-pin" style={{ top: '55%', left: '65%' }} onClick={() => { setSelectedService(services[1]); navigateTo('pro-detail'); }}>
                 <Store size={12} color="var(--coral)" /> Carmen (Gasfitería)
               </div>
               <div className="map-pin solidarity" style={{ top: '70%', left: '40%' }}>
@@ -654,7 +727,7 @@ export function App() {
       {/* ========== PROFILE ========== */}
       {view === 'profile' && (
         <>
-          <div style={{ background: 'var(--white)', padding: '24px 18px', textAlign: 'center', borderBottom: '1px solid var(--gray-200)' }}>
+          <div className="top-bar" style={{ textAlign: 'center', borderBottom: '1px solid var(--gray-200)', paddingBottom: 18 }}>
             <div className="header-avatar" style={{ width: 64, height: 64, fontSize: '1.5rem', margin: '0 auto 10px' }}>
               {userInitial}
             </div>
@@ -669,7 +742,7 @@ export function App() {
             <div className="body-pad">
               <div className="card" style={{ padding: '4px 14px' }}>
                 {[
-                  { icon: <Store size={18} color="var(--coral)" />, label: 'Mis solicitudes', action: () => setView('requests') },
+                  { icon: <Store size={18} color="var(--coral)" />, label: 'Mis solicitudes', action: () => navigateTo('requests') },
                   { icon: <Heart size={18} color="#ec4899" />, label: 'Favoritos', action: () => {} },
                   { icon: <MapPin size={18} color="var(--green)" />, label: 'Direcciones guardadas', action: () => {} },
                   { icon: <CreditCard size={18} color="#6366f1" />, label: 'Métodos de pago', action: () => {} },
@@ -698,7 +771,7 @@ export function App() {
               </div>
 
               <button className="btn btn-outline btn-block" style={{ marginTop: 16, color: 'var(--coral)' }}
-                onClick={() => { setCurrentUser(null); setView('welcome'); }}>
+                onClick={() => { setCurrentUser(null); navigateTo('welcome'); }}>
                 <LogOut size={18} /> Cerrar sesión
               </button>
             </div>
@@ -716,20 +789,20 @@ export function App() {
       {/* ===== BOTTOM NAV (when not on welcome/forms) ===== */}
       {view !== 'welcome' && view !== 'request-form' && view !== 'tracking' && view !== 'pro-detail' && (
         <nav className="bnav">
-          <button className={`bnav-btn ${view === 'home' ? 'active' : ''}`} onClick={() => setView('home')}>
+          <button className={`bnav-btn ${view === 'home' ? 'active' : ''}`} onClick={() => navigateTo('home')}>
             <Store size={22} /><span>Inicio</span>
           </button>
-          <button className={`bnav-btn ${view === 'explore' ? 'active' : ''}`} onClick={() => setView('explore')}>
+          <button className={`bnav-btn ${view === 'explore' ? 'active' : ''}`} onClick={() => navigateTo('explore')}>
             <Search size={22} /><span>Explorar</span>
           </button>
-          <button className={`bnav-btn ${view === 'requests' ? 'active' : ''}`} onClick={() => setView('requests')}>
+          <button className={`bnav-btn ${view === 'requests' ? 'active' : ''}`} onClick={() => navigateTo('requests')}>
             <Clock size={22} /><span>Solicitudes</span>
             {bookings.length > 0 && <div className="bnav-dot" />}
           </button>
-          <button className={`bnav-btn ${view === 'map' ? 'active' : ''}`} onClick={() => setView('map')}>
+          <button className={`bnav-btn ${view === 'map' ? 'active' : ''}`} onClick={() => navigateTo('map')}>
             <MapPin size={22} /><span>Mapa</span>
           </button>
-          <button className={`bnav-btn ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')}>
+          <button className={`bnav-btn ${view === 'profile' ? 'active' : ''}`} onClick={() => navigateTo('profile')}>
             <UserIcon size={22} /><span>Perfil</span>
           </button>
         </nav>
