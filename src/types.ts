@@ -90,3 +90,4 @@ export interface OfflineEnvelope {
   hops: number;
   hopLimit: number;
 }
+

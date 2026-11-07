@@ -125,3 +125,4 @@ export const INITIAL_BOOKINGS: Booking[] = [
     notes: 'Revisión urgente de térmico de la cocina.'
   }
 ];
+
