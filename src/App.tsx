@@ -10,7 +10,7 @@ import {
   Zap, Wrench, Hammer, Sparkles, GraduationCap, Utensils, MoreHorizontal,
   Phone, MessageCircle, CheckCircle, Circle, ThumbsUp, Droplet, Megaphone,
   CalendarDays, HandHeart, Shield, X, ChevronDown, Check, XCircle, AlertCircle, Trash2, Image as ImageIcon,
-  Pin, Edit2, CheckCheck, BellRing, Hourglass, Play, Inbox
+  Pin, Edit2, CheckCheck, BellRing, Hourglass, Play, Inbox, Moon, Sun, Home
 } from 'lucide-react';
 import {
   INITIAL_SERVICES, INITIAL_COMMUNITY_POSTS, INITIAL_HELP_REQUESTS,
@@ -45,8 +45,8 @@ type ViewType =
   | 'tracking'
   | 'offline';
 
-// Pestañas de comunidad en el orden exacto solicitado: Avisos -> Ayuda -> Servicios -> Actividades
-type CommunityTabType = 'avisos' | 'ayuda' | 'servicios' | 'actividades';
+// Pestañas de comunidad en el orden exacto solicitado: Avisos -> Ayuda -> Actividades
+type CommunityTabType = 'avisos' | 'ayuda' | 'actividades';
 
 export function App() {
   const [view, setView] = useState<ViewType>(() => {
@@ -58,8 +58,84 @@ export function App() {
     }
   });
 
-  // Pestaña inicial activa: 'avisos' (orden: avisos -> ayuda -> servicios -> actividades)
+  // Pestaña inicial activa: 'avisos' (orden: avisos -> ayuda -> actividades)
   const [communityTab, setCommunityTab] = useState<CommunityTabType>('avisos');
+
+  // Modo Oscuro (Persistente en localStorage)
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('ayni_theme');
+      if (saved) return saved === 'dark';
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      if (isDarkMode) {
+        document.documentElement.classList.add('dark');
+        document.body.style.backgroundColor = '#0B0F19';
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.body.style.backgroundColor = '#ffffff';
+      }
+    } catch {}
+  }, [isDarkMode]);
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('ayni_theme', next ? 'dark' : 'light');
+      } catch {}
+      return next;
+    });
+  };
+
+  // Conectividad real del dispositivo
+  const [deviceOnline, setDeviceOnline] = useState<boolean>(() => {
+    if (typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean') {
+      return navigator.onLine;
+    }
+    return true;
+  });
+
+  // Simulación de modo sin conexión (se activa ÚNICAMENTE desde el Perfil para pruebas)
+  const [simulateOffline, setSimulateOffline] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('ayni_simulate_offline') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // El modo sin conexión aparece cuando el dispositivo de verdad pierde la red O si se activa la simulación en Perfil
+  const isOnline = deviceOnline && !simulateOffline;
+
+  useEffect(() => {
+    const handleOnline = () => setDeviceOnline(true);
+    const handleOffline = () => setDeviceOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const toggleSimulateOffline = () => {
+    setSimulateOffline(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('ayni_simulate_offline', String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   // Ubicación del usuario: Nombre real oficial sin coordenadas crudas
   const [userCoords, setUserCoords] = useState<[number, number] | null>([-12.1096, -77.0057]);
@@ -68,7 +144,6 @@ export function App() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingStageText, setLoadingStageText] = useState('Iniciando recursos de Ayni...');
   const [isResourcesLoaded, setIsResourcesLoaded] = useState(false);
-  const [isOnline, setIsOnline] = useState(true);
 
   const [currentUser, setCurrentUser] = useState<{
     name: string; documentNumber: string; neighborhood: string; district: string;
@@ -250,7 +325,6 @@ export function App() {
       try {
         const backendOnline = await api.isOnline();
         if (!backendOnline) return;
-        setIsOnline(true);
 
         const remoteServices = await api.getServices();
         if (remoteServices && remoteServices.length > 0) {
@@ -1194,7 +1268,7 @@ export function App() {
 
   // ============================ RENDER ============================
   return (
-    <div className="phone">
+    <div className={`phone ${isDarkMode ? 'dark-theme' : ''}`}>
 
       {/* ========== WELCOME SCREEN / CARGA INICIAL (Boceto 01) ========== */}
       {view === 'welcome' && (
@@ -1273,19 +1347,11 @@ export function App() {
               <div className="header-icons">
                 <button
                   className="icon-circle"
-                  onClick={() => navigateTo('offline')}
-                  title="Centro de Conectividad (BLE)"
-                  style={!isOnline ? { background: '#FEF3C7' } : { background: '#E8F8F0' }}
-                >
-                  {isOnline ? <Wifi size={17} color="#2E9D72" /> : <WifiOff size={17} color="#D83B35" />}
-                </button>
-                <button
-                  className="icon-circle"
                   style={{ position: 'relative' }}
                   onClick={() => setIsNotificationsOpen(true)}
                   aria-label="Abrir centro de notificaciones"
                 >
-                  <Bell size={17} color="#4B5563" />
+                  <Bell size={20} strokeWidth={2.2} color="var(--carbon)" />
                   {notifications.filter(n => !n.read).length > 0 && (
                     <span className="notif-badge-pill">{notifications.filter(n => !n.read).length}</span>
                   )}
@@ -1303,75 +1369,30 @@ export function App() {
               <MapPin size={15} color="#D83B35" />
               <span>{selectedNeighborhood}</span>
             </div>
-
-            {/* Barra de Búsqueda Interactiva en Inicio */}
-            <div className="home-search-bar-wrap">
-              <div className="home-search-bar">
-                <Search size={18} color="var(--coral)" className="home-search-icon" />
-                <input
-                  type="text"
-                  value={homeSearchQuery}
-                  onChange={(e) => setHomeSearchQuery(e.target.value)}
-                  placeholder={
-                    communityTab === 'avisos'
-                      ? 'Buscar en avisos del barrio...'
-                      : communityTab === 'ayuda'
-                      ? 'Buscar en pedidos de ayuda y auxilio...'
-                      : communityTab === 'servicios'
-                      ? 'Buscar oficios y profesionales...'
-                      : 'Buscar actividades vecinales...'
-                  }
-                  className="home-search-input"
-                />
-                {homeSearchQuery && (
-                  <button
-                    type="button"
-                    className="home-search-clear"
-                    onClick={() => setHomeSearchQuery('')}
-                    title="Limpiar búsqueda"
-                  >
-                    <X size={15} color="#6B7280" />
-                  </button>
-                )}
-              </div>
-              {homeSearchQuery && (
-                <div className="home-search-meta">
-                  <span>Filtrando resultados por: <strong>"{homeSearchQuery}"</strong></span>
-                  <button type="button" onClick={() => setHomeSearchQuery('')}>Limpiar</button>
-                </div>
-              )}
-            </div>
           </header>
 
-          {/* Opciones de Comunidad (Orden estricto: Avisos -> Ayuda -> Servicios -> Actividades) */}
+          {/* Opciones de Comunidad (Avisos -> Ayuda -> Actividades) */}
           <div className="com-tabs-bar">
             <button
               className={`com-tab-pill ${communityTab === 'avisos' ? 'active' : ''}`}
               onClick={() => setCommunityTab('avisos')}
             >
-              <Megaphone size={18} />
-              <span>Avisos ({homeSearchQuery ? homeFilteredPosts.length : communityPosts.length})</span>
+              <Megaphone size={19} strokeWidth={2.2} />
+              <span>Avisos ({communityPosts.length})</span>
             </button>
             <button
               className={`com-tab-pill ${communityTab === 'ayuda' ? 'active' : ''}`}
               onClick={() => setCommunityTab('ayuda')}
             >
-              <HeartHandshake size={18} />
-              <span>Ayuda ({homeSearchQuery ? homeFilteredHelp.length : helpRequests.length})</span>
-            </button>
-            <button
-              className={`com-tab-pill ${communityTab === 'servicios' ? 'active' : ''}`}
-              onClick={() => setCommunityTab('servicios')}
-            >
-              <Store size={18} />
-              <span>Servicios</span>
+              <HeartHandshake size={19} strokeWidth={2.2} />
+              <span>Ayuda ({helpRequests.length})</span>
             </button>
             <button
               className={`com-tab-pill ${communityTab === 'actividades' ? 'active' : ''}`}
               onClick={() => setCommunityTab('actividades')}
             >
-              <CalendarDays size={18} />
-              <span>Actividades ({homeSearchQuery ? homeFilteredActivities.length : activities.length})</span>
+              <CalendarDays size={19} strokeWidth={2.2} />
+              <span>Actividades ({activities.length})</span>
             </button>
           </div>
 
@@ -1398,15 +1419,12 @@ export function App() {
 
                   {homeFilteredPosts.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '36px 16px', background: 'var(--white)', borderRadius: 16, margin: '8px 0', border: '1px dashed #E5E7EB' }}>
-                      <Search size={32} color="#D1D5DB" style={{ marginBottom: 8 }} />
+                      <Megaphone size={32} color="#D1D5DB" style={{ marginBottom: 8 }} />
                       <p style={{ margin: 0, fontWeight: 700, color: 'var(--carbon)', fontSize: '0.92rem' }}>
-                        No se encontraron avisos para "{homeSearchQuery}"
+                        No hay avisos vecinales activos en este momento
                       </p>
-                      <p style={{ fontSize: '0.8rem', color: '#6B7280', marginTop: 4 }}>
-                        Prueba con otros términos o restablece el buscador.
-                      </p>
-                      <button className="btn btn-outline btn-sm" style={{ marginTop: 10, borderColor: 'var(--coral)', color: 'var(--coral)' }} onClick={() => setHomeSearchQuery('')}>
-                        Ver todos los avisos
+                      <button className="btn btn-outline btn-sm" style={{ marginTop: 10, borderColor: 'var(--coral)', color: 'var(--coral)' }} onClick={() => setIsNoticeModalOpen(true)}>
+                        + Publicar aviso
                       </button>
                     </div>
                   ) : (
@@ -1526,12 +1544,12 @@ export function App() {
 
                   {homeFilteredHelp.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '36px 16px', background: 'var(--white)', borderRadius: 16, margin: '8px 0', border: '1px dashed #E5E7EB' }}>
-                      <Search size={32} color="#D1D5DB" style={{ marginBottom: 8 }} />
+                      <HeartHandshake size={32} color="#D1D5DB" style={{ marginBottom: 8 }} />
                       <p style={{ margin: 0, fontWeight: 700, color: 'var(--carbon)', fontSize: '0.92rem' }}>
-                        No se encontraron pedidos de ayuda para "{homeSearchQuery}"
+                        No hay pedidos de ayuda pendientes en el barrio
                       </p>
-                      <button className="btn btn-outline btn-sm" style={{ marginTop: 10, borderColor: 'var(--coral)', color: 'var(--coral)' }} onClick={() => setHomeSearchQuery('')}>
-                        Ver todos los pedidos
+                      <button className="btn btn-outline btn-sm" style={{ marginTop: 10, borderColor: 'var(--coral)', color: 'var(--coral)' }} onClick={() => setIsHelpModalOpen(true)}>
+                        + Pedir auxilio o ayuda
                       </button>
                     </div>
                   ) : (
@@ -1620,76 +1638,7 @@ export function App() {
                 </div>
               )}
 
-              {/* ===== TAB 3: SERVICIOS (Con Categorías y Profesionales Destacados, Sin Banner Comercial) ===== */}
-              {communityTab === 'servicios' && (
-                <div>
-                  <div className="sec"><h3>Categorías de oficios</h3></div>
-                  <div className="cat-grid">
-                    {INITIAL_CATEGORIES.map(c => (
-                      <div key={c.id} className="cat-item" onClick={() => { setSelectedCategory(c.id); navigateTo('explore'); }}>
-                        <div className={`cat-icon ${CAT_CSS[c.id] || ''}`}>
-                          {renderCategoryIcon(c.id)}
-                        </div>
-                        <div className="cat-label">{c.name}</div>
-                      </div>
-                    ))}
-                    <div className="cat-item" onClick={() => { setSelectedCategory('all'); navigateTo('explore'); }}>
-                      <div className="cat-icon more">
-                        <MoreHorizontal size={20} color="var(--gray-500)" />
-                      </div>
-                      <div className="cat-label">Ver todas</div>
-                    </div>
-                  </div>
-
-                  {/* Profesionales Destacados */}
-                  <div className="sec">
-                    <h3>Profesionales del barrio</h3>
-                    <button className="sec-link" onClick={() => navigateTo('explore')}>Ver todos</button>
-                  </div>
-
-                  {homeFilteredServices.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '30px 16px', background: 'var(--white)', borderRadius: 16, margin: '8px 0', border: '1px dashed #E5E7EB' }}>
-                      <Search size={30} color="#D1D5DB" style={{ marginBottom: 6 }} />
-                      <p style={{ margin: 0, fontWeight: 700, color: 'var(--carbon)', fontSize: '0.9rem' }}>
-                        No se encontraron servicios para "{homeSearchQuery}"
-                      </p>
-                      <button className="btn btn-outline btn-sm" style={{ marginTop: 8, borderColor: 'var(--coral)', color: 'var(--coral)' }} onClick={() => setHomeSearchQuery('')}>
-                        Ver todos los servicios
-                      </button>
-                    </div>
-                  ) : (
-                    homeFilteredServices.slice(0, homeSearchQuery ? 8 : 3).map(srv => (
-                      <div key={srv.id} className="feat-pro" onClick={() => openProDetail(srv)}>
-                        <div className="feat-pro-photo">
-                          {PRO_INITIALS[srv.providerId] || 'PR'}
-                        </div>
-                        <div className="feat-pro-info">
-                          <div className="feat-pro-name">
-                            <span>{srv.providerName.split('(')[0].trim()}</span>
-                            <CheckCircle size={15} color="#16A34A" />
-                          </div>
-                          <div className="feat-pro-meta">
-                            <Star size={13} fill="#F59E0B" color="#F59E0B" />
-                            <strong>{srv.rating}</strong>
-                            <span>·</span>
-                            <span>{srv.coverageArea}</span>
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
-                          <span style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--coral)' }}>
-                            {srv.priceType === 'quote' ? 'A cotizar' : `S/ ${srv.priceAmount || '35'}/h`}
-                          </span>
-                          <span style={{ fontSize: '0.70rem', color: 'var(--gray-500)', fontWeight: 600 }}>
-                            {srv.priceType === 'quote' ? 'En el lugar' : 'Tarifa por hora'}
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-
-              {/* ===== TAB 4: ACTIVIDADES (Boceto 13) ===== */}
+              {/* ===== TAB 3: ACTIVIDADES VECINALES (Boceto 13) ===== */}
               {communityTab === 'actividades' && (
                 <div>
                   <div className="sec">
@@ -1701,13 +1650,10 @@ export function App() {
 
                   {homeFilteredActivities.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '36px 16px', background: 'var(--white)', borderRadius: 16, margin: '8px 0', border: '1px dashed #E5E7EB' }}>
-                      <Search size={32} color="#D1D5DB" style={{ marginBottom: 8 }} />
+                      <CalendarDays size={32} color="#D1D5DB" style={{ marginBottom: 8 }} />
                       <p style={{ margin: 0, fontWeight: 700, color: 'var(--carbon)', fontSize: '0.92rem' }}>
-                        No se encontraron actividades para "{homeSearchQuery}"
+                        No hay actividades vecinales registradas
                       </p>
-                      <button className="btn btn-outline btn-sm" style={{ marginTop: 10, borderColor: 'var(--coral)', color: 'var(--coral)' }} onClick={() => setHomeSearchQuery('')}>
-                        Ver todas las actividades
-                      </button>
                     </div>
                   ) : (
                     homeFilteredActivities.map(act => {
@@ -3017,6 +2963,66 @@ export function App() {
                 ))}
               </div>
 
+              {/* Preferencias de Visualización y Modo Nocturno / Red */}
+              <div className="card" style={{ padding: '10px 16px', marginTop: 12 }}>
+                <div style={{ fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--coral)', marginBottom: 8 }}>
+                  Visualización y Red
+                </div>
+
+                {/* Switch Modo Nocturno / Oscuro */}
+                <div className="profile-setting-toggle-row">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div className="profile-menu-icon" style={{ background: isDarkMode ? '#1E293B' : '#FEF3C7', color: isDarkMode ? '#F59E0B' : '#D97706' }}>
+                      {isDarkMode ? <Moon size={18} /> : <Sun size={18} />}
+                    </div>
+                    <div>
+                      <strong style={{ fontSize: '0.90rem', color: 'var(--carbon)' }}>Modo nocturno (Oscuro)</strong>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--gray-500)' }}>
+                        {isDarkMode ? 'Tema oscuro activo en toda la app' : 'Tema claro activo'}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className={`theme-toggle-switch ${isDarkMode ? 'on' : ''}`}
+                    onClick={toggleDarkMode}
+                    aria-label="Alternar modo oscuro"
+                  >
+                    <span className="theme-toggle-handle">
+                      {isDarkMode ? <Moon size={12} /> : <Sun size={12} />}
+                    </span>
+                  </button>
+                </div>
+
+                {/* Switch Simular Modo Sin Conexión para pruebas */}
+                <div className="profile-setting-toggle-row" style={{ borderTop: '1px solid var(--gray-200)', paddingTop: 10, marginTop: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div className="profile-menu-icon" style={{ background: simulateOffline ? '#FEE2E2' : '#ECFDF5', color: simulateOffline ? '#D83B35' : '#16A34A' }}>
+                      {simulateOffline ? <WifiOff size={18} /> : <Wifi size={18} />}
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <strong style={{ fontSize: '0.90rem', color: 'var(--carbon)' }}>Simular modo sin conexión</strong>
+                        {simulateOffline && <span className="badge-com" style={{ background: '#FEF3C7', color: '#92400E', fontSize: '0.66rem', padding: '1px 6px' }}>Forzado</span>}
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--gray-500)' }}>
+                        {simulateOffline ? 'Simulación offline activa para probar BLE' : 'Desactivado (detecta internet del celular)'}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className={`theme-toggle-switch ${simulateOffline ? 'on' : ''}`}
+                    onClick={toggleSimulateOffline}
+                    aria-label="Alternar simulación sin conexión"
+                  >
+                    <span className="theme-toggle-handle">
+                      {simulateOffline ? <WifiOff size={12} /> : <Wifi size={12} />}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
               <div className="card" style={{ padding: '4px 14px', marginTop: 12 }}>
                 {[
                   {
@@ -3088,34 +3094,39 @@ export function App() {
         <button
           className="fab"
           onClick={() => {
-            if (communityTab === 'ayuda') setIsHelpModalOpen(true);
-            else if (communityTab === 'avisos') setIsNoticeModalOpen(true);
-            else setIsServiceModalOpen(true);
+            if (view === 'explore') setIsServiceModalOpen(true);
+            else if (communityTab === 'ayuda') setIsHelpModalOpen(true);
+            else setIsNoticeModalOpen(true);
           }}
           title="Publicar en la comunidad"
         >
-          <Plus size={24} />
+          <Plus size={28} strokeWidth={2.4} />
         </button>
       )}
 
-      {/* ===== NAVEGACIÓN INFERIOR (Boceto 05/13) ===== */}
+      {/* ===== NAVEGACIÓN INFERIOR (Estilo WhatsApp / Instagram: Iconos prominentes y claros) ===== */}
       {view !== 'welcome' && view !== 'request-form' && view !== 'tracking' && view !== 'pro-detail' && view !== 'offline' && (
         <nav className="bnav">
           <button className={`bnav-btn ${view === 'home' ? 'active' : ''}`} onClick={() => navigateTo('home')}>
-            <Store size={22} /><span>Inicio</span>
+            <Home size={26} strokeWidth={view === 'home' ? 2.3 : 1.9} />
+            <span>Inicio</span>
           </button>
           <button className={`bnav-btn ${view === 'explore' ? 'active' : ''}`} onClick={() => navigateTo('explore')}>
-            <Search size={22} /><span>Explorar</span>
+            <Search size={26} strokeWidth={view === 'explore' ? 2.3 : 1.9} />
+            <span>Explorar</span>
           </button>
           <button className={`bnav-btn ${view === 'requests' ? 'active' : ''}`} onClick={() => navigateTo('requests')}>
-            <Clock size={22} /><span>Solicitudes</span>
+            <Clock size={26} strokeWidth={view === 'requests' ? 2.3 : 1.9} />
+            <span>Solicitudes</span>
             {bookings.length > 0 && <div className="bnav-dot" />}
           </button>
           <button className={`bnav-btn ${view === 'map' ? 'active' : ''}`} onClick={() => navigateTo('map')}>
-            <MapPin size={22} /><span>Mapa</span>
+            <MapPin size={26} strokeWidth={view === 'map' ? 2.3 : 1.9} />
+            <span>Mapa</span>
           </button>
           <button className={`bnav-btn ${view === 'profile' ? 'active' : ''}`} onClick={() => navigateTo('profile')}>
-            <UserIcon size={22} /><span>Perfil</span>
+            <UserIcon size={26} strokeWidth={view === 'profile' ? 2.3 : 1.9} />
+            <span>Perfil</span>
           </button>
         </nav>
       )}
@@ -4338,8 +4349,12 @@ export function App() {
                       );
                     } else if (notif.linkTab) {
                       setIsNotificationsOpen(false);
-                      setCommunityTab(notif.linkTab);
-                      navigateTo('home');
+                      if ((notif.linkTab as string) === 'servicios') {
+                        navigateTo('explore');
+                      } else {
+                        setCommunityTab(notif.linkTab as CommunityTabType);
+                        navigateTo('home');
+                      }
                     }
                   }}
                 >

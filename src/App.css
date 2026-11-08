@@ -249,13 +249,13 @@ body {
   padding: 16px 18px;
 }
 
-/* ===== BOTTOM NAVIGATION ===== */
+/* ===== BOTTOM NAVIGATION (Estilo WhatsApp / Instagram) ===== */
 .bnav {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  height: calc(68px + env(safe-area-inset-bottom, 0px));
   background: var(--white);
   border-top: 1px solid var(--gray-200);
   display: flex;
@@ -263,7 +263,7 @@ body {
   justify-content: space-around;
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 4px);
   z-index: 100;
-  box-shadow: 0 -2px 10px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 -2px 12px rgba(15, 23, 42, 0.05);
 }
 
 .bnav-btn {
@@ -275,17 +275,19 @@ body {
   justify-content: center;
   gap: 3px;
   color: var(--gray-500);
-  font-size: 0.70rem;
+  font-size: 0.72rem;
   font-weight: 600;
   cursor: pointer;
   padding: 4px 10px;
-  min-width: 62px;
+  min-width: 64px;
   position: relative;
-  transition: all 0.15s ease;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .bnav-btn svg {
-  transition: transform 0.15s ease;
+  width: 26px;
+  height: 26px;
+  transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.18s ease;
 }
 
 .bnav-btn.active {
@@ -293,7 +295,7 @@ body {
 }
 
 .bnav-btn.active svg {
-  transform: translateY(-1px);
+  transform: translateY(-2px) scale(1.05);
 }
 
 .bnav-btn.active span {
@@ -303,10 +305,10 @@ body {
 
 .bnav-btn .bnav-dot {
   position: absolute;
-  top: 7px;
-  right: 16px;
-  width: 7px;
-  height: 7px;
+  top: 5px;
+  right: 15px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--coral);
   box-shadow: 0 0 0 2px var(--white);
@@ -2964,5 +2966,326 @@ body {
   justify-content: center;
   gap: 6px;
 }
+
+/* ===== PROFILE SETTINGS TOGGLES (MODO OSCURO Y SIMULACIÓN OFFLINE) ===== */
+.profile-setting-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+}
+
+.theme-toggle-switch {
+  width: 50px;
+  height: 28px;
+  border-radius: 9999px;
+  background: var(--gray-300);
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.25s ease;
+  padding: 2px;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.theme-toggle-switch.on {
+  background: var(--coral);
+}
+
+.theme-toggle-handle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  color: var(--carbon);
+}
+
+.theme-toggle-switch.on .theme-toggle-handle {
+  transform: translateX(22px);
+  color: var(--coral);
+}
+
+/* =========================================================
+   DARK MODE / MODO NOCTURNO (ALTO CONTRASTE Y ARMONÍA VISUAL)
+   ========================================================= */
+
+.phone.dark-theme,
+html.dark {
+  --coral: #FF5A5F;
+  --coral-dark: #E0353B;
+  --coral-light: rgba(255, 90, 95, 0.18);
+  --coral-tint: rgba(255, 90, 95, 0.10);
+  --carbon: #F8FAFC;
+  --carbon-light: #CBD5E1;
+  --white: #161F30;
+  --cream: #131B2A;
+  --gray-50: #0B0F19;
+  --gray-100: #111827;
+  --gray-200: #233044;
+  --gray-300: #334155;
+  --gray-400: #64748B;
+  --gray-500: #94A3B8;
+  --gray-600: #CBD5E1;
+  --gray-700: #E2E8F0;
+  --text: #F8FAFC;
+  --text-soft: #94A3B8;
+  --shadow-card: 0 4px 14px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.55);
+}
+
+.phone.dark-theme {
+  background-color: #0B0F19 !important;
+  color: #F8FAFC !important;
+}
+
+.phone.dark-theme .header,
+.phone.dark-theme .app-header,
+.phone.dark-theme .top-bar {
+  background: #111827;
+  border-bottom: 1px solid #1E293B;
+}
+
+.phone.dark-theme .greeting-text h2,
+.phone.dark-theme .top-bar h2,
+.phone.dark-theme .top-bar h3,
+.phone.dark-theme .sec h3 {
+  color: #FFFFFF !important;
+}
+
+.phone.dark-theme .greeting-sub {
+  color: #94A3B8;
+}
+
+.phone.dark-theme .loc-chip {
+  background: #182234;
+  border: 1px solid #28374F;
+  color: #E2E8F0;
+}
+
+.phone.dark-theme .icon-circle {
+  background: #182234;
+  border: 1px solid #28374F;
+  color: #F8FAFC;
+}
+
+.phone.dark-theme .com-tabs-bar {
+  background: #111827;
+  border-bottom: 1px solid #1E293B;
+}
+
+.phone.dark-theme .com-tab-pill {
+  background: #182234;
+  color: #94A3B8;
+  border: 1px solid #28374F;
+}
+
+.phone.dark-theme .com-tab-pill.active {
+  background: #FF5A5F;
+  color: #FFFFFF;
+  border-color: #FF5A5F;
+}
+
+.phone.dark-theme .card,
+.phone.dark-theme .card-community,
+.phone.dark-theme .activity-card,
+.phone.dark-theme .feat-pro,
+.phone.dark-theme .pro-card,
+.phone.dark-theme .request-card {
+  background: #161F30 !important;
+  border: 1px solid #233044 !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.phone.dark-theme .card-title,
+.phone.dark-theme .activity-title,
+.phone.dark-theme .feat-pro-name span,
+.phone.dark-theme .pro-title {
+  color: #FFFFFF !important;
+}
+
+.phone.dark-theme .card-body-text,
+.phone.dark-theme .activity-desc {
+  color: #CBD5E1 !important;
+}
+
+.phone.dark-theme .card-meta,
+.phone.dark-theme .card-time,
+.phone.dark-theme .activity-meta {
+  color: #94A3B8 !important;
+}
+
+.phone.dark-theme .btn-confirm-action {
+  background: rgba(34, 197, 94, 0.16);
+  color: #4ADE80;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.phone.dark-theme .btn-confirm-action.confirmed {
+  background: #16A34A;
+  color: #FFFFFF;
+  border-color: #16A34A;
+}
+
+.phone.dark-theme .btn-prorrogar {
+  background: rgba(255, 255, 255, 0.05);
+  color: #94A3B8;
+  border: 1px solid #334155;
+}
+
+.phone.dark-theme .btn-chat-callout {
+  background: rgba(255, 90, 95, 0.15);
+  color: #FF7B75;
+  border: 1.5px solid #FF5A5F;
+}
+
+.phone.dark-theme .bnav {
+  background: #111827 !important;
+  border-top: 1px solid #1E293B !important;
+  box-shadow: 0 -3px 18px rgba(0, 0, 0, 0.5) !important;
+}
+
+.phone.dark-theme .bnav-btn {
+  color: #94A3B8;
+}
+
+.phone.dark-theme .bnav-btn.active {
+  color: #FF5A5F;
+}
+
+.phone.dark-theme .bnav-btn.active span {
+  color: #FF5A5F;
+}
+
+.phone.dark-theme .bnav-btn .bnav-dot {
+  background: #FF5A5F;
+  box-shadow: 0 0 0 2px #111827;
+}
+
+.phone.dark-theme input,
+.phone.dark-theme textarea,
+.phone.dark-theme select {
+  background: #0B0F19 !important;
+  border: 1.5px solid #334155 !important;
+  color: #F8FAFC !important;
+}
+
+.phone.dark-theme input:focus,
+.phone.dark-theme textarea:focus,
+.phone.dark-theme select:focus {
+  border-color: #FF5A5F !important;
+  box-shadow: 0 0 0 3px rgba(255, 90, 95, 0.2) !important;
+}
+
+.phone.dark-theme .modal-card,
+.phone.dark-theme .modal-full {
+  background: #161F30 !important;
+  border: 1px solid #233044 !important;
+  color: #F8FAFC !important;
+}
+
+.phone.dark-theme .modal-close {
+  background: #1E293B;
+  color: #94A3B8;
+}
+
+.phone.dark-theme .profile-menu-item {
+  border-bottom: 1px solid #233044;
+}
+
+.phone.dark-theme .profile-menu-text {
+  color: #F8FAFC;
+}
+
+.phone.dark-theme .profile-menu-icon {
+  background: #111827;
+}
+
+.phone.dark-theme .chat-thread-view {
+  background: #0B0F19;
+}
+
+.phone.dark-theme .chat-bubble-peer {
+  background: #1E293B;
+  color: #F8FAFC;
+  border: 1px solid #334155;
+}
+
+.phone.dark-theme .chat-bubble-peer .chat-bubble-sender {
+  color: #FF875C;
+}
+
+.phone.dark-theme .chat-bubble-peer .chat-bubble-time {
+  color: #94A3B8;
+}
+
+.phone.dark-theme .chat-bubble-me {
+  background: #D83B35;
+  color: #FFFFFF;
+}
+
+.phone.dark-theme .chat-input-bar {
+  background: #111827;
+  border-top: 1px solid #1E293B;
+}
+
+.phone.dark-theme .chat-input {
+  background: #1E293B;
+  border: 1px solid #334155;
+  color: #F8FAFC;
+}
+
+.phone.dark-theme .off-dark-card {
+  background: #161F30;
+  border: 1px solid #233044;
+}
+
+.phone.dark-theme .off-metric-box {
+  background: #111827;
+  border: 1px solid #233044;
+}
+
+.phone.dark-theme .off-status-box {
+  background: #161F30;
+  border: 1px solid #233044;
+}
+
+.phone.dark-theme .btn-outline {
+  border-color: #334155;
+  color: #CBD5E1;
+  background: transparent;
+}
+
+.phone.dark-theme .badge-vigente {
+  background: rgba(245, 158, 11, 0.18);
+  color: #FCD34D;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+}
+
+.phone.dark-theme .badge-corroborado {
+  background: rgba(34, 197, 94, 0.18);
+  color: #86EFAC;
+  border: 1px solid rgba(34, 197, 94, 0.45);
+}
+
+.phone.dark-theme .badge-oficial {
+  background: rgba(168, 85, 247, 0.18);
+  color: #D8B4FE;
+  border: 1px solid rgba(168, 85, 247, 0.45);
+}
+
+.phone.dark-theme .badge-reportado {
+  background: rgba(239, 68, 68, 0.18);
+  color: #FCA5A5;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+}
+
 
 
