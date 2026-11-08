@@ -1666,8 +1666,16 @@ export function App() {
                             <div
                               className="activity-icon-box"
                               style={{
-                                background: act.badgeType === 'open' ? '#ECFDF5' : act.badgeType === 'solidarity' ? '#FFF7ED' : '#EFF6FF',
-                                border: act.badgeType === 'open' ? '1px solid #A7F3D0' : act.badgeType === 'solidarity' ? '1px solid #FFEDD5' : '1px solid #BFDBFE'
+                                background: act.badgeType === 'open'
+                                  ? (isDarkMode ? 'rgba(34, 197, 94, 0.16)' : '#ECFDF5')
+                                  : act.badgeType === 'solidarity'
+                                  ? (isDarkMode ? 'rgba(234, 88, 12, 0.16)' : '#FFF7ED')
+                                  : (isDarkMode ? 'rgba(59, 130, 246, 0.16)' : '#EFF6FF'),
+                                border: act.badgeType === 'open'
+                                  ? (isDarkMode ? '1px solid rgba(34, 197, 94, 0.35)' : '1px solid #A7F3D0')
+                                  : act.badgeType === 'solidarity'
+                                  ? (isDarkMode ? '1px solid rgba(234, 88, 12, 0.35)' : '1px solid #FFEDD5')
+                                  : (isDarkMode ? '1px solid rgba(59, 130, 246, 0.35)' : '1px solid #BFDBFE')
                               }}
                             >
                               {act.badgeType === 'open' ? <CalendarDays size={20} color="#16A34A" /> :
@@ -1688,9 +1696,21 @@ export function App() {
                             <span
                               className="badge-com"
                               style={{
-                                background: act.badgeType === 'open' ? '#ECFDF5' : act.badgeType === 'solidarity' ? '#F5F3FF' : '#F1F5F9',
-                                color: act.badgeType === 'open' ? '#065F46' : act.badgeType === 'solidarity' ? '#5B21B6' : '#334155',
-                                border: act.badgeType === 'open' ? '1px solid #A7F3D0' : act.badgeType === 'solidarity' ? '1px solid #DDD6FE' : '1px solid #E2E8F0'
+                                background: act.badgeType === 'open'
+                                  ? (isDarkMode ? 'rgba(34, 197, 94, 0.18)' : '#ECFDF5')
+                                  : act.badgeType === 'solidarity'
+                                  ? (isDarkMode ? 'rgba(168, 85, 247, 0.18)' : '#F5F3FF')
+                                  : (isDarkMode ? 'rgba(51, 65, 85, 0.35)' : '#F1F5F9'),
+                                color: act.badgeType === 'open'
+                                  ? (isDarkMode ? '#86EFAC' : '#065F46')
+                                  : act.badgeType === 'solidarity'
+                                  ? (isDarkMode ? '#D8B4FE' : '#5B21B6')
+                                  : (isDarkMode ? '#CBD5E1' : '#334155'),
+                                border: act.badgeType === 'open'
+                                  ? (isDarkMode ? '1px solid rgba(34, 197, 94, 0.35)' : '1px solid #A7F3D0')
+                                  : act.badgeType === 'solidarity'
+                                  ? (isDarkMode ? '1px solid rgba(168, 85, 247, 0.35)' : '1px solid #DDD6FE')
+                                  : (isDarkMode ? '1px solid rgba(51, 65, 85, 0.5)' : '1px solid #E2E8F0')
                               }}
                             >
                               {act.badge}
@@ -2206,10 +2226,25 @@ export function App() {
                       style={{
                         fontSize: '0.72rem',
                         fontWeight: 700,
-                        padding: '3px 8px',
-                        borderRadius: 8,
-                        background: isRejected ? '#FEE2E2' : isPendingDecision ? '#FEF3C7' : '#E8F8F0',
-                        color: isRejected ? '#DC2626' : isPendingDecision ? '#B45309' : '#059669',
+                        padding: '4px 10px',
+                        borderRadius: 20,
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                        background: isRejected
+                          ? (isDarkMode ? 'rgba(239, 68, 68, 0.18)' : '#FEE2E2')
+                          : isPendingDecision
+                          ? (isDarkMode ? 'rgba(245, 158, 11, 0.18)' : '#FEF3C7')
+                          : (isDarkMode ? 'rgba(34, 197, 94, 0.18)' : '#E8F8F0'),
+                        color: isRejected
+                          ? (isDarkMode ? '#FCA5A5' : '#DC2626')
+                          : isPendingDecision
+                          ? (isDarkMode ? '#FCD34D' : '#B45309')
+                          : (isDarkMode ? '#86EFAC' : '#059669'),
+                        border: isRejected
+                          ? (isDarkMode ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid #FECACA')
+                          : isPendingDecision
+                          ? (isDarkMode ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid #FDE68A')
+                          : (isDarkMode ? '1px solid rgba(34, 197, 94, 0.35)' : '1px solid #A7F3D0'),
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 4
@@ -2283,9 +2318,25 @@ export function App() {
 
                 {/* Estado de espera del cliente mientras el profesional revisa */}
                 {isPendingDecision && (
-                  <div className="card" style={{ marginTop: 12, border: '1px solid #FDE68A', background: '#FFFBEB', padding: '14px 16px' }}>
+                  <div
+                    className="card"
+                    style={{
+                      marginTop: 12,
+                      border: isDarkMode ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid #FDE68A',
+                      background: isDarkMode ? '#1E293B' : '#FFFBEB',
+                      padding: '14px 16px'
+                    }}
+                  >
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                      <div className="icon-circle" style={{ background: '#FEF3C7', color: '#B45309', flexShrink: 0, marginTop: 2 }}>
+                      <div
+                        className="icon-circle"
+                        style={{
+                          background: isDarkMode ? 'rgba(245, 158, 11, 0.2)' : '#FEF3C7',
+                          color: isDarkMode ? '#FCD34D' : '#B45309',
+                          flexShrink: 0,
+                          marginTop: 2
+                        }}
+                      >
                         <Clock size={18} />
                       </div>
                       <div>
@@ -2480,24 +2531,35 @@ export function App() {
                           navigateTo('tracking');
                         }}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                          <h4 className="card-title" style={{ fontSize: '1.02rem', margin: 0 }}>{b.serviceTitle}</h4>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 6 }}>
+                          <h4 className="card-title" style={{ fontSize: '1.02rem', margin: 0, flex: 1, minWidth: 0 }}>{b.serviceTitle}</h4>
                           <span
-                            className="tag"
+                            className="status-pill-chip"
                             style={{
                               background:
-                                b.status === 'en_revision' || b.status === 'solicitado' ? '#FEF3C7' :
-                                b.status === 'en_proceso' ? '#DBEAFE' : '#FFEDD5',
+                                b.status === 'en_revision' || b.status === 'solicitado'
+                                  ? (isDarkMode ? 'rgba(245, 158, 11, 0.16)' : '#FEF3C7')
+                                  : b.status === 'en_proceso'
+                                  ? (isDarkMode ? 'rgba(59, 130, 246, 0.16)' : '#DBEAFE')
+                                  : (isDarkMode ? 'rgba(255, 135, 92, 0.16)' : '#FFEDD5'),
                               color:
-                                b.status === 'en_revision' || b.status === 'solicitado' ? '#92400E' :
-                                b.status === 'en_proceso' ? '#1E40AF' : '#9A3412',
+                                b.status === 'en_revision' || b.status === 'solicitado'
+                                  ? (isDarkMode ? '#FCD34D' : '#92400E')
+                                  : b.status === 'en_proceso'
+                                  ? (isDarkMode ? '#93C5FD' : '#1E40AF')
+                                  : (isDarkMode ? '#FFAB8A' : '#9A3412'),
                               border:
-                                b.status === 'en_revision' || b.status === 'solicitado' ? '1px solid #FDE68A' :
-                                b.status === 'en_proceso' ? '1px solid #BFDBFE' : '1px solid #FED7AA',
-                              fontSize: '0.73rem',
+                                b.status === 'en_revision' || b.status === 'solicitado'
+                                  ? (isDarkMode ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid #FDE68A')
+                                  : b.status === 'en_proceso'
+                                  ? (isDarkMode ? '1px solid rgba(59, 130, 246, 0.35)' : '1px solid #BFDBFE')
+                                  : (isDarkMode ? '1px solid rgba(255, 135, 92, 0.35)' : '1px solid #FED7AA'),
+                              fontSize: '0.72rem',
                               fontWeight: 700,
-                              padding: '3px 8px',
-                              borderRadius: 6,
+                              padding: '4px 10px',
+                              borderRadius: 20,
+                              whiteSpace: 'nowrap',
+                              flexShrink: 0,
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: 4
@@ -2542,13 +2604,13 @@ export function App() {
 
                       return (
                         <div key={b.id} className="received-order-card">
-                          <div className="received-order-top">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div className="received-order-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
                               <div className="received-client-avatar">
                                 <UserIcon size={18} color="var(--carbon)" />
                               </div>
-                              <div>
-                                <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--carbon)' }}>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--carbon)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   {b.clientName}
                                 </div>
                                 <div style={{ fontSize: '0.74rem', color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -2558,14 +2620,32 @@ export function App() {
                             </div>
 
                             <span
-                              className="tag"
+                              className="status-pill-chip"
                               style={{
-                                background: isPending ? '#FEF3C7' : isAcceptedOnTheWay ? '#FFEDD5' : isInProgress ? '#DBEAFE' : isDone ? '#E8F8F0' : '#FEE2E2',
-                                color: isPending ? '#B45309' : isAcceptedOnTheWay ? 'var(--coral)' : isInProgress ? '#1D4ED8' : isDone ? '#2E9D72' : '#DC2626',
+                                background:
+                                  isPending ? (isDarkMode ? 'rgba(245, 158, 11, 0.16)' : '#FEF3C7') :
+                                  isAcceptedOnTheWay ? (isDarkMode ? 'rgba(255, 135, 92, 0.16)' : '#FFEDD5') :
+                                  isInProgress ? (isDarkMode ? 'rgba(59, 130, 246, 0.16)' : '#DBEAFE') :
+                                  isDone ? (isDarkMode ? 'rgba(34, 197, 94, 0.16)' : '#E8F8F0') :
+                                  (isDarkMode ? 'rgba(239, 68, 68, 0.16)' : '#FEE2E2'),
+                                color:
+                                  isPending ? (isDarkMode ? '#FCD34D' : '#B45309') :
+                                  isAcceptedOnTheWay ? (isDarkMode ? '#FFAB8A' : 'var(--coral)') :
+                                  isInProgress ? (isDarkMode ? '#93C5FD' : '#1D4ED8') :
+                                  isDone ? (isDarkMode ? '#86EFAC' : '#2E9D72') :
+                                  (isDarkMode ? '#FCA5A5' : '#DC2626'),
+                                border:
+                                  isPending ? (isDarkMode ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid #FDE68A') :
+                                  isAcceptedOnTheWay ? (isDarkMode ? '1px solid rgba(255, 135, 92, 0.35)' : '1px solid #FED7AA') :
+                                  isInProgress ? (isDarkMode ? '1px solid rgba(59, 130, 246, 0.35)' : '1px solid #BFDBFE') :
+                                  isDone ? (isDarkMode ? '1px solid rgba(34, 197, 94, 0.35)' : '1px solid #A7F3D0') :
+                                  (isDarkMode ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid #FECACA'),
                                 fontSize: '0.72rem',
                                 fontWeight: 800,
-                                padding: '3px 8px',
-                                borderRadius: 6,
+                                padding: '4px 10px',
+                                borderRadius: 20,
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0,
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: 4
@@ -2580,11 +2660,11 @@ export function App() {
                             <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--coral)', marginBottom: 4 }}>
                               {b.serviceTitle}
                             </div>
-                            <p style={{ fontSize: '0.82rem', color: '#374151', margin: '4px 0 8px 0', lineHeight: 1.4 }}>
+                            <p style={{ fontSize: '0.82rem', color: isDarkMode ? '#CBD5E1' : '#374151', margin: '4px 0 8px 0', lineHeight: 1.4 }}>
                               "{b.notes}"
                             </p>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: '0.78rem', color: '#4B5563', background: 'var(--gray-50)', padding: '8px 10px', borderRadius: 8 }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: '0.78rem', color: isDarkMode ? '#94A3B8' : '#4B5563', background: isDarkMode ? '#111827' : 'var(--gray-50)', padding: '8px 10px', borderRadius: 8, border: isDarkMode ? '1px solid #233044' : 'none' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                 <MapPin size={13} color="var(--coral)" style={{ flexShrink: 0 }} />
                                 <span style={{ color: 'var(--carbon)', fontWeight: 600 }}>{b.address || 'Ciclovía Malachowsky, San Borja'}</span>
@@ -2613,10 +2693,11 @@ export function App() {
 
                           {/* Opciones de Aceptar o Rechazar el encargo */}
                           {isPending && (
-                            <div className="decision-btn-group" style={{ marginTop: 12 }}>
+                            <div className="decision-btn-group" style={{ marginTop: 12, display: 'flex', gap: 10 }}>
                               <button
                                 type="button"
                                 className="btn-accept"
+                                style={{ flex: 1, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontWeight: 700, fontSize: '0.84rem' }}
                                 onClick={() => handleAcceptBooking(b.id)}
                               >
                                 <Check size={16} /> Aceptar encargo
@@ -2624,6 +2705,7 @@ export function App() {
                               <button
                                 type="button"
                                 className="btn-reject"
+                                style={{ flex: 1, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontWeight: 700, fontSize: '0.84rem' }}
                                 onClick={() => handleRejectBooking(b.id)}
                               >
                                 <X size={16} /> Rechazar encargo
@@ -2634,13 +2716,24 @@ export function App() {
                           {/* Si ya fue aceptado y está en camino */}
                           {isAcceptedOnTheWay && (
                             <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#FFF7ED', padding: '8px 12px', borderRadius: 8, fontSize: '0.78rem', color: 'var(--coral)', fontWeight: 700 }}>
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                background: isDarkMode ? '#1E293B' : '#FFF7ED',
+                                border: isDarkMode ? '1px solid rgba(255, 135, 92, 0.35)' : 'none',
+                                padding: '8px 12px',
+                                borderRadius: 8,
+                                fontSize: '0.78rem',
+                                color: isDarkMode ? '#FFAB8A' : 'var(--coral)',
+                                fontWeight: 700
+                              }}>
                                 <span>Has aceptado este encargo · Estás en camino</span>
                                 <div style={{ display: 'flex', gap: 6 }}>
-                                  <a href="tel:999888777" className="icon-circle" style={{ width: 28, height: 28, background: '#E8F8F0' }} aria-label="Llamar">
+                                  <a href="tel:999888777" className="icon-circle" style={{ width: 28, height: 28, background: isDarkMode ? '#111827' : '#E8F8F0', border: isDarkMode ? '1px solid #334155' : 'none' }} aria-label="Llamar">
                                     <Phone size={13} color="#2E9D72" />
                                   </a>
-                                  <a href="https://wa.me/51999888777" target="_blank" rel="noreferrer" className="icon-circle" style={{ width: 28, height: 28, background: '#FFF7ED' }} aria-label="WhatsApp">
+                                  <a href="https://wa.me/51999888777" target="_blank" rel="noreferrer" className="icon-circle" style={{ width: 28, height: 28, background: isDarkMode ? '#111827' : '#FFF7ED', border: isDarkMode ? '1px solid #334155' : 'none' }} aria-label="WhatsApp">
                                     <MessageCircle size={13} color="#FF875C" />
                                   </a>
                                 </div>
@@ -2720,17 +2813,26 @@ export function App() {
                           navigateTo('tracking');
                         }}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <span style={{ fontWeight: 700, color: 'var(--carbon)', fontSize: '0.92rem' }}>{b.serviceTitle}</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 4 }}>
+                          <span style={{ fontWeight: 700, color: 'var(--carbon)', fontSize: '0.92rem', flex: 1, minWidth: 0 }}>{b.serviceTitle}</span>
                           <span
-                            className="tag"
+                            className="status-pill-chip"
                             style={{
-                              background: b.status === 'completado' ? '#E8F8F0' : '#FEE2E2',
-                              color: b.status === 'completado' ? '#2E9D72' : '#DC2626',
+                              background: b.status === 'completado'
+                                ? (isDarkMode ? 'rgba(34, 197, 94, 0.16)' : '#E8F8F0')
+                                : (isDarkMode ? 'rgba(239, 68, 68, 0.16)' : '#FEE2E2'),
+                              color: b.status === 'completado'
+                                ? (isDarkMode ? '#86EFAC' : '#2E9D72')
+                                : (isDarkMode ? '#FCA5A5' : '#DC2626'),
+                              border: b.status === 'completado'
+                                ? (isDarkMode ? '1px solid rgba(34, 197, 94, 0.35)' : '1px solid #A7F3D0')
+                                : (isDarkMode ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid #FECACA'),
                               fontSize: '0.72rem',
                               fontWeight: 700,
-                              padding: '3px 8px',
-                              borderRadius: 6,
+                              padding: '4px 10px',
+                              borderRadius: 20,
+                              whiteSpace: 'nowrap',
+                              flexShrink: 0,
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: 3
@@ -2781,6 +2883,7 @@ export function App() {
               activities={activities.filter(a => !a.expiresAt || new Date(a.expiresAt).getTime() > Date.now())}
               neighborhood={selectedNeighborhood}
               userCoords={userCoords}
+              isDarkMode={isDarkMode}
               onLocationDetected={(coords, name) => {
                 setUserCoords(coords);
                 setRealLocationName(name);
@@ -2935,13 +3038,13 @@ export function App() {
       {/* ========== PERFIL (Boceto 17) ========== */}
       {view === 'profile' && (
         <>
-          <div className="top-bar" style={{ textAlign: 'center', borderBottom: '1px solid var(--gray-200)', padding: '24px 18px 20px' }}>
-            <div className="header-avatar" style={{ width: 72, height: 72, fontSize: '1.8rem', margin: '0 auto 12px', boxShadow: '0 4px 16px rgba(216, 59, 53, 0.32)' }}>
+          <div className="top-bar" style={{ textAlign: 'center', borderBottom: '1px solid var(--gray-200)', padding: '34px 18px 24px' }}>
+            <div className="header-avatar" style={{ width: 76, height: 76, fontSize: '1.9rem', margin: '4px auto 18px', boxShadow: '0 6px 20px rgba(216, 59, 53, 0.35)' }}>
               {userInitial}
             </div>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--carbon)', margin: 0, letterSpacing: '-0.3px' }}>{userName}</h2>
-            <p style={{ fontSize: '0.82rem', color: 'var(--gray-500)', marginTop: 3, fontWeight: 500 }}>{currentUser?.documentNumber ? `DNI / Documento: ${currentUser.documentNumber}` : 'maria@ayni.pe'}</p>
-            <span className="badge-com badge-corroborado" style={{ marginTop: 8, display: 'inline-flex', padding: '5px 12px', borderRadius: 20 }}>
+            <h2 style={{ fontSize: '1.38rem', fontWeight: 800, color: 'var(--carbon)', margin: '8px 0 0', letterSpacing: '-0.3px' }}>{userName}</h2>
+            <p style={{ fontSize: '0.82rem', color: 'var(--gray-500)', marginTop: 6, fontWeight: 500 }}>{currentUser?.documentNumber ? `DNI / Documento: ${currentUser.documentNumber}` : 'maria@ayni.pe'}</p>
+            <span className="badge-com badge-corroborado" style={{ marginTop: 10, display: 'inline-flex', padding: '5px 14px', borderRadius: 20 }}>
               <CheckCircle size={13} /> Vecino Verificado Ayni
             </span>
           </div>

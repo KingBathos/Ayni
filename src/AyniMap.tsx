@@ -19,6 +19,7 @@ interface AyniMapProps {
   neighborhood?: string;
   userCoords?: [number, number] | null;
   onLocationDetected?: (coords: [number, number], name: string) => void;
+  isDarkMode?: boolean;
 }
 
 // Coordenadas de contingencia (Lima Metropolitana / San Borja)
@@ -68,12 +69,14 @@ export const AyniMap: React.FC<AyniMapProps> = ({
   onSelectActivity,
   neighborhood = 'Ciclovía Malachowsky, San Borja',
   userCoords: propUserCoords,
-  onLocationDetected
+  onLocationDetected,
+  isDarkMode = false
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
   const radiusCircleRef = useRef<L.Circle | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
 
   const [realCoords, setRealCoords] = useState<[number, number]>(propUserCoords || FALLBACK_CENTER);
   const [realNeighborhood, setRealNeighborhood] = useState<string>(neighborhood);
@@ -162,10 +165,17 @@ export const AyniMap: React.FC<AyniMapProps> = ({
         zoomControl: false,
       });
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap'
+      const tileUrl = isDarkMode
+        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+        : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+      const tileLayer = L.tileLayer(tileUrl, {
+        maxZoom: 20,
+        subdomains: isDarkMode ? 'abcd' : 'abc',
+        attribution: isDarkMode ? '&copy; OpenStreetMap &copy; CARTO' : '&copy; OpenStreetMap'
       }).addTo(map);
+
+      tileLayerRef.current = tileLayer;
 
       const markersLayer = L.layerGroup().addTo(map);
       markersLayerRef.current = markersLayer;
@@ -183,6 +193,26 @@ export const AyniMap: React.FC<AyniMapProps> = ({
       }
     };
   }, []);
+
+  // Cambiar tile layer dinámicamente si el usuario alterna a modo oscuro
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    if (tileLayerRef.current) {
+      mapInstanceRef.current.removeLayer(tileLayerRef.current);
+    }
+
+    const tileUrl = isDarkMode
+      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+    const newTile = L.tileLayer(tileUrl, {
+      maxZoom: 20,
+      subdomains: isDarkMode ? 'abcd' : 'abc',
+      attribution: isDarkMode ? '&copy; OpenStreetMap &copy; CARTO' : '&copy; OpenStreetMap'
+    }).addTo(mapInstanceRef.current);
+
+    tileLayerRef.current = newTile;
+  }, [isDarkMode]);
 
   // FILTRADO ESTRICTO DE VIGENCIA:
   // Solo los avisos, auxilios y actividades NO vencidos aparecen en el mapa.
@@ -420,15 +450,15 @@ export const AyniMap: React.FC<AyniMapProps> = ({
               ${iconSvg}
             </div>
             <div style="
-              background: #FFFFFF;
+              background: ${isDarkMode ? '#161F30' : '#FFFFFF'};
               border: 1px solid ${pinColor};
-              color: #1F2937;
+              color: ${isDarkMode ? '#F8FAFC' : '#1F2937'};
               font-family: inherit;
               font-size: 0.7rem;
               font-weight: 700;
-              padding: 1px 7px;
+              padding: 2px 8px;
               border-radius: 8px;
-              box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+              box-shadow: 0 2px 6px rgba(0,0,0,${isDarkMode ? '0.5' : '0.12'});
               margin-top: 2px;
               max-width: 95px;
               white-space: nowrap;
@@ -457,9 +487,9 @@ export const AyniMap: React.FC<AyniMapProps> = ({
               A ${formatDistance(item.distanceKm)}
             </span>
           </div>
-          <h4 style="margin: 0 0 4px; font-size: 0.94rem; font-weight: 800; color: #111827;">${item.title}</h4>
-          <div style="font-size: 0.78rem; color: #6B7280; margin-bottom: 6px;">${item.subtitle}</div>
-          <p style="margin: 0 0 10px; font-size: 0.78rem; color: #374151; line-height: 1.35;">${item.desc}</p>
+          <h4 style="margin: 0 0 4px; font-size: 0.94rem; font-weight: 800; color: ${isDarkMode ? '#F8FAFC' : '#111827'};">${item.title}</h4>
+          <div style="font-size: 0.78rem; color: ${isDarkMode ? '#94A3B8' : '#6B7280'}; margin-bottom: 6px;">${item.subtitle}</div>
+          <p style="margin: 0 0 10px; font-size: 0.78rem; color: ${isDarkMode ? '#CBD5E1' : '#374151'}; line-height: 1.35;">${item.desc}</p>
           <button id="btn-popup-${item.id}" style="
             width: 100%;
             background: ${pinColor};
@@ -506,7 +536,8 @@ export const AyniMap: React.FC<AyniMapProps> = ({
     onSelectService,
     onSelectHelp,
     onSelectPost,
-    onSelectActivity
+    onSelectActivity,
+    isDarkMode
   ]);
 
   const handleRecenter = () => {
@@ -546,12 +577,12 @@ export const AyniMap: React.FC<AyniMapProps> = ({
           display: 'flex',
           alignItems: 'center',
           gap: 10,
-          background: '#ffffff',
+          background: isDarkMode ? '#161F30' : '#ffffff',
           borderRadius: '14px',
           padding: '10px 14px',
-          boxShadow: '0 4px 15px rgba(0,0,0,0.12)',
+          boxShadow: isDarkMode ? '0 4px 16px rgba(0,0,0,0.45)' : '0 4px 15px rgba(0,0,0,0.12)',
           pointerEvents: 'auto',
-          border: '1px solid #E5E7EB'
+          border: isDarkMode ? '1px solid #233044' : '1px solid #E5E7EB'
         }}>
           <Search size={18} color="#9CA3AF" />
           <input
@@ -565,7 +596,7 @@ export const AyniMap: React.FC<AyniMapProps> = ({
               background: 'transparent',
               outline: 'none',
               fontSize: '0.88rem',
-              color: '#1F2937'
+              color: isDarkMode ? '#F8FAFC' : '#1F2937'
             }}
           />
           {searchFilter && (
@@ -588,10 +619,10 @@ export const AyniMap: React.FC<AyniMapProps> = ({
               fontSize: '0.76rem',
               fontWeight: 800,
               cursor: 'pointer',
-              border: 'none',
-              background: filterType === 'all' ? '#D83B35' : '#ffffff',
-              color: filterType === 'all' ? '#ffffff' : '#374151',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+              border: isDarkMode && filterType !== 'all' ? '1px solid #233044' : 'none',
+              background: filterType === 'all' ? '#D83B35' : (isDarkMode ? '#161F30' : '#ffffff'),
+              color: filterType === 'all' ? '#ffffff' : (isDarkMode ? '#CBD5E1' : '#374151'),
+              boxShadow: isDarkMode ? '0 2px 6px rgba(0,0,0,0.3)' : '0 2px 6px rgba(0,0,0,0.1)',
               whiteSpace: 'nowrap'
             }}
           >
@@ -605,10 +636,10 @@ export const AyniMap: React.FC<AyniMapProps> = ({
               fontSize: '0.76rem',
               fontWeight: 800,
               cursor: 'pointer',
-              border: 'none',
-              background: filterType === 'services' ? '#D83B35' : '#ffffff',
-              color: filterType === 'services' ? '#ffffff' : '#374151',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+              border: isDarkMode && filterType !== 'services' ? '1px solid #233044' : 'none',
+              background: filterType === 'services' ? '#D83B35' : (isDarkMode ? '#161F30' : '#ffffff'),
+              color: filterType === 'services' ? '#ffffff' : (isDarkMode ? '#CBD5E1' : '#374151'),
+              boxShadow: isDarkMode ? '0 2px 6px rgba(0,0,0,0.3)' : '0 2px 6px rgba(0,0,0,0.1)',
               display: 'inline-flex',
               alignItems: 'center',
               gap: 5,
@@ -625,10 +656,10 @@ export const AyniMap: React.FC<AyniMapProps> = ({
               fontSize: '0.76rem',
               fontWeight: 800,
               cursor: 'pointer',
-              border: 'none',
-              background: filterType === 'posts' ? '#DC2626' : '#ffffff',
-              color: filterType === 'posts' ? '#ffffff' : '#374151',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+              border: isDarkMode && filterType !== 'posts' ? '1px solid #233044' : 'none',
+              background: filterType === 'posts' ? '#DC2626' : (isDarkMode ? '#161F30' : '#ffffff'),
+              color: filterType === 'posts' ? '#ffffff' : (isDarkMode ? '#CBD5E1' : '#374151'),
+              boxShadow: isDarkMode ? '0 2px 6px rgba(0,0,0,0.3)' : '0 2px 6px rgba(0,0,0,0.1)',
               display: 'inline-flex',
               alignItems: 'center',
               gap: 5,
@@ -645,10 +676,10 @@ export const AyniMap: React.FC<AyniMapProps> = ({
               fontSize: '0.76rem',
               fontWeight: 800,
               cursor: 'pointer',
-              border: 'none',
-              background: filterType === 'help' ? '#EA580C' : '#ffffff',
-              color: filterType === 'help' ? '#ffffff' : '#374151',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+              border: isDarkMode && filterType !== 'help' ? '1px solid #233044' : 'none',
+              background: filterType === 'help' ? '#EA580C' : (isDarkMode ? '#161F30' : '#ffffff'),
+              color: filterType === 'help' ? '#ffffff' : (isDarkMode ? '#CBD5E1' : '#374151'),
+              boxShadow: isDarkMode ? '0 2px 6px rgba(0,0,0,0.3)' : '0 2px 6px rgba(0,0,0,0.1)',
               display: 'inline-flex',
               alignItems: 'center',
               gap: 5,
@@ -665,10 +696,10 @@ export const AyniMap: React.FC<AyniMapProps> = ({
               fontSize: '0.76rem',
               fontWeight: 800,
               cursor: 'pointer',
-              border: 'none',
-              background: filterType === 'activities' ? '#2563EB' : '#ffffff',
-              color: filterType === 'activities' ? '#ffffff' : '#374151',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+              border: isDarkMode && filterType !== 'activities' ? '1px solid #233044' : 'none',
+              background: filterType === 'activities' ? '#2563EB' : (isDarkMode ? '#161F30' : '#ffffff'),
+              color: filterType === 'activities' ? '#ffffff' : (isDarkMode ? '#CBD5E1' : '#374151'),
+              boxShadow: isDarkMode ? '0 2px 6px rgba(0,0,0,0.3)' : '0 2px 6px rgba(0,0,0,0.1)',
               display: 'inline-flex',
               alignItems: 'center',
               gap: 5,
@@ -679,7 +710,7 @@ export const AyniMap: React.FC<AyniMapProps> = ({
           </button>
         </div>
 
-        {/* Fila 2: Filtro de Radio de Distancia (de qué radio quiere que aparezcan) */}
+        {/* Fila 2: Filtro de Radio de Distancia */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -687,13 +718,14 @@ export const AyniMap: React.FC<AyniMapProps> = ({
           pointerEvents: 'auto',
           overflowX: 'auto',
           scrollbarWidth: 'none',
-          background: 'rgba(255, 255, 255, 0.95)',
+          background: isDarkMode ? 'rgba(22, 31, 48, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+          border: isDarkMode ? '1px solid #233044' : 'none',
           padding: '4px 8px',
           borderRadius: '20px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          boxShadow: isDarkMode ? '0 2px 8px rgba(0,0,0,0.4)' : '0 2px 8px rgba(0,0,0,0.08)',
           width: 'fit-content'
         }}>
-          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4, paddingLeft: 4 }}>
+          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: isDarkMode ? '#94A3B8' : '#6B7280', display: 'flex', alignItems: 'center', gap: 4, paddingLeft: 4 }}>
             <Compass size={12} color="#D83B35" /> Radio:
           </span>
           {[
@@ -714,7 +746,7 @@ export const AyniMap: React.FC<AyniMapProps> = ({
                 cursor: 'pointer',
                 border: 'none',
                 background: radiusFilter === r.val ? '#D83B35' : 'transparent',
-                color: radiusFilter === r.val ? '#ffffff' : '#4B5563',
+                color: radiusFilter === r.val ? '#ffffff' : (isDarkMode ? '#CBD5E1' : '#4B5563'),
                 whiteSpace: 'nowrap',
                 transition: 'background 0.12s'
               }}
@@ -731,13 +763,14 @@ export const AyniMap: React.FC<AyniMapProps> = ({
         bottom: 18,
         left: 14,
         zIndex: 10,
-        background: '#ffffff',
+        background: isDarkMode ? '#161F30' : '#ffffff',
+        border: isDarkMode ? '1px solid #233044' : 'none',
         padding: '8px 14px',
         borderRadius: '12px',
         fontSize: '0.78rem',
         fontWeight: 700,
-        color: '#252B3A',
-        boxShadow: '0 3px 12px rgba(0,0,0,0.15)',
+        color: isDarkMode ? '#F8FAFC' : '#252B3A',
+        boxShadow: isDarkMode ? '0 3px 12px rgba(0,0,0,0.45)' : '0 3px 12px rgba(0,0,0,0.15)',
         display: 'flex',
         alignItems: 'center',
         gap: 6
@@ -759,14 +792,14 @@ export const AyniMap: React.FC<AyniMapProps> = ({
           width: 46,
           height: 46,
           borderRadius: '50%',
-          background: '#ffffff',
-          border: 'none',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.22)',
+          background: isDarkMode ? '#161F30' : '#ffffff',
+          border: isDarkMode ? '1px solid #233044' : 'none',
+          boxShadow: isDarkMode ? '0 4px 16px rgba(0,0,0,0.45)' : '0 4px 16px rgba(0,0,0,0.22)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
-          color: '#D83B35'
+          color: isDarkMode ? '#FF5A5F' : '#D83B35'
         }}
       >
         <Navigation size={21} className={isLocating ? 'sh-spin' : ''} />
