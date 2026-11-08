@@ -422,6 +422,9 @@ export function App() {
     e.preventDefault();
     if (!newService.title.trim()) return;
 
+    const isFixed = newService.priceType === 'fixed';
+    const finalPrice = isFixed ? (Number(newService.priceAmount) || 35) : undefined;
+
     const newItem: ServiceItem = {
       id: `srv-${Date.now()}`,
       providerId: currentUser?.documentNumber || 'usr-me',
@@ -430,7 +433,7 @@ export function App() {
       title: newService.title,
       description: newService.description,
       priceType: newService.priceType,
-      priceAmount: newService.priceAmount,
+      priceAmount: finalPrice,
       neighborhood: selectedNeighborhood,
       rating: 5.0,
       reviewCount: 1,
@@ -454,7 +457,7 @@ export function App() {
         });
       }
     } catch {}
-    alert('Tu servicio ha sido publicado para tus vecinos.');
+    alert(isFixed ? 'Tu servicio con precio fijo ha sido publicado para tus vecinos.' : 'Tu servicio con cotización en el lugar ha sido publicado para tus vecinos.');
   };
 
   // Helper para calcular y formatear tiempo restante
@@ -1486,7 +1489,7 @@ export function App() {
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--coral)' }}>
-                          S/ {srv.priceAmount || '35'}/h
+                          {srv.priceType === 'quote' ? 'A cotizar' : `S/ ${srv.priceAmount || '35'}/h`}
                         </div>
                         <ChevronRight size={18} color="#d1d5db" />
                       </div>
@@ -1642,7 +1645,9 @@ export function App() {
                       <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                         <MapPin size={12} color="#9CA3AF" /> {srv.coverageArea}
                       </span>
-                      <span style={{ fontWeight: 700, color: 'var(--coral)' }}>Desde S/ {srv.priceAmount || '30'}</span>
+                      <span style={{ fontWeight: 700, color: 'var(--coral)' }}>
+                        {srv.priceType === 'quote' ? 'A cotizar en el lugar' : `Desde S/ ${srv.priceAmount || '30'}`}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1703,10 +1708,17 @@ export function App() {
               </div>
 
               <div className="card">
-                <h4 style={{ fontSize: '0.92rem', fontWeight: 700, marginBottom: 6, color: 'var(--carbon)' }}>Tarifa estimada</h4>
-                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--coral)' }}>
-                  {selectedService.priceType === 'fixed' ? `S/ ${selectedService.priceAmount} / hora` : 'A cotizar según diagnóstico'}
+                <h4 style={{ fontSize: '0.92rem', fontWeight: 700, marginBottom: 6, color: 'var(--carbon)' }}>
+                  {selectedService.priceType === 'fixed' ? 'Tarifa estimada' : 'Modalidad de cobro'}
+                </h4>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--coral)' }}>
+                  {selectedService.priceType === 'fixed' ? `S/ ${selectedService.priceAmount || 35} / hora` : 'A cotizar en el lugar tras visita previa'}
                 </div>
+                <p style={{ fontSize: '0.78rem', color: '#6B7280', marginTop: 4 }}>
+                  {selectedService.priceType === 'fixed'
+                    ? 'Tarifa por hora o monto de referencia acordado para este oficio.'
+                    : 'El profesional evaluará el trabajo directamente en tu domicilio para brindarte el presupuesto final.'}
+                </p>
               </div>
 
               {/* Reseñas comunitarias */}
@@ -1745,7 +1757,7 @@ export function App() {
 
           <div className="body">
             <div className="body-pad">
-              <div className="feat-pro" style={{ marginBottom: 16 }}>
+              <div className="feat-pro" style={{ marginBottom: 12 }}>
                 <div className="feat-pro-photo">{PRO_INITIALS[selectedService.providerId] || 'PR'}</div>
                 <div className="feat-pro-info">
                   <div className="feat-pro-name">
@@ -1756,6 +1768,21 @@ export function App() {
                     {INITIAL_CATEGORIES.find(c => c.id === selectedService.categoryId)?.name}
                   </div>
                 </div>
+              </div>
+
+              {/* Resumen de tarifa y modalidad de cobro */}
+              <div style={{ background: selectedService.priceType === 'quote' ? '#F0FDF4' : '#FFF7ED', border: `1px solid ${selectedService.priceType === 'quote' ? '#BBF7D0' : '#FFEDD5'}`, borderRadius: 12, padding: '10px 14px', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--carbon)' }}>Modalidad de cobro</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: selectedService.priceType === 'quote' ? '#166534' : 'var(--coral)' }}>
+                    {selectedService.priceType === 'quote' ? 'A cotizar en el lugar' : `S/ ${selectedService.priceAmount || 35} / hora`}
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.73rem', color: selectedService.priceType === 'quote' ? '#15803D' : '#C2410C', margin: '4px 0 0 0' }}>
+                  {selectedService.priceType === 'quote'
+                    ? 'El profesional se acercará a tu domicilio para evaluar la labor y acordar el monto final.'
+                    : 'Tarifa de referencia fijada por el profesional.'}
+                </p>
               </div>
 
               <div className="field">
@@ -3006,15 +3033,98 @@ export function App() {
                 />
               </div>
               <div className="field">
-                <label>Precio estimado por hora (S/)</label>
-                <input
-                  type="number"
-                  min={5}
-                  className="finput"
-                  value={newService.priceAmount}
-                  onChange={e => setNewService({ ...newService, priceAmount: Number(e.target.value) })}
-                />
+                <label>Modalidad de cobro</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 4 }}>
+                  <button
+                    type="button"
+                    onClick={() => setNewService({ ...newService, priceType: 'fixed' })}
+                    style={{
+                      border: newService.priceType === 'fixed' ? '2px solid var(--coral)' : '1px solid var(--gray-300)',
+                      background: newService.priceType === 'fixed' ? '#FFF5F4' : '#FFFFFF',
+                      borderRadius: 12,
+                      padding: '12px 10px',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 4,
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 800, color: newService.priceType === 'fixed' ? 'var(--coral)' : 'var(--carbon)' }}>
+                        Precio fijo
+                      </span>
+                      {newService.priceType === 'fixed' ? (
+                        <CheckCircle2 size={16} color="var(--coral)" />
+                      ) : (
+                        <Circle size={16} color="#9CA3AF" />
+                      )}
+                    </div>
+                    <span style={{ fontSize: '0.73rem', color: '#6B7280', lineHeight: 1.25 }}>
+                      Tarifa cerrada o por hora en Soles
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setNewService({ ...newService, priceType: 'quote' })}
+                    style={{
+                      border: newService.priceType === 'quote' ? '2px solid var(--coral)' : '1px solid var(--gray-300)',
+                      background: newService.priceType === 'quote' ? '#FFF5F4' : '#FFFFFF',
+                      borderRadius: 12,
+                      padding: '12px 10px',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 4,
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 800, color: newService.priceType === 'quote' ? 'var(--coral)' : 'var(--carbon)' }}>
+                        A cotizar en el lugar
+                      </span>
+                      {newService.priceType === 'quote' ? (
+                        <CheckCircle2 size={16} color="var(--coral)" />
+                      ) : (
+                        <Circle size={16} color="#9CA3AF" />
+                      )}
+                    </div>
+                    <span style={{ fontSize: '0.73rem', color: '#6B7280', lineHeight: 1.25 }}>
+                      Al acercarse para evaluar el servicio
+                    </span>
+                  </button>
+                </div>
               </div>
+
+              {newService.priceType === 'fixed' ? (
+                <div className="field">
+                  <label>Precio estimado por hora o trabajo (S/)</label>
+                  <input
+                    type="number"
+                    min={5}
+                    required
+                    className="finput"
+                    placeholder="Ej: 35"
+                    value={newService.priceAmount || ''}
+                    onChange={e => setNewService({ ...newService, priceAmount: Number(e.target.value) })}
+                  />
+                  <p style={{ fontSize: '0.72rem', color: '#6B7280', marginTop: 4 }}>
+                    Esta tarifa se mostrará como monto de referencia para tus vecinos.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ background: '#F9FAFB', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '10px 12px', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                    <MapPin size={16} color="var(--coral)" style={{ flexShrink: 0, marginTop: 2 }} />
+                    <p style={{ fontSize: '0.76rem', color: '#4B5563', margin: 0, lineHeight: 1.35 }}>
+                      Al solicitarte, te acercarás al domicilio del vecino para evaluar los requerimientos y brindarle tu cotización final en el lugar.
+                    </p>
+                  </div>
+                </div>
+              )}
               <button type="submit" className="btn btn-coral btn-block" style={{ borderRadius: 'var(--radius-full)', marginTop: 4 }}>
                 Publicar servicio
               </button>
