@@ -1719,6 +1719,171 @@ body {
   background: #FEE2E2;
 }
 
+/* Card Engagement Footer (Solo visible tras confirmar aviso, ofrecer ayuda o inscribirse en faena) */
+.card-engagement-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #E5E7EB;
+  animation: fadeInEngagement 0.22s ease-out;
+}
+
+@keyframes fadeInEngagement {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Botón de Chat Comunitario llamativo y vibrante */
+.btn-chat-prominent {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, var(--coral) 0%, #B82823 100%);
+  color: #FFFFFF !important;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 0.77rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2.5px 8px rgba(216, 59, 53, 0.35);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.2px;
+}
+
+.btn-chat-prominent:hover {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 4.5px 12px rgba(216, 59, 53, 0.48);
+  background: linear-gradient(135deg, #E6423C 0%, #C42721 100%);
+}
+
+.btn-chat-prominent:active {
+  transform: scale(0.96);
+}
+
+.btn-chat-prominent svg {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+}
+
+.btn-chat-prominent .chat-counter-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #FFFFFF;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 0.70rem;
+  font-weight: 800;
+}
+
+/* Pill de Confirmado por ti */
+.btn-confirmado-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #E8F8F0;
+  color: #2E9D72;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 14px;
+  border: 1px solid #BBF7D0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-confirmado-pill:hover {
+  background: #DCFCE7;
+  border-color: #86EFAC;
+}
+
+/* Barra de búsqueda interactiva en Inicio */
+.home-search-bar-wrap {
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+.home-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--white);
+  border: 1.5px solid #E5E7EB;
+  border-radius: 14px;
+  padding: 10px 14px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
+}
+
+.home-search-bar:focus-within {
+  border-color: var(--coral);
+  box-shadow: 0 0 0 3px rgba(216, 59, 53, 0.12), 0 3px 8px rgba(0, 0, 0, 0.05);
+}
+
+.home-search-icon {
+  flex-shrink: 0;
+}
+
+.home-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 0.90rem;
+  color: var(--carbon);
+  outline: none;
+  font-family: inherit;
+}
+
+.home-search-input::placeholder {
+  color: #9CA3AF;
+  font-size: 0.86rem;
+}
+
+.home-search-clear {
+  background: #F3F4F6;
+  border: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s;
+}
+
+.home-search-clear:hover {
+  background: #E5E7EB;
+}
+
+.home-search-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.74rem;
+  color: #6B7280;
+  margin-top: 6px;
+  padding: 0 4px;
+}
+
+.home-search-meta strong {
+  color: var(--coral);
+}
+
+.home-search-meta button {
+  background: none;
+  border: none;
+  color: var(--coral);
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
 /* Chat Comunitario Ayni (Estilo Limpio y Colores del Proyecto) */
 .chat-overlay {
   position: fixed;

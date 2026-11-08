@@ -108,6 +108,9 @@ export function App() {
   const [offlineQueue, setOfflineQueue] = useState<OfflineEnvelope[]>([]);
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [homeSearchQuery, setHomeSearchQuery] = useState('');
+  const [confirmedPostIds, setConfirmedPostIds] = useState<string[]>([]);
+  const [helpedRequestIds, setHelpedRequestIds] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -1075,6 +1078,82 @@ export function App() {
     }));
   };
 
+  // Manejador de confirmación / corroboración de avisos
+  const handleToggleConfirmNotice = (postId: string) => {
+    if (confirmedPostIds.includes(postId)) {
+      setConfirmedPostIds(prev => prev.filter(id => id !== postId));
+      setCommunityPosts(communityPosts.map(p => p.id === postId ? {
+        ...p,
+        corroborations: Math.max(0, p.corroborations - 1)
+      } : p));
+    } else {
+      setConfirmedPostIds(prev => [...prev, postId]);
+      setCommunityPosts(communityPosts.map(p => p.id === postId ? {
+        ...p,
+        corroborations: p.corroborations + 1,
+        verificationStatus: 'corroborado'
+      } : p));
+    }
+  };
+
+  // Manejador para brindar auxilio solidario
+  const handleOfferHelp = (reqId: string) => {
+    setHelpedRequestIds(prev => [...prev, reqId]);
+    setHelpRequests(helpRequests.map(h => h.id === reqId ? { ...h, status: 'en_coordinacion', helperName: userName } : h));
+    alert('Muchas gracias por solidarizarte con tu vecino. Ahora puedes coordinar la ayuda por el chat vecinal.');
+  };
+
+  // Filtros contextuales para la pantalla de Inicio
+  const homeFilteredPosts = communityPosts
+    .filter(post => !post.expiresAt || new Date(post.expiresAt).getTime() > Date.now())
+    .filter(post => {
+      if (!homeSearchQuery.trim()) return true;
+      const q = homeSearchQuery.toLowerCase();
+      return (
+        post.title.toLowerCase().includes(q) ||
+        post.body.toLowerCase().includes(q) ||
+        post.authorName.toLowerCase().includes(q) ||
+        post.neighborhood.toLowerCase().includes(q)
+      );
+    });
+
+  const homeFilteredHelp = helpRequests
+    .filter(req => !req.expiresAt || new Date(req.expiresAt).getTime() > Date.now())
+    .filter(req => {
+      if (!homeSearchQuery.trim()) return true;
+      const q = homeSearchQuery.toLowerCase();
+      return (
+        req.description.toLowerCase().includes(q) ||
+        req.authorName.toLowerCase().includes(q) ||
+        req.neighborhood.toLowerCase().includes(q) ||
+        req.type.toLowerCase().includes(q)
+      );
+    });
+
+  const homeFilteredServices = services.filter(srv => {
+    if (!homeSearchQuery.trim()) return true;
+    const q = homeSearchQuery.toLowerCase();
+    return (
+      srv.title.toLowerCase().includes(q) ||
+      srv.providerName.toLowerCase().includes(q) ||
+      srv.coverageArea.toLowerCase().includes(q) ||
+      (srv.description && srv.description.toLowerCase().includes(q))
+    );
+  });
+
+  const homeFilteredActivities = activities
+    .filter(act => !act.expiresAt || new Date(act.expiresAt).getTime() > Date.now())
+    .filter(act => {
+      if (!homeSearchQuery.trim()) return true;
+      const q = homeSearchQuery.toLowerCase();
+      return (
+        act.title.toLowerCase().includes(q) ||
+        act.description.toLowerCase().includes(q) ||
+        act.organizer.toLowerCase().includes(q) ||
+        act.badge.toLowerCase().includes(q)
+      );
+    });
+
   const filteredServices = services.filter(s => {
     const matchCat = selectedCategory === 'all' || s.categoryId === selectedCategory;
     const matchQuery = !searchQuery.trim() ||
@@ -1224,9 +1303,42 @@ export function App() {
               <span>{selectedNeighborhood}</span>
             </div>
 
-            <div className="search-bar" onClick={() => navigateTo('explore')}>
-              <Search size={18} color="#9CA3AF" />
-              <input type="text" placeholder="Buscar en la comunidad y servicios..." readOnly style={{ cursor: 'pointer' }} />
+            {/* Barra de Búsqueda Interactiva en Inicio */}
+            <div className="home-search-bar-wrap">
+              <div className="home-search-bar">
+                <Search size={18} color="var(--coral)" className="home-search-icon" />
+                <input
+                  type="text"
+                  value={homeSearchQuery}
+                  onChange={(e) => setHomeSearchQuery(e.target.value)}
+                  placeholder={
+                    communityTab === 'avisos'
+                      ? 'Buscar en avisos del barrio...'
+                      : communityTab === 'ayuda'
+                      ? 'Buscar en pedidos de ayuda y auxilio...'
+                      : communityTab === 'servicios'
+                      ? 'Buscar oficios y profesionales...'
+                      : 'Buscar actividades vecinales...'
+                  }
+                  className="home-search-input"
+                />
+                {homeSearchQuery && (
+                  <button
+                    type="button"
+                    className="home-search-clear"
+                    onClick={() => setHomeSearchQuery('')}
+                    title="Limpiar búsqueda"
+                  >
+                    <X size={15} color="#6B7280" />
+                  </button>
+                )}
+              </div>
+              {homeSearchQuery && (
+                <div className="home-search-meta">
+                  <span>Filtrando resultados por: <strong>"{homeSearchQuery}"</strong></span>
+                  <button type="button" onClick={() => setHomeSearchQuery('')}>Limpiar</button>
+                </div>
+              )}
             </div>
           </header>
 
@@ -1237,14 +1349,14 @@ export function App() {
               onClick={() => setCommunityTab('avisos')}
             >
               <Megaphone size={18} />
-              <span>Avisos ({communityPosts.length})</span>
+              <span>Avisos ({homeSearchQuery ? homeFilteredPosts.length : communityPosts.length})</span>
             </button>
             <button
               className={`com-tab-pill ${communityTab === 'ayuda' ? 'active' : ''}`}
               onClick={() => setCommunityTab('ayuda')}
             >
               <HeartHandshake size={18} />
-              <span>Ayuda ({helpRequests.length})</span>
+              <span>Ayuda ({homeSearchQuery ? homeFilteredHelp.length : helpRequests.length})</span>
             </button>
             <button
               className={`com-tab-pill ${communityTab === 'servicios' ? 'active' : ''}`}
@@ -1258,7 +1370,7 @@ export function App() {
               onClick={() => setCommunityTab('actividades')}
             >
               <CalendarDays size={18} />
-              <span>Actividades ({activities.length})</span>
+              <span>Actividades ({homeSearchQuery ? homeFilteredActivities.length : activities.length})</span>
             </button>
           </div>
 
@@ -1283,93 +1395,122 @@ export function App() {
                     <button className="sec-link" onClick={() => setIsNoticeModalOpen(true)}>+ Publicar</button>
                   </div>
 
-                  {communityPosts
-                    .filter(post => !post.expiresAt || new Date(post.expiresAt).getTime() > Date.now())
-                    .map(post => (
-                    <div key={post.id} className="card">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                        <div style={{
-                          width: 34, height: 34, borderRadius: 10,
-                          background: post.category === 'corte_agua' ? '#DBEAFE' : post.category === 'seguridad' ? '#FEE2E2' : '#FEF3C7',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center'
-                        }}>
-                          {renderNoticeIcon(post.category)}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <h4 style={{ fontSize: '0.92rem', fontWeight: 700, margin: 0, color: 'var(--carbon)' }}>
-                            {post.title}
-                          </h4>
-                          <span style={{ fontSize: '0.72rem', color: '#6B7280' }}>
-                            {post.authorName} · {post.date}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-                        <span className={`badge-com ${post.verificationStatus === 'corroborado' ? 'badge-corroborado' : 'badge-reportado'}`}>
-                          {post.verificationStatus === 'corroborado' ? (
-                            <><CheckCircle2 size={12} /> Corroborado</>
-                          ) : (
-                            <><AlertTriangle size={12} /> Reportado</>
-                          )}
-                        </span>
-                        {post.authorName.toLowerCase().includes('junta') && (
-                          <span className="badge-com badge-oficial">
-                            <ShieldCheck size={12} /> Oficial
-                          </span>
-                        )}
-                      </div>
-
-                      <p style={{ fontSize: '0.82rem', color: '#4B5563', lineHeight: 1.45, marginBottom: 10 }}>
-                        {post.body}
+                  {homeFilteredPosts.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '36px 16px', background: 'var(--white)', borderRadius: 16, margin: '8px 0', border: '1px dashed #E5E7EB' }}>
+                      <Search size={32} color="#D1D5DB" style={{ marginBottom: 8 }} />
+                      <p style={{ margin: 0, fontWeight: 700, color: 'var(--carbon)', fontSize: '0.92rem' }}>
+                        No se encontraron avisos para "{homeSearchQuery}"
                       </p>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #F3F4F6', paddingTop: 8 }}>
-                        <span style={{ fontSize: '0.74rem', color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Users size={13} color="#6B7280" />
-                          {post.corroborations} vecinos confirmaron
-                        </span>
-                        <button
-                          className="btn-confirmar-aviso"
-                          onClick={() => {
-                            setCommunityPosts(communityPosts.map(p => p.id === post.id ? { ...p, corroborations: p.corroborations + 1, verificationStatus: 'corroborado' } : p));
-                          }}
-                        >
-                          <ThumbsUp size={12} /> Confirmar
-                        </button>
-                      </div>
-
-                      {/* Vigencia, Prórroga y Chat Vecinal */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 8, borderTop: '1px dashed #E5E7EB' }}>
-                        <span className="badge-expiry">
-                          <Clock size={11} /> {formatTimeRemaining(post.expiresAt)}
-                        </span>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button
-                            type="button"
-                            className="btn-extend-chip"
-                            onClick={() => setExtendModalItem({ id: post.id, type: 'aviso', title: post.title, currentExpiresAt: post.expiresAt })}
-                          >
-                            <Hourglass size={12} /> Prorrogar
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-extend-chip"
-                            style={{ color: '#1F2937' }}
-                            onClick={() => handleOpenChat(
-                              post.chatThreadId || `chat-${post.id}`,
-                              post.title,
-                              `${post.neighborhood} · Chat vecinal`,
-                              'aviso'
-                            )}
-                          >
-                            <MessageCircle size={13} color="var(--coral)" />
-                            Chat ({chatMessages[post.chatThreadId || `chat-${post.id}`]?.filter(m => !m.deletedForUserIds?.includes(currentUser?.documentNumber || 'usr-me')).length || 0})
-                          </button>
-                        </div>
-                      </div>
+                      <p style={{ fontSize: '0.8rem', color: '#6B7280', marginTop: 4 }}>
+                        Prueba con otros términos o restablece el buscador.
+                      </p>
+                      <button className="btn btn-outline btn-sm" style={{ marginTop: 10, borderColor: 'var(--coral)', color: 'var(--coral)' }} onClick={() => setHomeSearchQuery('')}>
+                        Ver todos los avisos
+                      </button>
                     </div>
-                  ))}
+                  ) : (
+                    homeFilteredPosts.map(post => {
+                      const isNoticeConfirmed = confirmedPostIds.includes(post.id) || post.authorId === (currentUser?.documentNumber || 'usr-me');
+                      const chatCount = chatMessages[post.chatThreadId || `chat-${post.id}`]?.filter(m => !m.deletedForUserIds?.includes(currentUser?.documentNumber || 'usr-me')).length || 0;
+
+                      return (
+                        <div key={post.id} className="card">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                            <div style={{
+                              width: 34, height: 34, borderRadius: 10,
+                              background: post.category === 'corte_agua' ? '#DBEAFE' : post.category === 'seguridad' ? '#FEE2E2' : '#FEF3C7',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center'
+                            }}>
+                              {renderNoticeIcon(post.category)}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <h4 style={{ fontSize: '0.92rem', fontWeight: 700, margin: 0, color: 'var(--carbon)' }}>
+                                {post.title}
+                              </h4>
+                              <span style={{ fontSize: '0.72rem', color: '#6B7280' }}>
+                                {post.authorName} · {post.date}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                            <span className={`badge-com ${post.verificationStatus === 'corroborado' ? 'badge-corroborado' : 'badge-reportado'}`}>
+                              {post.verificationStatus === 'corroborado' ? (
+                                <><CheckCircle2 size={12} /> Corroborado</>
+                              ) : (
+                                <><AlertTriangle size={12} /> Reportado</>
+                              )}
+                            </span>
+                            {post.authorName.toLowerCase().includes('junta') && (
+                              <span className="badge-com badge-oficial">
+                                <ShieldCheck size={12} /> Oficial
+                              </span>
+                            )}
+                          </div>
+
+                          <p style={{ fontSize: '0.82rem', color: '#4B5563', lineHeight: 1.45, marginBottom: 10 }}>
+                            {post.body}
+                          </p>
+
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #F3F4F6', paddingTop: 8 }}>
+                            <span style={{ fontSize: '0.74rem', color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <Users size={13} color="#6B7280" />
+                              {post.corroborations} vecinos confirmaron
+                            </span>
+                            {isNoticeConfirmed ? (
+                              <button
+                                type="button"
+                                className="btn-confirmado-pill"
+                                onClick={() => handleToggleConfirmNotice(post.id)}
+                                title="Confirmado por ti (toca para cancelar)"
+                              >
+                                <CheckCircle2 size={13} /> Confirmado por ti
+                              </button>
+                            ) : (
+                              <button
+                                className="btn-confirmar-aviso"
+                                onClick={() => handleToggleConfirmNotice(post.id)}
+                              >
+                                <ThumbsUp size={12} /> Confirmar
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Vigencia, Prórroga y Chat Vecinal: RECIÉN VISIBLE SI CONFIRMAS O ERES AUTOR */}
+                          {isNoticeConfirmed && (
+                            <div className="card-engagement-footer">
+                              <span className="badge-expiry">
+                                <Clock size={11} /> {formatTimeRemaining(post.expiresAt)}
+                              </span>
+                              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                <button
+                                  type="button"
+                                  className="btn-extend-chip"
+                                  onClick={() => setExtendModalItem({ id: post.id, type: 'aviso', title: post.title, currentExpiresAt: post.expiresAt })}
+                                >
+                                  <Hourglass size={12} /> Prorrogar
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn-chat-prominent"
+                                  onClick={() => handleOpenChat(
+                                    post.chatThreadId || `chat-${post.id}`,
+                                    post.title,
+                                    `${post.neighborhood} · Chat vecinal`,
+                                    'aviso'
+                                  )}
+                                >
+                                  <MessageCircle size={15} />
+                                  <span>Chat vecinal</span>
+                                  <span className="chat-counter-badge">{chatCount}</span>
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               )}
 
@@ -1384,87 +1525,101 @@ export function App() {
                     <button className="sec-link" onClick={() => setIsHelpModalOpen(true)}>+ Pedir ayuda</button>
                   </div>
 
-                  {helpRequests
-                    .filter(req => !req.expiresAt || new Date(req.expiresAt).getTime() > Date.now())
-                    .map(req => (
-                    <div key={req.id} className="card">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                        <div>
-                          <strong style={{ fontSize: '0.92rem', color: 'var(--carbon)' }}>{req.authorName}</strong>
-                          <div style={{ fontSize: '0.74rem', color: '#6B7280' }}>
-                            {req.neighborhood} · {req.date}
-                          </div>
-                        </div>
-                        <span className={`badge-com ${req.urgency === 'alta' ? 'badge-urgente' : 'badge-reportado'}`}>
-                          {req.urgency === 'alta' ? (
-                            <><AlertTriangle size={12} /> Urgencia alta</>
-                          ) : (
-                            <><Clock size={12} /> Urgencia media</>
-                          )}
-                        </span>
-                      </div>
-
-                      <p style={{ fontSize: '0.84rem', color: '#4B5563', lineHeight: 1.45, margin: '6px 0 10px' }}>
-                        {req.description}
+                  {homeFilteredHelp.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '36px 16px', background: 'var(--white)', borderRadius: 16, margin: '8px 0', border: '1px dashed #E5E7EB' }}>
+                      <Search size={32} color="#D1D5DB" style={{ marginBottom: 8 }} />
+                      <p style={{ margin: 0, fontWeight: 700, color: 'var(--carbon)', fontSize: '0.92rem' }}>
+                        No se encontraron pedidos de ayuda para "{homeSearchQuery}"
                       </p>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #F3F4F6', paddingTop: 8 }}>
-                        <span className="badge-com badge-abierta">
-                          {req.status === 'abierta' ? 'Abierta' : 'En coordinación'}
-                        </span>
-
-                        {req.status === 'abierta' ? (
-                          <button
-                            className="btn-puedo-ayudar"
-                            onClick={() => {
-                              setHelpRequests(helpRequests.map(h => h.id === req.id ? { ...h, status: 'en_coordinacion', helperName: userName } : h));
-                              alert('Muchas gracias por solidarizarte con tu vecino.');
-                            }}
-                          >
-                            <HandHeart size={14} /> Puedo ayudar
-                          </button>
-                        ) : (
-                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#2E9D72', display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <CheckCircle2 size={13} /> Ayuda: {req.helperName || userName}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Vigencia, Prórroga y Chat Vecinal */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 8, borderTop: '1px dashed #E5E7EB' }}>
-                        <span className="badge-expiry">
-                          <Clock size={11} /> {formatTimeRemaining(req.expiresAt)}
-                        </span>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button
-                            type="button"
-                            className="btn-extend-chip"
-                            onClick={() => setExtendModalItem({ id: req.id, type: 'ayuda', title: `Ayuda: ${req.description.slice(0, 30)}...`, currentExpiresAt: req.expiresAt })}
-                          >
-                            <Hourglass size={12} /> Prorrogar
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-extend-chip"
-                            style={{ color: '#1F2937' }}
-                            onClick={() => handleOpenChat(
-                              req.chatThreadId || `chat-${req.id}`,
-                              `Ayuda: ${req.authorName}`,
-                              `${req.neighborhood} · Coordinación solidaria`,
-                              'ayuda'
-                            )}
-                          >
-                            <MessageCircle size={13} color="var(--coral)" />
-                            Chat ({chatMessages[req.chatThreadId || `chat-${req.id}`]?.filter(m => !m.deletedForUserIds?.includes(currentUser?.documentNumber || 'usr-me')).length || 0})
-                          </button>
-                        </div>
-                      </div>
+                      <button className="btn btn-outline btn-sm" style={{ marginTop: 10, borderColor: 'var(--coral)', color: 'var(--coral)' }} onClick={() => setHomeSearchQuery('')}>
+                        Ver todos los pedidos
+                      </button>
                     </div>
-                  ))}
+                  ) : (
+                    homeFilteredHelp.map(req => {
+                      const isHelping = (req.status !== 'abierta') || req.authorId === (currentUser?.documentNumber || 'usr-me') || helpedRequestIds.includes(req.id);
+                      const chatCount = chatMessages[req.chatThreadId || `chat-${req.id}`]?.filter(m => !m.deletedForUserIds?.includes(currentUser?.documentNumber || 'usr-me')).length || 0;
+
+                      return (
+                        <div key={req.id} className="card">
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                            <div>
+                              <strong style={{ fontSize: '0.92rem', color: 'var(--carbon)' }}>{req.authorName}</strong>
+                              <div style={{ fontSize: '0.74rem', color: '#6B7280' }}>
+                                {req.neighborhood} · {req.date}
+                              </div>
+                            </div>
+                            <span className={`badge-com ${req.urgency === 'alta' ? 'badge-urgente' : 'badge-reportado'}`}>
+                              {req.urgency === 'alta' ? (
+                                <><AlertTriangle size={12} /> Urgencia alta</>
+                              ) : (
+                                <><Clock size={12} /> Urgencia media</>
+                              )}
+                            </span>
+                          </div>
+
+                          <p style={{ fontSize: '0.84rem', color: '#4B5563', lineHeight: 1.45, margin: '6px 0 10px' }}>
+                            {req.description}
+                          </p>
+
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #F3F4F6', paddingTop: 8 }}>
+                            <span className="badge-com badge-abierta">
+                              {req.status === 'abierta' ? 'Abierta' : 'En coordinación'}
+                            </span>
+
+                            {req.status === 'abierta' ? (
+                              <button
+                                className="btn-puedo-ayudar"
+                                onClick={() => handleOfferHelp(req.id)}
+                              >
+                                <HandHeart size={14} /> Puedo ayudar
+                              </button>
+                            ) : (
+                              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#2E9D72', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <CheckCircle2 size={13} /> Ayuda en marcha: {req.helperName || userName}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Vigencia, Prórroga y Chat Vecinal: RECIÉN VISIBLE SI AYUDAS O ERES AUTOR */}
+                          {isHelping && (
+                            <div className="card-engagement-footer">
+                              <span className="badge-expiry">
+                                <Clock size={11} /> {formatTimeRemaining(req.expiresAt)}
+                              </span>
+                              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                <button
+                                  type="button"
+                                  className="btn-extend-chip"
+                                  onClick={() => setExtendModalItem({ id: req.id, type: 'ayuda', title: `Ayuda: ${req.description.slice(0, 30)}...`, currentExpiresAt: req.expiresAt })}
+                                >
+                                  <Hourglass size={12} /> Prorrogar
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn-chat-prominent"
+                                  onClick={() => handleOpenChat(
+                                    req.chatThreadId || `chat-${req.id}`,
+                                    `Ayuda: ${req.authorName}`,
+                                    `${req.neighborhood} · Coordinación solidaria`,
+                                    'ayuda'
+                                  )}
+                                >
+                                  <MessageCircle size={15} />
+                                  <span>Chat vecinal</span>
+                                  <span className="chat-counter-badge">{chatCount}</span>
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               )}
 
-              {/* ===== TAB 3: SERVICIOS (Con Categorías y Profesionales Destacados) ===== */}
+              {/* ===== TAB 3: SERVICIOS (Con Categorías y Profesionales Destacados, Sin Banner Comercial) ===== */}
               {communityTab === 'servicios' && (
                 <div>
                   <div className="sec"><h3>Categorías</h3></div>
@@ -1485,43 +1640,47 @@ export function App() {
                     </div>
                   </div>
 
-                  {/* Banner Promocional */}
-                  <div className="promo-banner">
-                    <h4 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Sparkles size={16} /> Descuentos especiales
-                    </h4>
-                    <p>en servicios del hogar esta semana en tu barrio</p>
-                  </div>
-
                   {/* Profesionales Destacados */}
                   <div className="sec">
                     <h3>Profesionales destacados</h3>
                     <button className="sec-link" onClick={() => navigateTo('explore')}>Ver todos</button>
                   </div>
 
-                  {services.slice(0, 3).map(srv => (
-                    <div key={srv.id} className="feat-pro" onClick={() => openProDetail(srv)}>
-                      <div className="feat-pro-photo">
-                        {PRO_INITIALS[srv.providerId] || 'PR'}
-                      </div>
-                      <div className="feat-pro-info">
-                        <div className="feat-pro-name">
-                          {srv.providerName.split('(')[0].trim()}
-                          <CheckCircle size={14} color="#2E9D72" />
-                        </div>
-                        <div className="feat-pro-meta">
-                          <Star size={12} fill="#F59E0B" color="#F59E0B" /> {srv.rating} &nbsp;·&nbsp;
-                          {srv.coverageArea}
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--coral)' }}>
-                          {srv.priceType === 'quote' ? 'A cotizar' : `S/ ${srv.priceAmount || '35'}/h`}
-                        </div>
-                        <ChevronRight size={18} color="#d1d5db" />
-                      </div>
+                  {homeFilteredServices.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '30px 16px', background: 'var(--white)', borderRadius: 16, margin: '8px 0', border: '1px dashed #E5E7EB' }}>
+                      <Search size={30} color="#D1D5DB" style={{ marginBottom: 6 }} />
+                      <p style={{ margin: 0, fontWeight: 700, color: 'var(--carbon)', fontSize: '0.9rem' }}>
+                        No se encontraron servicios para "{homeSearchQuery}"
+                      </p>
+                      <button className="btn btn-outline btn-sm" style={{ marginTop: 8, borderColor: 'var(--coral)', color: 'var(--coral)' }} onClick={() => setHomeSearchQuery('')}>
+                        Ver todos los servicios
+                      </button>
                     </div>
-                  ))}
+                  ) : (
+                    homeFilteredServices.slice(0, homeSearchQuery ? 8 : 3).map(srv => (
+                      <div key={srv.id} className="feat-pro" onClick={() => openProDetail(srv)}>
+                        <div className="feat-pro-photo">
+                          {PRO_INITIALS[srv.providerId] || 'PR'}
+                        </div>
+                        <div className="feat-pro-info">
+                          <div className="feat-pro-name">
+                            {srv.providerName.split('(')[0].trim()}
+                            <CheckCircle size={14} color="#2E9D72" />
+                          </div>
+                          <div className="feat-pro-meta">
+                            <Star size={12} fill="#F59E0B" color="#F59E0B" /> {srv.rating} &nbsp;·&nbsp;
+                            {srv.coverageArea}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--coral)' }}>
+                            {srv.priceType === 'quote' ? 'A cotizar' : `S/ ${srv.priceAmount || '35'}/h`}
+                          </div>
+                          <ChevronRight size={18} color="#d1d5db" />
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
 
@@ -1535,93 +1694,110 @@ export function App() {
                     </h3>
                   </div>
 
-                  {activities
-                    .filter(act => !act.expiresAt || new Date(act.expiresAt).getTime() > Date.now())
-                    .map(act => (
-                    <div key={act.id} className="activity-card">
-                      <div className="activity-header">
-                        <div
-                          className="activity-icon-box"
-                          style={{
-                            background: act.badgeType === 'open' ? '#E8F8F0' : act.badgeType === 'solidarity' ? '#FFEDD5' : '#DBEAFE'
-                          }}
-                        >
-                          {act.badgeType === 'open' ? <CalendarDays size={18} color="#2E9D72" /> :
-                           act.badgeType === 'solidarity' ? <Utensils size={18} color="#EA580C" /> :
-                           <Users size={18} color="#3B82F6" />}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <h4 className="activity-title">{act.title}</h4>
-                          <div className="activity-meta">
-                            {act.organizer} · <strong>{act.date}</strong>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div style={{ marginBottom: 8 }}>
-                        <span
-                          className="badge-com"
-                          style={{
-                            background: act.badgeType === 'open' ? '#E8F8F0' : act.badgeType === 'solidarity' ? '#EDE9FE' : '#F3F4F6',
-                            color: act.badgeType === 'open' ? '#2E9D72' : act.badgeType === 'solidarity' ? '#6D28D9' : '#4B5563'
-                          }}
-                        >
-                          {act.badge}
-                        </span>
-                      </div>
-
-                      <p className="activity-desc">{act.description}</p>
-
-                      <div className="activity-footer">
-                        <span style={{ fontSize: '0.75rem', color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Users size={13} color="#6B7280" />
-                          {act.participantsCount} vecinos participando
-                        </span>
-                        <button
-                          className="btn btn-outline btn-sm"
-                          style={{
-                            borderColor: act.joined ? '#2E9D72' : 'var(--coral)',
-                            color: act.joined ? '#2E9D72' : 'var(--coral)',
-                            background: act.joined ? '#E8F8F0' : 'transparent',
-                            fontWeight: 700
-                          }}
-                          onClick={() => handleToggleActivity(act.id)}
-                        >
-                          {act.joined ? 'Inscrito' : act.buttonText}
-                        </button>
-                      </div>
-
-                      {/* Vigencia, Prórroga y Chat Vecinal */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 8, borderTop: '1px dashed #E5E7EB' }}>
-                        <span className="badge-expiry">
-                          <Clock size={11} /> {formatTimeRemaining(act.expiresAt)}
-                        </span>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button
-                            type="button"
-                            className="btn-extend-chip"
-                            onClick={() => setExtendModalItem({ id: act.id, type: 'actividad', title: act.title, currentExpiresAt: act.expiresAt })}
-                          >
-                            <Hourglass size={12} /> Prorrogar
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-extend-chip"
-                            style={{ color: '#1F2937' }}
-                            onClick={() => handleOpenChat(
-                              act.chatThreadId || `chat-${act.id}`,
-                              act.title,
-                              `${act.organizer} · Coordinación`,
-                              'actividad'
-                            )}
-                          >
-                            <MessageCircle size={13} color="var(--coral)" />
-                            Chat ({chatMessages[act.chatThreadId || `chat-${act.id}`]?.filter(m => !m.deletedForUserIds?.includes(currentUser?.documentNumber || 'usr-me')).length || 0})
-                          </button>
-                        </div>
-                      </div>
+                  {homeFilteredActivities.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '36px 16px', background: 'var(--white)', borderRadius: 16, margin: '8px 0', border: '1px dashed #E5E7EB' }}>
+                      <Search size={32} color="#D1D5DB" style={{ marginBottom: 8 }} />
+                      <p style={{ margin: 0, fontWeight: 700, color: 'var(--carbon)', fontSize: '0.92rem' }}>
+                        No se encontraron actividades para "{homeSearchQuery}"
+                      </p>
+                      <button className="btn btn-outline btn-sm" style={{ marginTop: 10, borderColor: 'var(--coral)', color: 'var(--coral)' }} onClick={() => setHomeSearchQuery('')}>
+                        Ver todas las actividades
+                      </button>
                     </div>
-                  ))}
+                  ) : (
+                    homeFilteredActivities.map(act => {
+                      const isParticipating = Boolean(act.joined);
+                      const chatCount = chatMessages[act.chatThreadId || `chat-${act.id}`]?.filter(m => !m.deletedForUserIds?.includes(currentUser?.documentNumber || 'usr-me')).length || 0;
+
+                      return (
+                        <div key={act.id} className="activity-card">
+                          <div className="activity-header">
+                            <div
+                              className="activity-icon-box"
+                              style={{
+                                background: act.badgeType === 'open' ? '#E8F8F0' : act.badgeType === 'solidarity' ? '#FFEDD5' : '#DBEAFE'
+                              }}
+                            >
+                              {act.badgeType === 'open' ? <CalendarDays size={18} color="#2E9D72" /> :
+                               act.badgeType === 'solidarity' ? <Utensils size={18} color="#EA580C" /> :
+                               <Users size={18} color="#3B82F6" />}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <h4 className="activity-title">{act.title}</h4>
+                              <div className="activity-meta">
+                                {act.organizer} · <strong>{act.date}</strong>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ marginBottom: 8 }}>
+                            <span
+                              className="badge-com"
+                              style={{
+                                background: act.badgeType === 'open' ? '#E8F8F0' : act.badgeType === 'solidarity' ? '#EDE9FE' : '#F3F4F6',
+                                color: act.badgeType === 'open' ? '#2E9D72' : act.badgeType === 'solidarity' ? '#6D28D9' : '#4B5563'
+                              }}
+                            >
+                              {act.badge}
+                            </span>
+                          </div>
+
+                          <p className="activity-desc">{act.description}</p>
+
+                          <div className="activity-footer">
+                            <span style={{ fontSize: '0.75rem', color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <Users size={13} color="#6B7280" />
+                              {act.participantsCount} vecinos participando
+                            </span>
+                            <button
+                              className="btn btn-outline btn-sm"
+                              style={{
+                                borderColor: act.joined ? '#2E9D72' : 'var(--coral)',
+                                color: act.joined ? '#2E9D72' : 'var(--coral)',
+                                background: act.joined ? '#E8F8F0' : 'transparent',
+                                fontWeight: 700
+                              }}
+                              onClick={() => handleToggleActivity(act.id)}
+                            >
+                              {act.joined ? 'Inscrito' : act.buttonText}
+                            </button>
+                          </div>
+
+                          {/* Vigencia, Prórroga y Chat Vecinal: RECIÉN VISIBLE SI PARTICIPAS EN LA FAENA */}
+                          {isParticipating && (
+                            <div className="card-engagement-footer">
+                              <span className="badge-expiry">
+                                <Clock size={11} /> {formatTimeRemaining(act.expiresAt)}
+                              </span>
+                              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                <button
+                                  type="button"
+                                  className="btn-extend-chip"
+                                  onClick={() => setExtendModalItem({ id: act.id, type: 'actividad', title: act.title, currentExpiresAt: act.expiresAt })}
+                                >
+                                  <Hourglass size={12} /> Prorrogar
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn-chat-prominent"
+                                  onClick={() => handleOpenChat(
+                                    act.chatThreadId || `chat-${act.id}`,
+                                    act.title,
+                                    `${act.organizer} · Coordinación`,
+                                    'actividad'
+                                  )}
+                                >
+                                  <MessageCircle size={15} />
+                                  <span>Chat de faena</span>
+                                  <span className="chat-counter-badge">{chatCount}</span>
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               )}
 
