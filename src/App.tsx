@@ -76,6 +76,7 @@ export function App() {
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isTutorialActive, setIsTutorialActive] = useState(false);
+  const [isFavoritesModalOpen, setIsFavoritesModalOpen] = useState(false);
 
   const handleCompleteTutorial = () => {
     try {
@@ -340,6 +341,7 @@ export function App() {
   const modalsRef = useRef({
     isAuthModalOpen,
     isTutorialActive,
+    isFavoritesModalOpen,
     isHelpModalOpen,
     isServiceModalOpen,
     isRateModalOpen,
@@ -357,6 +359,7 @@ export function App() {
   modalsRef.current = {
     isAuthModalOpen,
     isTutorialActive,
+    isFavoritesModalOpen,
     isHelpModalOpen,
     isServiceModalOpen,
     isRateModalOpen,
@@ -384,7 +387,7 @@ export function App() {
 
   const handleBack = useCallback(() => {
     const {
-      isAuthModalOpen, isTutorialActive, isHelpModalOpen, isServiceModalOpen,
+      isAuthModalOpen, isTutorialActive, isFavoritesModalOpen, isHelpModalOpen, isServiceModalOpen,
       isRateModalOpen, isNoticeModalOpen, activeChatThread,
       isChatInfoOpen, isConfirmLeaveChatOpen, isDeleteMsgDialogOpen,
       deleteConfirmMode, selectedMessageId,
@@ -398,6 +401,7 @@ export function App() {
     if (selectedMessageId) { setSelectedMessageId(null); return; }
     if (activeChatThread) { setActiveChatThread(null); return; }
     if (isTutorialActive) { setIsTutorialActive(false); return; }
+    if (isFavoritesModalOpen) { setIsFavoritesModalOpen(false); return; }
     if (isNotificationsOpen) { setIsNotificationsOpen(false); return; }
     if (extendModalItem) { setExtendModalItem(null); return; }
     if (isRateModalOpen) { setIsRateModalOpen(false); return; }
@@ -2806,28 +2810,12 @@ export function App() {
 
           <div className="body">
             <div className="body-pad">
-              <div className="seg-tabs" style={{ marginBottom: 14 }}>
-                <button
-                  className={`seg-tab ${userRole === 'vecino' ? 'active' : ''}`}
-                  onClick={() => setUserRole('vecino')}
-                >
-                  Modo Vecino
-                </button>
-                <button
-                  className={`seg-tab ${userRole === 'proveedor' ? 'active' : ''}`}
-                  onClick={() => setUserRole('proveedor')}
-                >
-                  Modo Proveedor
-                </button>
-              </div>
-
               <div className="card" style={{ padding: '4px 14px' }}>
                 {[
-                  { icon: <Store size={18} color="var(--coral)" />, label: 'Mis solicitudes', action: () => navigateTo('requests') },
-                  { icon: <Radio size={18} color="#D83B35" />, label: 'Centro Offline (BLE)', action: () => navigateTo('offline') },
-                  { icon: <Heart size={18} color="#ec4899" />, label: 'Favoritos del barrio', action: () => {} },
+                  { icon: <Store size={18} color="var(--coral)" />, label: 'Mis solicitudes y pedidos', action: () => navigateTo('requests') },
+                  { icon: <Radio size={18} color="#D83B35" />, label: 'Centro de Auxilio Offline (BLE)', action: () => navigateTo('offline') },
+                  { icon: <Heart size={18} color="#ec4899" />, label: 'Favoritos del barrio', action: () => setIsFavoritesModalOpen(true) },
                   { icon: <MapPin size={18} color="var(--green)" />, label: `Zona: ${selectedNeighborhood}`, action: () => navigateTo('map') },
-                  { icon: <CreditCard size={18} color="#6366f1" />, label: 'Métodos de pago comunitarios', action: () => {} },
                 ].map((item, i) => (
                   <div key={i} className="profile-menu-item" onClick={item.action}>
                     <div className="profile-menu-icon">{item.icon}</div>
@@ -3005,6 +2993,111 @@ export function App() {
               onClick={handleSubmitRating}
             >
               Enviar calificación
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ===== MODAL: FAVORITOS DEL BARRIO ===== */}
+      {isFavoritesModalOpen && (
+        <div className="modal-bg">
+          <div className="modal-card">
+            <button className="modal-close" onClick={() => setIsFavoritesModalOpen(false)} aria-label="Cerrar modal">
+              <X size={20} />
+            </button>
+            <div style={{ textAlign: 'center', marginBottom: 14 }}>
+              <div className="icon-circle" style={{ background: '#FDF2F8', color: '#DB2777', margin: '0 auto 8px', width: 48, height: 48 }}>
+                <Heart size={24} fill="#DB2777" />
+              </div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--carbon)', margin: 0 }}>
+                Favoritos del barrio
+              </h3>
+              <p style={{ fontSize: '0.78rem', color: '#6B7280', marginTop: 4, lineHeight: 1.35 }}>
+                Tus contactos vecinales y técnicos de confianza guardados para pedir ayuda o solicitar servicios rápido sin buscarlos de nuevo en el mapa.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: '55vh', overflowY: 'auto' }}>
+              <div className="card" style={{ padding: '12px 14px', margin: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--carbon)', margin: 0 }}>
+                      José Ramírez
+                    </h4>
+                    <span style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 700 }}>
+                      Electricista Certificado · Zona B
+                    </span>
+                    <div style={{ fontSize: '0.72rem', color: '#6B7280', marginTop: 2 }}>
+                      Tarifa: S/ 45/h · Calificación: 4.9 (14 opiniones)
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <a href="tel:999888777" className="icon-circle" style={{ width: 32, height: 32, background: '#E8F8F0' }} aria-label="Llamar">
+                      <Phone size={14} color="#2E9D72" />
+                    </a>
+                    <a href="https://wa.me/51999888777" target="_blank" rel="noreferrer" className="icon-circle" style={{ width: 32, height: 32, background: '#FFF7ED' }} aria-label="WhatsApp">
+                      <MessageCircle size={14} color="#FF875C" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card" style={{ padding: '12px 14px', margin: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--carbon)', margin: 0 }}>
+                      Carmen Morales
+                    </h4>
+                    <span style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 700 }}>
+                      Gasfitería y Detección de Fugas · Sector Central
+                    </span>
+                    <div style={{ fontSize: '0.72rem', color: '#6B7280', marginTop: 2 }}>
+                      A cotizar en el lugar · Calificación: 4.8 (9 opiniones)
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <a href="tel:999888777" className="icon-circle" style={{ width: 32, height: 32, background: '#E8F8F0' }} aria-label="Llamar">
+                      <Phone size={14} color="#2E9D72" />
+                    </a>
+                    <a href="https://wa.me/51999888777" target="_blank" rel="noreferrer" className="icon-circle" style={{ width: 32, height: 32, background: '#FFF7ED' }} aria-label="WhatsApp">
+                      <MessageCircle size={14} color="#FF875C" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card" style={{ padding: '12px 14px', margin: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--carbon)', margin: 0 }}>
+                      Pedro Quispe
+                    </h4>
+                    <span style={{ fontSize: '0.74rem', color: '#4F46E5', fontWeight: 700 }}>
+                      Carpintería y Préstamo de Escalera · Zona Alta
+                    </span>
+                    <div style={{ fontSize: '0.72rem', color: '#6B7280', marginTop: 2 }}>
+                      Vecino solidario (Préstamo de herramientas)
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <a href="tel:999888777" className="icon-circle" style={{ width: 32, height: 32, background: '#E8F8F0' }} aria-label="Llamar">
+                      <Phone size={14} color="#2E9D72" />
+                    </a>
+                    <a href="https://wa.me/51999888777" target="_blank" rel="noreferrer" className="icon-circle" style={{ width: 32, height: 32, background: '#FFF7ED' }} aria-label="WhatsApp">
+                      <MessageCircle size={14} color="#FF875C" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-outline btn-block"
+              style={{ marginTop: 14, borderRadius: 'var(--radius-full)' }}
+              onClick={() => setIsFavoritesModalOpen(false)}
+            >
+              Entendido
             </button>
           </div>
         </div>

@@ -4,7 +4,7 @@ import {
   MessageCircle, Wrench, CheckCircle2, Clock,
   MapPin, Radio, ArrowRight, ArrowLeft, Check,
   Navigation, Circle, ThumbsUp, X, Users, Store,
-  Sparkles, Droplet, Hammer
+  Sparkles, Droplet, Hammer, AlertTriangle, WifiOff, Phone
 } from 'lucide-react';
 
 interface InteractiveTutorialProps {
@@ -14,7 +14,7 @@ interface InteractiveTutorialProps {
 
 export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialProps) {
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 5;
+  const totalSteps = 6;
 
   // Estados interactivos para cada paso
   // Paso 1: Exploración de los 3 pilares
@@ -32,9 +32,11 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
   const [joinedActivity, setJoinedActivity] = useState(false);
   const [participantsCount, setParticipantsCount] = useState(18);
 
-  // Paso 5: El adicional (oficios) y modo offline
+  // Paso 5: El adicional (oficios con precio fijo o a cotizar en el lugar)
   const [tutorialPriceType, setTutorialPriceType] = useState<'fixed' | 'quote'>('fixed');
-  const [isOfflineSimulated, setIsOfflineSimulated] = useState(false);
+
+  // Paso 6: Resiliencia Offline exclusiva para Pedir Ayuda
+  const [offlineHelpBroadcasted, setOfflineHelpBroadcasted] = useState(false);
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
@@ -101,7 +103,7 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
               <h2 className="tutorial-title">Bienvenido a Ayni</h2>
               <p className="tutorial-tagline">“Hoy por ti, mañana por mí”</p>
               <p className="tutorial-desc">
-                Ayni <strong>no es una bolsa de trabajo</strong>. Es una red de <strong>apoyo mutuo vecinal y solidaridad barrial</strong>, donde la comunidad se ayuda ante necesidades y emergencias, y como complemento se ofrecen oficios de confianza.
+                Ayni <strong>no es una bolsa de trabajo</strong>. Es una red de <strong>apoyo mutuo vecinal y solidaridad barrial</strong> para cuidarnos entre vecinos, donde el adicional es ofrecer y contratar oficios de confianza.
               </p>
 
               {/* Elemento Interactivo 1: Tocar los 3 pilares */}
@@ -321,7 +323,7 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
               </div>
 
               <h2 className="tutorial-title">Faenas y Trabajo Colectivo</h2>
-              <p className="tutorial-tagline">Mejorando el barrio juntos</p>
+              <p className="tutorial-tagline">Mejorando el barrio entre todos</p>
               <p className="tutorial-desc">
                 En Ayni se organizan faenas comunales, jornadas de limpieza de áreas verdes, ollas comunes y comités barriales. Todos colaboran por el bienestar de su entorno.
               </p>
@@ -379,17 +381,17 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
             </div>
           )}
 
-          {/* PASO 5: El Adicional (Oficios Locales) & Modo Offline Resiliencia */}
+          {/* PASO 5: El Adicional: Oficios Vecinales de Confianza (SIN PARTE OFFLINE) */}
           {currentStep === 5 && (
             <div className="tutorial-step-view">
               <div className="tutorial-icon-circle" style={{ background: '#FFF1F2', color: 'var(--coral)' }}>
                 <Store size={32} />
               </div>
 
-              <h2 className="tutorial-title">Oficios y Resiliencia Offline</h2>
-              <p className="tutorial-tagline">El complemento económico y seguridad sin internet</p>
+              <h2 className="tutorial-title">Oficios Vecinales de Confianza</h2>
+              <p className="tutorial-tagline">El complemento económico para técnicos de tu barrio</p>
               <p className="tutorial-desc">
-                Como <strong>adicional al apoyo mutuo</strong>, si requieres un trabajo técnico puedes contratar a vecinos de confianza con cobro transparente. Y ante emergencias o caídas de red, Ayni sigue funcionando sin internet.
+                Como <strong>adicional a la ayuda solidaria</strong>, si requieres un trabajo técnico especializado puedes contratar a vecinos de confianza con total transparencia en el cobro:
               </p>
 
               {/* Elemento Interactivo 5 */}
@@ -422,7 +424,7 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
                   </button>
                 </div>
 
-                <div className="tutorial-card-preview" style={{ background: tutorialPriceType === 'quote' ? '#F0FDF4' : '#FFF7ED', borderColor: tutorialPriceType === 'quote' ? '#BBF7D0' : '#FFEDD5', marginBottom: 12 }}>
+                <div className="tutorial-card-preview" style={{ background: tutorialPriceType === 'quote' ? '#F0FDF4' : '#FFF7ED', borderColor: tutorialPriceType === 'quote' ? '#BBF7D0' : '#FFEDD5' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#111827' }}>
                       {tutorialPriceType === 'fixed' ? 'Electricista de Emergencia' : 'Gasfitería y Fugas Complejas'}
@@ -433,27 +435,77 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
                   </div>
                   <p style={{ fontSize: '0.74rem', color: tutorialPriceType === 'quote' ? '#15803D' : '#C2410C', margin: '4px 0 0' }}>
                     {tutorialPriceType === 'fixed'
-                      ? 'Tarifa acordada de antemano para trabajos puntuales.'
-                      : 'El vecino técnico se acerca primero al domicilio para evaluar la labor y acordar el presupuesto final.'}
+                      ? 'Tarifa acordada de antemano para trabajos puntuales y definidos.'
+                      : 'El vecino técnico se acerca primero a tu domicilio para evaluar la labor y acordar el presupuesto final en el lugar.'}
                   </p>
                 </div>
+              </div>
+            </div>
+          )}
 
-                <div style={{ borderTop: '1px solid var(--gray-200)', paddingTop: 10 }}>
-                  <span className="tutorial-box-label">Resiliencia sin conexión celular (BLE Mesh):</span>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', color: isOfflineSimulated ? '#D97706' : '#059669', fontWeight: 700 }}>
-                      <Radio size={16} />
-                      {isOfflineSimulated ? 'Modo Offline BLE Mesh Activo' : 'Red Vecinal Online'}
+          {/* PASO 6: Resiliencia Offline: Pedir Ayuda sin Internet (PASO APARTE Y EXCLUSIVO PARA PEDIR AYUDA) */}
+          {currentStep === 6 && (
+            <div className="tutorial-step-view">
+              <div className="tutorial-icon-circle" style={{ background: '#FEF2F2', color: '#DC2626' }}>
+                <Radio size={32} />
+              </div>
+
+              <h2 className="tutorial-title">Pedir Ayuda sin Internet</h2>
+              <p className="tutorial-tagline" style={{ color: '#DC2626' }}>
+                Protocolo Offline BLE Mesh exclusivo para emergencias
+              </p>
+              <p className="tutorial-desc">
+                La función sin internet de Ayni <strong>funciona únicamente cuando se pide o coordina ayuda solidaria</strong> ante emergencias. Si hay un sismo, huaico o apagón masivo sin señal celular, tu pedido de ayuda viaja por la malla Bluetooth de vecino a vecino.
+              </p>
+
+              {/* Elemento Interactivo 6 */}
+              <div className="tutorial-interactive-box">
+                <span className="tutorial-box-label">Prueba interactiva · Simula pedir ayuda en una emergencia:</span>
+
+                <div className="tutorial-card-preview" style={{ background: '#FEF2F2', borderColor: '#FECACA', marginTop: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <WifiOff size={18} color="#DC2626" />
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#991B1B' }}>
+                        Sin conexión a internet ni red celular
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#B91C1C' }}>
+                        Emergencia barrial detectada · Malla BLE activa
+                      </div>
                     </div>
+                  </div>
+
+                  <p style={{ fontSize: '0.76rem', color: '#4B5563', margin: '6px 0 10px 0', lineHeight: 1.35 }}>
+                    Caso: Necesitas agua potable de emergencia o botiquín y no hay línea telefónica.
+                  </p>
+
+                  {!offlineHelpBroadcasted ? (
                     <button
                       type="button"
-                      className="btn btn-outline"
-                      style={{ fontSize: '0.72rem', padding: '5px 10px', borderRadius: 16 }}
-                      onClick={() => setIsOfflineSimulated(!isOfflineSimulated)}
+                      className="btn btn-coral btn-block"
+                      style={{ fontSize: '0.78rem', padding: '9px 12px', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#DC2626' }}
+                      onClick={() => setOfflineHelpBroadcasted(true)}
                     >
-                      {isOfflineSimulated ? 'Volver a Online' : 'Simular corte de señal'}
+                      <Radio size={15} /> Emitir Pedido de Auxilio Offline (BLE)
                     </button>
-                  </div>
+                  ) : (
+                    <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '10px 12px', borderRadius: 10, color: '#065F46', fontSize: '0.76rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 800, marginBottom: 2 }}>
+                        <CheckCircle2 size={16} color="#059669" />
+                        ¡Señal de auxilio transmitida con éxito!
+                      </div>
+                      <div style={{ lineHeight: 1.35 }}>
+                        Tu pedido saltó por Bluetooth Mesh a <strong>3 teléfonos de vecinos cercanos</strong> a ~15 metros. Cuando un vecino con señal reciba el salto, la alerta se sincroniza automáticamente.
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ background: '#F9FAFB', border: '1px solid var(--gray-200)', borderRadius: 8, padding: '8px 10px', marginTop: 10, fontSize: '0.72rem', color: '#6B7280', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                  <AlertTriangle size={14} color="#D97706" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <span>
+                    <strong>Importante:</strong> Los oficios y servicios comerciales requieren conexión a internet. La red offline está reservada con prioridad absoluta para <strong>salvar vidas y auxilio vecinal</strong>.
+                  </span>
                 </div>
               </div>
             </div>
