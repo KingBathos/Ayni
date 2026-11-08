@@ -179,8 +179,8 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
     <div className="sh-overlay">
       <div className="sh-screen">
 
-        {/* ---------- BANNER ---------- */}
-        <div className="sh-banner">
+        {/* ---------- HERO AYNI (Sin publicidad de Shalom) ---------- */}
+        <div className="ayni-auth-hero">
           {view === 'register' && (
             <button
               type="button"
@@ -196,7 +196,20 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
               <ChevronLeft size={22} />
             </button>
           )}
-          <img className="sh-banner-img" src="/shalom-login-banner.png" alt="Bienvenido a Ayni" />
+
+          <div className="ayni-auth-brand">
+            <div className="ayni-auth-rings">
+              <div className="ayni-wr red" />
+              <div className="ayni-wr gold" />
+            </div>
+            <div className="ayni-auth-wordmark">
+              <span style={{ color: '#D83B35' }}>a</span>
+              <span style={{ color: '#FF875C' }}>y</span>
+              <span style={{ color: '#D83B35' }}>n</span>
+              <span style={{ color: '#FF875C' }}>i</span>
+            </div>
+            <p className="ayni-auth-tagline">“Hoy por ti, mañana por mí”</p>
+          </div>
         </div>
 
         {/* ---------- TARJETA ---------- */}
