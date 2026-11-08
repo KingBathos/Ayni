@@ -8,7 +8,7 @@ import {
   HelpCircle, LogOut, ArrowLeft, Camera, Calendar, Send, Navigation,
   Zap, Wrench, Hammer, Sparkles, GraduationCap, Utensils, MoreHorizontal,
   Phone, MessageCircle, CheckCircle, Circle, ThumbsUp, Droplet, Megaphone,
-  CalendarDays, HandHeart, Shield, X, ChevronDown
+  CalendarDays, HandHeart, Shield, X, ChevronDown, Check, XCircle, AlertCircle, Trash2, Image as ImageIcon
 } from 'lucide-react';
 import {
   INITIAL_SERVICES, INITIAL_COMMUNITY_POSTS, INITIAL_HELP_REQUESTS,
@@ -103,7 +103,13 @@ export function App() {
   const [newService, setNewService] = useState({
     title: '', categoryId: 'electricidad', description: '', priceAmount: 35, priceType: 'fixed' as 'fixed' | 'quote', coverageArea: 'Radio 2 km'
   });
+  // Estados para solicitar servicio (Boceto 08)
   const [requestDesc, setRequestDesc] = useState('');
+  const [requestPhotos, setRequestPhotos] = useState<string[]>([]);
+  const [requestAddress, setRequestAddress] = useState('');
+  const [requestScheduleMode, setRequestScheduleMode] = useState<'asap' | 'scheduled'>('asap');
+  const [requestScheduledDateTime, setRequestScheduledDateTime] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sincronización offline en curso
   const [isSyncing, setIsSyncing] = useState(false);
@@ -282,6 +288,9 @@ export function App() {
   const navigateTo = (nextView: ViewType) => {
     if (view !== nextView) {
       previousViewRef.current = view;
+      if (nextView === 'request-form' && !requestAddress) {
+        setRequestAddress(selectedNeighborhood || 'Ciclovía Malachowsky, San Borja');
+      }
       setView(nextView);
     }
   };
@@ -435,9 +444,84 @@ export function App() {
     alert('Aviso publicado en la comunidad.');
   };
 
-  // Solicitar contratación de servicio
+  // Helper para fecha mínima permitida (ahora mismo)
+  const getMinDateTime = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    Array.from(files).forEach(file => {
+      if (!file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        if (ev.target?.result) {
+          setRequestPhotos(prev => [...prev, ev.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
+
+  const handleRemovePhoto = (index: number) => {
+    setRequestPhotos(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleScheduleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (!val) {
+      setRequestScheduledDateTime('');
+      return;
+    }
+    const selected = new Date(val).getTime();
+    const now = new Date().getTime();
+    if (selected < now - 60000) {
+      alert('No puedes seleccionar una fecha u horario que ya pasó. Por favor elige un horario futuro.');
+      setRequestScheduledDateTime(getMinDateTime());
+      return;
+    }
+    setRequestScheduledDateTime(val);
+  };
+
+  // Solicitar contratación de servicio (Boceto 08)
   const handleRequestService = () => {
     if (!selectedService) return;
+
+    if (requestScheduleMode === 'scheduled') {
+      if (!requestScheduledDateTime) {
+        alert('Por favor selecciona una fecha y horario para programar tu servicio.');
+        return;
+      }
+      const selected = new Date(requestScheduledDateTime).getTime();
+      const now = new Date().getTime();
+      if (selected < now - 60000) {
+        alert('La fecha u hora seleccionada ya pasó. Por favor elige una fecha futura.');
+        setRequestScheduledDateTime(getMinDateTime());
+        return;
+      }
+    }
+
+    const effectiveAddress = requestAddress.trim() || selectedNeighborhood || 'Ciclovía Malachowsky, San Borja';
+    const scheduleDisplay = requestScheduleMode === 'asap'
+      ? 'Hoy lo antes posible'
+      : new Date(requestScheduledDateTime).toLocaleDateString('es-PE', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+
+    const nowFormatted = 'Hoy, ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
     const newBk: Booking = {
       id: `bk-${Date.now()}`,
       serviceId: selectedService.id,
@@ -446,16 +530,91 @@ export function App() {
       clientName: userName,
       providerId: selectedService.providerId,
       providerName: selectedService.providerName,
-      status: 'en_proceso',
-      date: 'Hoy, ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      status: 'en_revision', // Inicia en revisión: el profesional debe decidir si acepta o rechaza
+      date: nowFormatted,
       hasReview: false,
-      notes: requestDesc
+      notes: requestDesc.trim() || 'Servicio estándar solicitado desde la app.',
+      address: effectiveAddress,
+      scheduledDate: scheduleDisplay,
+      photos: [...requestPhotos],
+      timeline: {
+        sentAt: nowFormatted,
+        reviewedAt: nowFormatted
+      }
     };
 
     setBookings([newBk, ...bookings]);
     setSelectedBooking(newBk);
     setRequestDesc('');
+    setRequestPhotos([]);
+    setRequestScheduleMode('asap');
+    setRequestScheduledDateTime('');
     navigateTo('tracking');
+  };
+
+  // Acciones de decisión del profesional (Simulación / Apartado)
+  const handleAcceptBooking = (bkId: string) => {
+    const timeNow = 'Hoy, ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setBookings(prev => prev.map(b => {
+      if (b.id !== bkId) return b;
+      const updated: Booking = {
+        ...b,
+        status: 'en_camino',
+        timeline: {
+          ...b.timeline,
+          sentAt: b.timeline?.sentAt || timeNow,
+          reviewedAt: b.timeline?.reviewedAt || timeNow,
+          acceptedAt: timeNow,
+          onTheWayAt: 'Llegará en aprox. 15 min'
+        }
+      };
+      if (selectedBooking?.id === bkId) {
+        setSelectedBooking(updated);
+      }
+      return updated;
+    }));
+    alert('¡Encargo aceptado! Has confirmado el servicio. El cliente ha sido notificado y el profesional se encuentra en camino.');
+  };
+
+  const handleRejectBooking = (bkId: string) => {
+    const reason = window.prompt(
+      'Motivo del rechazo de solicitud (visible para el vecino):',
+      'El profesional no cuenta con disponibilidad en el horario solicitado.'
+    );
+    if (reason === null) return;
+
+    setBookings(prev => prev.map(b => {
+      if (b.id !== bkId) return b;
+      const updated: Booking = {
+        ...b,
+        status: 'rechazado',
+        rejectionReason: reason.trim() || 'Horario no disponible'
+      };
+      if (selectedBooking?.id === bkId) {
+        setSelectedBooking(updated);
+      }
+      return updated;
+    }));
+  };
+
+  const handleAdvanceBookingStatus = (bkId: string, nextStatus: 'en_camino' | 'en_proceso') => {
+    const timeNow = 'Hoy, ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setBookings(prev => prev.map(b => {
+      if (b.id !== bkId) return b;
+      const updated: Booking = {
+        ...b,
+        status: nextStatus,
+        timeline: {
+          ...b.timeline,
+          sentAt: b.timeline?.sentAt || timeNow,
+          inProgressAt: nextStatus === 'en_proceso' ? timeNow : b.timeline?.inProgressAt
+        }
+      };
+      if (selectedBooking?.id === bkId) {
+        setSelectedBooking(updated);
+      }
+      return updated;
+    }));
   };
 
   // Enviar calificación
@@ -1117,32 +1276,149 @@ export function App() {
                 />
               </div>
 
+              {/* Input oculto para adjuntar fotos desde cámara o galería */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                multiple
+                onChange={handlePhotoUpload}
+                style={{ display: 'none' }}
+              />
+
               <div className="field">
-                <label>Adjuntar fotos (opcional)</label>
-                <button type="button" className="btn btn-outline btn-block" style={{ borderStyle: 'dashed' }}>
-                  <Camera size={18} color="#9CA3AF" /> Agregar fotos del problema
-                </button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <label style={{ margin: 0 }}>Adjuntar fotos (opcional)</label>
+                  {requestPhotos.length > 0 && (
+                    <span style={{ fontSize: '0.74rem', color: '#6B7280' }}>
+                      {requestPhotos.length} foto(s) agregada(s)
+                    </span>
+                  )}
+                </div>
+
+                {requestPhotos.length > 0 ? (
+                  <div className="photo-previews">
+                    {requestPhotos.map((photoUrl, idx) => (
+                      <div key={idx} className="photo-thumb-card">
+                        <img src={photoUrl} alt={`Foto ${idx + 1}`} className="photo-thumb-img" />
+                        <button
+                          type="button"
+                          className="photo-thumb-del"
+                          onClick={() => handleRemovePhoto(idx)}
+                          aria-label="Eliminar foto"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      className="photo-add-more"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Plus size={16} />
+                      <span>Más fotos</span>
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-block"
+                    style={{ borderStyle: 'dashed' }}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Camera size={18} color="#9CA3AF" /> Agregar fotos del problema
+                  </button>
+                )}
               </div>
 
               <div className="field">
-                <label>Barrio / Dirección aproximada</label>
-                <div className="finput" style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#4B5563' }}>
-                  <MapPin size={16} color="var(--coral)" />
-                  {selectedNeighborhood}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <label style={{ margin: 0 }}>Barrio / Dirección de atención</label>
+                  <button
+                    type="button"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--coral)',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: 0
+                    }}
+                    onClick={() => setRequestAddress(selectedNeighborhood || 'Ciclovía Malachowsky, San Borja')}
+                  >
+                    <Navigation size={12} /> Mi barrio actual
+                  </button>
                 </div>
+                <div style={{ position: 'relative' }}>
+                  <MapPin size={16} color="var(--coral)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                  <input
+                    type="text"
+                    className="finput"
+                    style={{ paddingLeft: 40 }}
+                    placeholder="Escribe la dirección donde requieres el servicio..."
+                    value={requestAddress}
+                    onChange={e => setRequestAddress(e.target.value)}
+                  />
+                </div>
+                <p style={{ fontSize: '0.72rem', color: '#6B7280', marginTop: 4 }}>
+                  Puedes cambiar o detallar la dirección exacta para que el profesional llegue sin demoras.
+                </p>
               </div>
 
               <div className="field">
                 <label>Fecha y horario preferido</label>
-                <div className="finput" style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#4B5563' }}>
-                  <Calendar size={16} color="#6B7280" />
-                  Hoy lo antes posible
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+                  <button
+                    type="button"
+                    className={`com-tab-pill ${requestScheduleMode === 'asap' ? 'active' : ''}`}
+                    style={{ height: 40, fontSize: '0.8rem', padding: '0 10px', justifyContent: 'center' }}
+                    onClick={() => setRequestScheduleMode('asap')}
+                  >
+                    <Zap size={14} /> Lo antes posible
+                  </button>
+                  <button
+                    type="button"
+                    className={`com-tab-pill ${requestScheduleMode === 'scheduled' ? 'active' : ''}`}
+                    style={{ height: 40, fontSize: '0.8rem', padding: '0 10px', justifyContent: 'center' }}
+                    onClick={() => {
+                      setRequestScheduleMode('scheduled');
+                      if (!requestScheduledDateTime) setRequestScheduledDateTime(getMinDateTime());
+                    }}
+                  >
+                    <Calendar size={14} /> Programar fecha
+                  </button>
                 </div>
+
+                {requestScheduleMode === 'scheduled' ? (
+                  <div>
+                    <input
+                      type="datetime-local"
+                      min={getMinDateTime()}
+                      className="finput"
+                      style={{ fontFamily: 'inherit', fontSize: '0.86rem' }}
+                      value={requestScheduledDateTime}
+                      onChange={handleScheduleChange}
+                    />
+                    <p style={{ fontSize: '0.72rem', color: '#6B7280', marginTop: 4 }}>
+                      Solo puedes seleccionar fechas y horarios futuros.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="finput" style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#374151', background: '#F9FAFB' }}>
+                    <Clock size={16} color="#10B981" />
+                    <span style={{ fontSize: '0.86rem', fontWeight: 600 }}>Atención inmediata · Hoy lo antes posible</span>
+                  </div>
+                )}
               </div>
 
               <button
                 className="btn btn-coral btn-block"
-                style={{ borderRadius: 'var(--radius-full)', marginTop: 12 }}
+                style={{ borderRadius: 'var(--radius-full)', marginTop: 14 }}
                 onClick={handleRequestService}
               >
                 <Send size={18} /> Confirmar y enviar solicitud
@@ -1153,75 +1429,323 @@ export function App() {
       )}
 
       {/* ========== SEGUIMIENTO DE SERVICIO EN VIVO (Boceto 09) ========== */}
-      {view === 'tracking' && (
-        <>
-          <div className="top-bar" style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 12 }}>
-            <button className="icon-circle" onClick={handleBack}><ArrowLeft size={18} /></button>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--carbon)' }}>Seguimiento de servicio</h3>
-          </div>
-
-          <div className="body">
-            <div className="body-pad">
-              <div className="card">
-                <div className="timeline">
-                  {[
-                    { label: 'Solicitud enviada', sub: 'Hoy, 9:20 a. m.', done: true },
-                    { label: 'En revisión', sub: 'Hoy, 9:25 a. m.', done: true },
-                    { label: 'Aceptada', sub: 'Hoy, 9:30 a. m.', done: true },
-                    { label: 'Profesional en camino', sub: 'Llegará en aprox. 15 min', active: true },
-                    { label: 'Servicio en proceso', sub: '', pending: true },
-                    { label: 'Finalizado y calificado', sub: '', pending: true },
-                  ].map((step, i) => (
-                    <div key={i} className={`tl-step ${step.done ? 'done' : ''}`}>
-                      <div className={`tl-dot ${step.done ? 'done' : step.active ? 'active' : 'pending'}`}>
-                        {step.done ? <CheckCircle2 size={14} /> : <Circle size={14} />}
-                      </div>
-                      <div className="tl-content">
-                        <h4>{step.label}</h4>
-                        {step.sub && <p>{step.sub}</p>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+      {view === 'tracking' && (() => {
+        const curBk = selectedBooking || bookings[0];
+        if (!curBk) {
+          return (
+            <>
+              <div className="top-bar" style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 12 }}>
+                <button className="icon-circle" onClick={handleBack}><ArrowLeft size={18} /></button>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--carbon)' }}>Seguimiento de servicio</h3>
               </div>
+              <div className="body"><div className="body-pad" style={{ textAlign: 'center', padding: '40px 0', color: '#9CA3AF' }}>No hay servicio activo en este momento.</div></div>
+            </>
+          );
+        }
 
-              {/* Tarjeta de contacto del profesional */}
-              <div className="card">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div className="feat-pro-photo" style={{ width: 44, height: 44 }}>
-                    {selectedService ? PRO_INITIALS[selectedService.providerId] || 'PR' : 'PR'}
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 700, color: 'var(--carbon)', fontSize: '0.92rem' }}>
-                      {selectedService?.providerName.split('(')[0].trim() || 'José Ramírez'}
-                    </div>
-                    <div style={{ fontSize: '0.78rem', color: '#6B7280' }}>
-                      Llegando en bicicleta / ~15 min
-                    </div>
-                  </div>
-                  <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-                    <a href="tel:999888777" className="icon-circle" style={{ background: '#E8F8F0' }}>
-                      <Phone size={16} color="#2E9D72" />
-                    </a>
-                    <a href="https://wa.me/51999888777" target="_blank" rel="noreferrer" className="icon-circle" style={{ background: '#FFF7ED' }}>
-                      <MessageCircle size={16} color="#FF875C" />
-                    </a>
-                  </div>
-                </div>
-              </div>
+        const isPendingDecision = curBk.status === 'solicitado' || curBk.status === 'en_revision';
+        const isRejected = curBk.status === 'rechazado';
+        const isAccepted = curBk.status === 'aceptado';
+        const isOnTheWay = curBk.status === 'en_camino';
+        const isInProgress = curBk.status === 'en_proceso';
+        const isCompleted = curBk.status === 'completado';
 
-              {/* Botón para finalizar y calificar servicio */}
-              <button
-                className="btn btn-coral btn-block"
-                style={{ borderRadius: 'var(--radius-full)', marginTop: 8 }}
-                onClick={() => setIsRateModalOpen(true)}
-              >
-                Completar y calificar servicio
-              </button>
+        const providerNameClean = curBk.providerName.split('(')[0].trim();
+
+        // Construir la línea de tiempo paso a paso basada en el estado real
+        const steps = [
+          {
+            label: 'Solicitud enviada',
+            sub: curBk.timeline?.sentAt || curBk.date,
+            done: true
+          },
+          {
+            label: 'En revisión',
+            sub: isPendingDecision
+              ? `${providerNameClean} está evaluando tu solicitud...`
+              : (isRejected ? 'Revisión finalizada' : (curBk.timeline?.reviewedAt || 'Hoy')),
+            done: !isPendingDecision && !isRejected,
+            active: isPendingDecision
+          },
+          {
+            label: isRejected ? 'Solicitud rechazada' : 'Aceptada',
+            sub: isRejected
+              ? (curBk.rejectionReason || 'No disponible')
+              : (isPendingDecision ? 'Esperando confirmación' : (curBk.timeline?.acceptedAt || 'Hoy')),
+            done: isAccepted || isOnTheWay || isInProgress || isCompleted,
+            active: false,
+            rejected: isRejected,
+            pending: isPendingDecision
+          },
+          {
+            label: 'Profesional en camino',
+            sub: isOnTheWay ? 'Llegará en aprox. 15 min' : (isInProgress || isCompleted ? 'Llegó al punto' : ''),
+            done: isInProgress || isCompleted,
+            active: isOnTheWay,
+            pending: isPendingDecision || isRejected || isAccepted
+          },
+          {
+            label: 'Servicio en proceso',
+            sub: isInProgress ? 'Trabajando en el domicilio' : (isCompleted ? 'Finalizado' : ''),
+            done: isCompleted,
+            active: isInProgress,
+            pending: isPendingDecision || isRejected || isAccepted || isOnTheWay
+          },
+          {
+            label: 'Finalizado y calificado',
+            sub: isCompleted ? (curBk.hasReview ? 'Calificado con 5 estrellas' : 'Completado') : '',
+            done: isCompleted && curBk.hasReview,
+            active: isCompleted && !curBk.hasReview,
+            pending: !isCompleted
+          }
+        ];
+
+        return (
+          <>
+            <div className="top-bar" style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 12 }}>
+              <button className="icon-circle" onClick={handleBack}><ArrowLeft size={18} /></button>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--carbon)' }}>Seguimiento de servicio</h3>
             </div>
-          </div>
-        </>
-      )}
+
+            <div className="body">
+              <div className="body-pad">
+                {/* Resumen del encargo y dirección */}
+                <div className="card" style={{ padding: '12px 14px', marginBottom: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <span style={{ fontSize: '0.74rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>
+                        Servicio solicitado
+                      </span>
+                      <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--carbon)', margin: '2px 0 4px 0' }}>
+                        {curBk.serviceTitle}
+                      </h4>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: 8,
+                        background: isRejected ? '#FEE2E2' : isPendingDecision ? '#FEF3C7' : '#E8F8F0',
+                        color: isRejected ? '#DC2626' : isPendingDecision ? '#B45309' : '#059669',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4
+                      }}
+                    >
+                      {isRejected ? <XCircle size={12} /> : isPendingDecision ? <Clock size={12} /> : <CheckCircle2 size={12} />}
+                      {isRejected ? 'Rechazado' : isPendingDecision ? 'En revisión' : 'Confirmado'}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8, fontSize: '0.78rem', color: '#4B5563' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <MapPin size={13} color="var(--coral)" />
+                      <span>{curBk.address || 'Ciclovía Malachowsky, San Borja'}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Calendar size={13} color="#6B7280" />
+                      <span>{curBk.scheduledDate || 'Hoy lo antes posible'}</span>
+                    </div>
+                  </div>
+
+                  {curBk.photos && curBk.photos.length > 0 && (
+                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--gray-100)' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#6B7280', fontWeight: 700, display: 'block', marginBottom: 6 }}>
+                        Fotos adjuntas ({curBk.photos.length}):
+                      </span>
+                      <div className="photo-previews">
+                        {curBk.photos.map((ph, idx) => (
+                          <div key={idx} className="photo-thumb-card">
+                            <img src={ph} alt={`Evidencia ${idx + 1}`} className="photo-thumb-img" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Timeline de progreso */}
+                <div className="card">
+                  <div className="timeline">
+                    {steps.map((step, i) => (
+                      <div key={i} className={`tl-step ${step.done ? 'done' : ''}`}>
+                        <div
+                          className={`tl-dot ${
+                            step.done
+                              ? 'done'
+                              : step.rejected
+                              ? 'rejected'
+                              : step.active
+                              ? 'active'
+                              : 'pending'
+                          }`}
+                          style={step.rejected ? { background: '#FEE2E2', borderColor: '#DC2626', color: '#DC2626' } : undefined}
+                        >
+                          {step.done ? (
+                            <CheckCircle2 size={14} />
+                          ) : step.rejected ? (
+                            <X size={14} color="#DC2626" />
+                          ) : (
+                            <Circle size={14} />
+                          )}
+                        </div>
+                        <div className="tl-content">
+                          <h4 style={step.rejected ? { color: '#DC2626' } : undefined}>{step.label}</h4>
+                          {step.sub && <p style={step.rejected ? { color: '#B91C1C' } : undefined}>{step.sub}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* APARTADO DE DECISIÓN DEL PROFESIONAL (Solicitado por el usuario) */}
+                {isPendingDecision && (
+                  <div className="decision-card">
+                    <div className="decision-header">
+                      <div className="decision-badge">
+                        <Clock size={12} /> Decisión pendiente
+                      </div>
+                      <span style={{ fontSize: '0.72rem', color: '#6B7280', fontWeight: 700 }}>
+                        Vista del Profesional
+                      </span>
+                    </div>
+
+                    <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: 'var(--carbon)', marginBottom: 4 }}>
+                      ¿Aceptas el encargo de {curBk.clientName}?
+                    </h4>
+                    <p style={{ fontSize: '0.8rem', color: '#4B5563', lineHeight: 1.35, marginBottom: 10 }}>
+                      "{curBk.notes}"
+                    </p>
+
+                    <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: '4px 0 10px 0' }}>
+                      Revisa la dirección y horario solicitado arriba. Como profesional, puedes aceptar el encargo para iniciar el viaje o rechazarlo si no tienes disponibilidad.
+                    </p>
+
+                    <div className="decision-btn-group">
+                      <button
+                        type="button"
+                        className="btn-accept"
+                        onClick={() => handleAcceptBooking(curBk.id)}
+                      >
+                        <Check size={16} /> Aceptar encargo
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-reject"
+                        onClick={() => handleRejectBooking(curBk.id)}
+                      >
+                        <X size={16} /> Rechazar encargo
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* En caso de rechazo */}
+                {isRejected && (
+                  <div className="card" style={{ border: '1px solid #FCA5A5', background: '#FEF2F2', marginTop: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                      <AlertCircle size={22} color="#DC2626" style={{ flexShrink: 0, marginTop: 2 }} />
+                      <div>
+                        <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#991B1B', margin: 0 }}>
+                          El profesional no pudo tomar el encargo
+                        </h4>
+                        <p style={{ fontSize: '0.8rem', color: '#B91C1C', marginTop: 4, lineHeight: 1.35 }}>
+                          {curBk.rejectionReason || 'No cuenta con disponibilidad para el horario solicitado.'}
+                        </p>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                          <button
+                            type="button"
+                            className="btn btn-coral"
+                            style={{ fontSize: '0.78rem', padding: '8px 14px', borderRadius: 'var(--radius-full)' }}
+                            onClick={() => navigateTo('explore')}
+                          >
+                            Ver otros profesionales
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            style={{ fontSize: '0.78rem', padding: '8px 14px', borderRadius: 'var(--radius-full)' }}
+                            onClick={() => navigateTo('request-form')}
+                          >
+                            Proponer otro horario
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tarjeta de contacto y controles para etapas aceptadas / en camino / en proceso */}
+                {(isAccepted || isOnTheWay || isInProgress || isCompleted) && (
+                  <>
+                    <div className="card" style={{ marginTop: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div className="feat-pro-photo" style={{ width: 44, height: 44 }}>
+                          {PRO_INITIALS[curBk.providerId] || 'PR'}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 700, color: 'var(--carbon)', fontSize: '0.92rem' }}>
+                            {providerNameClean}
+                          </div>
+                          <div style={{ fontSize: '0.78rem', color: '#6B7280' }}>
+                            {isOnTheWay
+                              ? 'Llegando en bicicleta / ~15 min'
+                              : isInProgress
+                              ? 'En tu domicilio · Servicio en proceso'
+                              : isCompleted
+                              ? 'Servicio concluido con éxito'
+                              : 'Solicitud aceptada · Preparando visita'}
+                          </div>
+                        </div>
+                        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+                          <a href="tel:999888777" className="icon-circle" style={{ background: '#E8F8F0' }} aria-label="Llamar">
+                            <Phone size={16} color="#2E9D72" />
+                          </a>
+                          <a href="https://wa.me/51999888777" target="_blank" rel="noreferrer" className="icon-circle" style={{ background: '#FFF7ED' }} aria-label="WhatsApp">
+                            <MessageCircle size={16} color="#FF875C" />
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Botones de acción según la etapa */}
+                    {isOnTheWay && (
+                      <button
+                        className="btn btn-block"
+                        style={{ background: '#2563EB', color: '#ffffff', borderRadius: 'var(--radius-full)', marginTop: 8 }}
+                        onClick={() => handleAdvanceBookingStatus(curBk.id, 'en_proceso')}
+                      >
+                        <CheckCircle2 size={16} /> Profesional llegó · Iniciar servicio
+                      </button>
+                    )}
+
+                    {isInProgress && (
+                      <button
+                        className="btn btn-coral btn-block"
+                        style={{ borderRadius: 'var(--radius-full)', marginTop: 8 }}
+                        onClick={() => setIsRateModalOpen(true)}
+                      >
+                        Completar y calificar servicio
+                      </button>
+                    )}
+
+                    {isCompleted && !curBk.hasReview && (
+                      <button
+                        className="btn btn-coral btn-block"
+                        style={{ borderRadius: 'var(--radius-full)', marginTop: 8 }}
+                        onClick={() => setIsRateModalOpen(true)}
+                      >
+                        <Star size={16} /> Calificar al profesional
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </>
+        );
+      })()}
 
       {/* ========== MIS SOLICITUDES (Boceto 10) ========== */}
       {view === 'requests' && (
@@ -1272,8 +1796,16 @@ export function App() {
                         <span
                           className="tag"
                           style={{
-                            background: b.status === 'completado' ? '#E8F8F0' : '#FEF3C7',
-                            color: b.status === 'completado' ? '#2E9D72' : '#92400E',
+                            background:
+                              b.status === 'completado' ? '#E8F8F0' :
+                              b.status === 'rechazado' ? '#FEE2E2' :
+                              b.status === 'en_revision' || b.status === 'solicitado' ? '#FEF3C7' :
+                              b.status === 'en_proceso' ? '#DBEAFE' : '#FFEDD5',
+                            color:
+                              b.status === 'completado' ? '#2E9D72' :
+                              b.status === 'rechazado' ? '#DC2626' :
+                              b.status === 'en_revision' || b.status === 'solicitado' ? '#B45309' :
+                              b.status === 'en_proceso' ? '#1D4ED8' : 'var(--coral)',
                             fontSize: '0.72rem',
                             fontWeight: 700,
                             padding: '3px 8px',
@@ -1285,6 +1817,12 @@ export function App() {
                         >
                           {b.status === 'completado' ? (
                             <><CheckCircle2 size={12} /> Finalizado</>
+                          ) : b.status === 'rechazado' ? (
+                            <><XCircle size={12} /> Rechazado</>
+                          ) : b.status === 'en_revision' || b.status === 'solicitado' ? (
+                            <><Clock size={12} /> En revisión</>
+                          ) : b.status === 'en_proceso' ? (
+                            <><Zap size={12} /> En proceso</>
                           ) : (
                             <><Navigation size={12} /> En camino</>
                           )}

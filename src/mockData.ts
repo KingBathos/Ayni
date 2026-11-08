@@ -119,10 +119,18 @@ export const INITIAL_BOOKINGS: Booking[] = [
     clientName: 'María (Tú)',
     providerId: 'usr-p1',
     providerName: 'José Ramírez (Técnico Certificado)',
-    status: 'en_proceso',
-    date: 'Hoy, 3:30 PM',
+    status: 'en_camino',
+    date: 'Hoy, 9:20 a. m.',
     hasReview: false,
-    notes: 'Revisión urgente de térmico de la cocina.'
+    notes: 'Revisión urgente de térmico de la cocina.',
+    address: 'Ciclovía Malachowsky, San Borja',
+    scheduledDate: 'Hoy lo antes posible',
+    timeline: {
+      sentAt: 'Hoy, 9:20 a. m.',
+      reviewedAt: 'Hoy, 9:25 a. m.',
+      acceptedAt: 'Hoy, 9:30 a. m.',
+      onTheWayAt: 'Hoy, 9:35 a. m.'
+    }
   }
 ];
 

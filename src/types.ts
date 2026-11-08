@@ -32,6 +32,25 @@ export interface ServiceItem {
   status: 'published' | 'paused';
 }
 
+export type BookingStatus =
+  | 'solicitado'
+  | 'en_revision'
+  | 'aceptado'
+  | 'en_camino'
+  | 'en_proceso'
+  | 'completado'
+  | 'rechazado'
+  | 'cancelado';
+
+export interface BookingTimeline {
+  sentAt: string;
+  reviewedAt?: string;
+  acceptedAt?: string;
+  onTheWayAt?: string;
+  inProgressAt?: string;
+  completedAt?: string;
+}
+
 export interface Booking {
   id: string;
   serviceId: string;
@@ -40,10 +59,15 @@ export interface Booking {
   clientName: string;
   providerId: string;
   providerName: string;
-  status: 'solicitado' | 'en_proceso' | 'completado' | 'cancelado';
+  status: BookingStatus;
   date: string;
   hasReview: boolean;
   notes?: string;
+  address?: string;
+  scheduledDate?: string;
+  photos?: string[];
+  rejectionReason?: string;
+  timeline?: BookingTimeline;
 }
 
 export interface Review {
