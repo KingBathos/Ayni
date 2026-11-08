@@ -130,7 +130,9 @@ export function App() {
   const [deleteConfirmMode, setDeleteConfirmMode] = useState<'me' | 'everyone' | null>(null);
   const [pendingChatMedia, setPendingChatMedia] = useState<{ url: string; type: 'image' | 'video'; name: string } | null>(null);
   const [chatLightboxMedia, setChatLightboxMedia] = useState<string | null>(null);
-  const chatMediaInputRef = useRef<HTMLInputElement>(null);
+  const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isLongPressTriggeredRef = useRef(false);
   const [pinnedMessages, setPinnedMessages] = useState<Record<string, string>>({
@@ -589,6 +591,19 @@ export function App() {
     setIsDeleteMsgDialogOpen(false);
     setDeleteConfirmMode(null);
     setPendingChatMedia(null);
+    setHighlightedMsgId(null);
+  };
+
+  // Buscar y desplazarse hasta el mensaje fijado al hacer clic en el banner amarillo
+  const handleScrollToMessage = (msgId: string) => {
+    const el = document.getElementById(`chat-msg-${msgId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightedMsgId(msgId);
+      setTimeout(() => {
+        setHighlightedMsgId(null);
+      }, 2000);
+    }
   };
 
   const handleJoinChat = (threadId: string) => {
@@ -3062,22 +3077,29 @@ export function App() {
                 </div>
               )}
 
-              {/* Mensaje Fijado si existe */}
+              {/* Mensaje Fijado si existe - Tocarlo busca y muestra el mensaje */}
               {pinnedMsg && !selectedMsg && (
-                <div className="chat-pin-banner-wa">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
-                    <Pin size={12} style={{ flexShrink: 0 }} />
+                <div
+                  className="chat-pin-banner-wa"
+                  onClick={() => handleScrollToMessage(pinnedMsg.id)}
+                  title="Toca para ir al mensaje fijado en la conversación"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden', flex: 1 }}>
+                    <Pin size={13} color="var(--coral)" style={{ flexShrink: 0 }} />
                     <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       <strong>{pinnedMsg.senderName}:</strong> {pinnedMsg.text}
                     </span>
                   </div>
                   <button
                     type="button"
-                    style={{ background: 'none', border: 'none', color: '#92400E', cursor: 'pointer', padding: 2 }}
-                    onClick={() => handlePinMessage(activeChatThread.id, pinnedMsg.id)}
+                    style={{ background: 'none', border: 'none', color: '#92400E', cursor: 'pointer', padding: 4 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePinMessage(activeChatThread.id, pinnedMsg.id);
+                    }}
                     title="Desfijar mensaje"
                   >
-                    <X size={14} />
+                    <X size={15} />
                   </button>
                 </div>
               )}
@@ -3109,12 +3131,13 @@ export function App() {
                     const isPinned = pinnedId === m.id;
                     const isDeleted = m.deletedForEveryone;
                     const isSelected = selectedMessageId === m.id;
+                    const isHighlighted = highlightedMsgId === m.id;
 
                     return (
-                      <div key={m.id} className={`chat-bubble-row ${isMe ? 'me' : 'other'}`}>
+                      <div key={m.id} id={`chat-msg-${m.id}`} className={`chat-bubble-row ${isMe ? 'me' : 'other'}`}>
                         <div
-                          className={`chat-bubble-wa ${isSelected ? 'is-selected' : ''}`}
-                          style={isPinned ? { borderLeft: '3px solid #008069' } : undefined}
+                          className={`chat-bubble-wa ${isSelected ? 'is-selected' : ''} ${isHighlighted ? 'highlight-flash' : ''}`}
+                          style={isPinned ? { borderLeft: '3px solid var(--coral)' } : undefined}
                           onMouseDown={() => handleBubblePressStart(m.id)}
                           onMouseUp={() => handleBubblePressEnd(m.id)}
                           onMouseLeave={handleBubblePressCancel}
@@ -3125,7 +3148,7 @@ export function App() {
                           {!isMe && <div className="chat-sender-wa">{m.senderName}</div>}
 
                           {isPinned && (
-                            <div style={{ fontSize: '0.66rem', color: '#008069', display: 'flex', alignItems: 'center', gap: 3, marginBottom: 2 }}>
+                            <div style={{ fontSize: '0.66rem', color: 'var(--coral)', display: 'flex', alignItems: 'center', gap: 3, marginBottom: 2 }}>
                               <Pin size={10} /> Mensaje fijado
                             </div>
                           )}
@@ -3154,9 +3177,8 @@ export function App() {
                           </div>
 
                           <div className="chat-meta-wa">
-                            {m.isEdited && <span style={{ fontSize: '0.62rem', color: '#667781' }}>(editado)</span>}
+                            {m.isEdited && <span style={{ fontSize: '0.62rem', color: '#9CA3AF' }}>(editado)</span>}
                             <span>{m.timestampLabel}</span>
-                            {isMe && <CheckCheck size={13} color="#53BDEB" />}
                           </div>
                         </div>
                       </div>
@@ -3205,9 +3227,20 @@ export function App() {
                 )}
 
                 <form className="chat-input-controls-row" onSubmit={handleSendMessage}>
+                  {/* Input exclusivo para abrir la CÁMARA nativa */}
                   <input
                     type="file"
-                    ref={chatMediaInputRef}
+                    ref={cameraInputRef}
+                    accept="image/*"
+                    capture="environment"
+                    style={{ display: 'none' }}
+                    onChange={handleChatMediaSelect}
+                  />
+
+                  {/* Input exclusivo para abrir la GALERÍA / Archivos */}
+                  <input
+                    type="file"
+                    ref={galleryInputRef}
                     accept="image/*,video/*"
                     style={{ display: 'none' }}
                     onChange={handleChatMediaSelect}
@@ -3224,18 +3257,18 @@ export function App() {
                     <button
                       type="button"
                       className="chat-capsule-btn"
-                      onClick={() => chatMediaInputRef.current?.click()}
-                      title="Cámara"
-                      aria-label="Cámara"
+                      onClick={() => cameraInputRef.current?.click()}
+                      title="Tomar foto con la cámara"
+                      aria-label="Tomar foto con la cámara"
                     >
                       <Camera size={21} />
                     </button>
                     <button
                       type="button"
                       className="chat-capsule-btn"
-                      onClick={() => chatMediaInputRef.current?.click()}
-                      title="Adjuntar foto o video"
-                      aria-label="Adjuntar foto o video"
+                      onClick={() => galleryInputRef.current?.click()}
+                      title="Seleccionar de galería"
+                      aria-label="Seleccionar de galería"
                     >
                       <ImageIcon size={20} />
                     </button>
@@ -3263,9 +3296,9 @@ export function App() {
                       onClick={() => setIsChatInfoOpen(false)}
                       aria-label="Cerrar información"
                     >
-                      <ArrowLeft size={22} />
+                      <ArrowLeft size={20} />
                     </button>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF' }}>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--carbon)' }}>
                       Info. del grupo vecinal
                     </div>
                   </div>
@@ -3276,20 +3309,20 @@ export function App() {
                         width: 72,
                         height: 72,
                         borderRadius: '50%',
-                        background: '#00A884',
+                        background: 'linear-gradient(135deg, var(--orange), var(--coral))',
                         color: '#FFFFFF',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         margin: '0 auto 12px',
-                        boxShadow: '0 4px 10px rgba(0,0,0,0.15)'
+                        boxShadow: '0 4px 10px rgba(216, 59, 53, 0.25)'
                       }}
                     >
                       {activeChatThread.itemType === 'ayuda' ? <HeartHandshake size={36} /> :
                        activeChatThread.itemType === 'aviso' ? <Megaphone size={36} /> :
                        <CalendarDays size={36} />}
                     </div>
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#111827', margin: '0 0 6px 0' }}>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--carbon)', margin: '0 0 6px 0' }}>
                       {activeChatThread.title}
                     </h3>
                     <p style={{ fontSize: '0.82rem', color: '#6B7280', margin: 0 }}>
@@ -3298,23 +3331,23 @@ export function App() {
                   </div>
 
                   <div className="chat-info-card">
-                    <h4 style={{ fontSize: '0.82rem', fontWeight: 700, color: '#008069', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
+                    <h4 style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--coral)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
                       Coordinación comunitaria
                     </h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: '0.85rem', color: '#374151' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Shield size={16} color="#008069" />
+                        <Shield size={16} color="var(--coral)" />
                         <span>Chat vecinal verificado en {selectedNeighborhood}</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Users size={16} color="#008069" />
+                        <Users size={16} color="var(--coral)" />
                         <span>{msgs.length + 3} mensajes y actualizaciones de vecinos</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Acciones del chat: Salir del chat o Unirme */}
-                  <div className="chat-info-card" style={{ marginTop: 'auto', marginBottom: 28 }}>
+                  {/* Acciones del chat con separación respecto a los botones de navegación Android */}
+                  <div className="chat-info-actions-box">
                     {isJoined ? (
                       <button
                         type="button"
@@ -3324,14 +3357,14 @@ export function App() {
                           background: '#FEE2E2',
                           color: '#DC2626',
                           border: '1px solid #FCA5A5',
-                          padding: '12px',
-                          borderRadius: 12,
-                          fontWeight: 700,
+                          padding: '13px',
+                          borderRadius: 14,
+                          fontWeight: 800,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: 8,
-                          fontSize: '0.9rem'
+                          fontSize: '0.92rem'
                         }}
                         onClick={() => setIsConfirmLeaveChatOpen(true)}
                       >
@@ -3340,19 +3373,17 @@ export function App() {
                     ) : (
                       <button
                         type="button"
-                        className="btn"
+                        className="btn btn-coral"
                         style={{
                           width: '100%',
-                          background: '#008069',
-                          color: '#FFFFFF',
-                          padding: '12px',
-                          borderRadius: 12,
-                          fontWeight: 700,
+                          padding: '13px',
+                          borderRadius: 14,
+                          fontWeight: 800,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: 8,
-                          fontSize: '0.9rem'
+                          fontSize: '0.92rem'
                         }}
                         onClick={() => {
                           handleJoinChat(activeChatThread.id);
