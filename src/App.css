@@ -1068,3 +1068,235 @@ body {
 }
 
 .map-pin.solidarity { border-color: var(--orange); }
+
+/* ===== CENTRO DE CONECTIVIDAD OFFLINE (Boceto 14) ===== */
+.off-dark-card {
+  background: var(--carbon);
+  color: var(--white);
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.off-dark-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--orange-light);
+  flex-shrink: 0;
+}
+
+.off-dark-info h3 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.off-dark-info p {
+  font-size: 0.78rem;
+  color: #D1D5DB;
+}
+
+.off-grid-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.off-metric-box {
+  background: #F9FAFB;
+  border: 1px solid var(--gray-200);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.off-metric-val {
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.off-metric-val.coral { color: var(--coral); }
+.off-metric-val.green { color: var(--green); }
+
+.off-metric-lbl {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--gray-500);
+}
+
+.off-hops-timeline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  margin: 16px 0 14px;
+  padding: 0 8px;
+}
+
+.off-hop-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  z-index: 2;
+}
+
+.off-hop-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--gray-300);
+  background: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.off-hop-dot.done {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--white);
+}
+
+.off-hop-dot.active {
+  border-color: var(--orange);
+  background: var(--orange);
+  color: var(--white);
+  box-shadow: 0 0 0 3px rgba(255, 135, 92, 0.2);
+}
+
+.off-hop-lbl {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--gray-500);
+}
+
+.off-hop-line {
+  position: absolute;
+  top: 10px;
+  left: 24px;
+  right: 24px;
+  height: 2px;
+  background: var(--gray-200);
+  z-index: 1;
+}
+
+.off-status-box {
+  background: #FFF7ED;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.off-status-box strong {
+  font-size: 0.82rem;
+  color: #9A3412;
+  display: block;
+}
+
+.off-status-box span {
+  font-size: 0.74rem;
+  color: #C2410C;
+}
+
+.off-disclaimer {
+  background: var(--gray-100);
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.74rem;
+  color: var(--gray-500);
+  margin-top: 14px;
+}
+
+/* ===== CALIFICAR SERVICIO (Boceto 15) ===== */
+.rate-stars {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.rate-star-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  transition: transform 0.1s;
+}
+
+.rate-star-btn:hover, .rate-star-btn:active {
+  transform: scale(1.15);
+}
+
+.rate-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.rate-chip {
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: var(--gray-100);
+  border: 1px solid var(--gray-200);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.rate-chip.selected {
+  background: var(--cream);
+  border-color: var(--coral);
+  color: var(--coral);
+  font-weight: 700;
+}
+
+/* ===== SEGMENTED TABS (Boceto 10 Mis Solicitudes) ===== */
+.seg-tabs {
+  display: flex;
+  background: var(--gray-100);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 16px;
+}
+
+.seg-tab {
+  flex: 1;
+  text-align: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--gray-500);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.seg-tab.active {
+  background: var(--white);
+  color: var(--coral);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+

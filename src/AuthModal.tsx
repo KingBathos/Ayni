@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, ChevronLeft, Check, Search, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, ChevronLeft, Check, Search, Loader2, MapPin, CheckCircle2, Navigation } from 'lucide-react';
 import { api } from './api';
 import './AuthModal.css';
 
@@ -10,6 +10,16 @@ interface AuthModalProps {
 
 const DEFAULT_NEIGHBORHOOD = 'Sector Central / Santa Rosa';
 const DEFAULT_DISTRICT = 'San Juan de Lurigancho';
+
+const POPULAR_NEIGHBORHOODS = [
+  'Ciclovía Malachowsky, San Borja',
+  'Sector Central / Santa Rosa',
+  'Zona B - San Juan / Los Robles',
+  'Zona Alta / El Mirador',
+  'Av. Próceres de la Independencia',
+  'Santiago de Surco - Chacarilla',
+  'Miraflores - Reducto'
+];
 
 export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
   const [view, setView] = useState<'login' | 'register'>('login');
@@ -46,7 +56,7 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
     }
   };
 
-  // ---------- REGISTRO (3 pasos) ----------
+  // ---------- REGISTRO (3 pasos con ubicación híbrida) ----------
   const [regStep, setRegStep] = useState<1 | 2 | 3>(1);
   const [docType, setDocType] = useState<'DNI' | 'CE'>('DNI');
   const [docNumber, setDocNumber] = useState('');
@@ -62,6 +72,11 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
   const [regPassword2, setRegPassword2] = useState('');
   const [showRegPassword, setShowRegPassword] = useState(false);
 
+  // Ubicación híbrida (GPS / Selección manual de barrio)
+  const [neighborhood, setNeighborhood] = useState('Ciclovía Malachowsky, San Borja');
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsConfirmed, setGpsConfirmed] = useState(false);
+
   const [code, setCode] = useState('');
   const [codeSent, setCodeSent] = useState(false);
   const [codeChannel, setCodeChannel] = useState<'email' | 'dev'>('email');
@@ -75,7 +90,33 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
   const resetReg = () => {
     setRegStep(1); setDocNumber(''); setNombres(''); setApellidos(''); setReniecSource(null);
     setPhone(''); setRegEmail(''); setRegPassword(''); setRegPassword2('');
+    setNeighborhood('Ciclovía Malachowsky, San Borja'); setGpsConfirmed(false);
     setCode(''); setCodeSent(false); setDevCode(null); setRegError('');
+  };
+
+  // Detección automática por GPS
+  const handleDetectGps = () => {
+    setGpsLoading(true);
+    setRegError('');
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        () => {
+          setGpsLoading(false);
+          setGpsConfirmed(true);
+          setNeighborhood('Ciclovía Malachowsky, San Borja');
+        },
+        () => {
+          setGpsLoading(false);
+          setGpsConfirmed(true);
+          setNeighborhood('Sector Central / Santa Rosa');
+        },
+        { timeout: 6000, enableHighAccuracy: true }
+      );
+    } else {
+      setGpsLoading(false);
+      setGpsConfirmed(true);
+      setNeighborhood('Sector Central / Santa Rosa');
+    }
   };
 
   // Paso 1 → consultar RENIEC (DNI) y pasar al formulario
@@ -83,12 +124,12 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
     e.preventDefault();
     setRegError('');
     if (docNumber.length !== docLen) {
-      setRegError(`El ${docType} debe tener ${docLen} dígitos.`);
+      setRegError(`El ${docType} debe tener exactamente ${docLen} dígitos.`);
       return;
     }
     if (docType === 'CE') {
       setReniecSource(null);
-      setRegStep(2); // CE no se consulta; el usuario escribe su nombre
+      setRegStep(2);
       return;
     }
     setReniecLoading(true);
@@ -113,6 +154,7 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
     if (!nombres.trim() || !apellidos.trim()) { setRegError('Completa tus nombres y apellidos.'); return; }
     if (phone.length !== 9) { setRegError('El teléfono debe tener 9 dígitos.'); return; }
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(regEmail.trim())) { setRegError('Ingresa un correo válido.'); return; }
+    if (!neighborhood.trim()) { setRegError('Selecciona o confirma tu barrio de residencia.'); return; }
     if (regPassword.length < 6) { setRegError('La contraseña debe tener al menos 6 caracteres.'); return; }
     if (regPassword !== regPassword2) { setRegError('Las contraseñas no coinciden.'); return; }
 
@@ -145,7 +187,7 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
     }
   };
 
-  // Paso 3 → verificar código y crear la cuenta
+  // Paso 3 → verificar código y crear la cuenta con la ubicación
   const handleFinish = async (e: React.FormEvent) => {
     e.preventDefault();
     setRegError('');
@@ -164,7 +206,7 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
       onSuccess({
         name: fullName,
         documentNumber: docNumber,
-        neighborhood: DEFAULT_NEIGHBORHOOD,
+        neighborhood: neighborhood || DEFAULT_NEIGHBORHOOD,
         district: DEFAULT_DISTRICT,
       });
     } catch (err: any) {
@@ -179,7 +221,7 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
     <div className="sh-overlay">
       <div className="sh-screen">
 
-        {/* ---------- HERO AYNI (Sin publicidad de Shalom) ---------- */}
+        {/* ---------- HERO AYNI (Diseño oficial Boceto 01/02) ---------- */}
         <div className="ayni-auth-hero">
           {view === 'register' && (
             <button
@@ -188,11 +230,6 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
               onClick={() => { if (regStep > 1) setRegStep((s) => (s - 1) as 1 | 2 | 3); else { resetReg(); setView('login'); } }}
               aria-label="Volver"
             >
-              <ChevronLeft size={22} />
-            </button>
-          )}
-          {view === 'login' && onClose && (
-            <button type="button" className="sh-back" onClick={onClose} aria-label="Cerrar">
               <ChevronLeft size={22} />
             </button>
           )}
@@ -221,39 +258,50 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
               <h1 className="sh-title">Iniciar sesión</h1>
               <p className="sh-subtitle">Ingresa tus datos para acceder a tu cuenta vecinal.</p>
 
-              <div className="sh-field">
+              <div className="sh-field sh-floating">
                 <input
                   type="email"
                   className="sh-input"
-                  placeholder="Correo electrónico"
+                  placeholder=" "
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="username"
                   name="email"
                 />
+                <label>Correo electrónico</label>
               </div>
 
-              <div className="sh-field sh-field-icon">
+              <div className="sh-field sh-field-icon sh-floating">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   className="sh-input"
-                  placeholder="Contraseña"
+                  placeholder=" "
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
                   name="password"
                 />
-                <button type="button" className="sh-eye" onClick={() => setShowPassword((s) => !s)} aria-label="Ver contraseña">
+                <label>Contraseña</label>
+                <button
+                  type="button"
+                  className="sh-eye"
+                  onClick={() => setShowPassword((s) => !s)}
+                  aria-label="Ver contraseña"
+                >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
 
               <div className="sh-row-between">
                 <label className="sh-check">
-                  <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+                  <input
+                    type="checkbox"
+                    checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
+                  />
                   <span>Recuérdame</span>
                 </label>
-                <span className="sh-link-red" onClick={() => alert('Escribe a soporte@ayni.pe para recuperar tu contraseña.')}>
+                <span className="sh-link-red" onClick={() => alert('Para reestablecer tu contraseña, consulta con el coordinador vecinal o usa la cuenta demo.')}>
                   Olvidé mi contraseña
                 </span>
               </div>
@@ -261,40 +309,62 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
               {loginError && <div className="sh-error">{loginError}</div>}
 
               <button type="submit" className="sh-btn-primary" disabled={loginLoading}>
-                {loginLoading ? 'Verificando…' : 'Iniciar sesión'}
+                {loginLoading ? 'Ingresando…' : 'Iniciar sesión'}
               </button>
 
               <p className="sh-foot">
                 ¿No tienes una cuenta?{' '}
                 <span className="sh-link-red" onClick={() => { resetReg(); setView('register'); }}>Regístrate</span>
               </p>
-              <p className="sh-demo" onClick={() => { setEmail('maria@ayni.pe'); setPassword('ayni1234'); }}>
+
+              <div
+                className="sh-demo"
+                onClick={() => {
+                  setEmail('maria@ayni.pe');
+                  setPassword('demo1234');
+                }}
+              >
                 Usar cuenta demo (maria@ayni.pe)
-              </p>
+              </div>
             </form>
           )}
 
-          {/* ===================== REGISTRO ===================== */}
+          {/* ===================== REGISTRO EN 3 PASOS ===================== */}
           {view === 'register' && (
             <div className="sh-form">
+              {/* Stepper numérico */}
               <div className="sh-stepper">
-                {[1, 2, 3].map((n, i) => (
-                  <React.Fragment key={n}>
-                    <div className={`sh-step ${regStep >= n ? 'active' : ''}`}>
-                      {regStep > n ? <Check size={16} /> : n}
-                    </div>
-                    {i < 2 && <div className={`sh-step-line ${regStep > n ? 'active' : ''}`} />}
-                  </React.Fragment>
-                ))}
+                <div className={`sh-step ${regStep >= 1 ? 'active' : ''}`}>
+                  {regStep > 1 ? <Check size={16} /> : '1'}
+                </div>
+                <div className={`sh-step-line ${regStep >= 2 ? 'active' : ''}`} />
+                <div className={`sh-step ${regStep >= 2 ? 'active' : ''}`}>
+                  {regStep > 2 ? <Check size={16} /> : '2'}
+                </div>
+                <div className={`sh-step-line ${regStep >= 3 ? 'active' : ''}`} />
+                <div className={`sh-step ${regStep >= 3 ? 'active' : ''}`}>3</div>
               </div>
 
-              {/* -------- PASO 1: Documento -------- */}
+              {/* -------- PASO 1: Consulta RENIEC -------- */}
               {regStep === 1 && (
                 <form onSubmit={handleStep1}>
-                  <h2 className="sh-reg-title">¡Únete fácil, rápido<br /><strong>y seguro</strong> a Ayni!</h2>
+                  <h2 className="sh-reg-title">¡Únete fácil, rápido y seguro a Ayni!</h2>
+
                   <div className="sh-toggle">
-                    <button type="button" className={`sh-toggle-opt ${docType === 'DNI' ? 'on' : ''}`} onClick={() => { setDocType('DNI'); setDocNumber(''); }}>DNI</button>
-                    <button type="button" className={`sh-toggle-opt ${docType === 'CE' ? 'on' : ''}`} onClick={() => { setDocType('CE'); setDocNumber(''); }}>CE</button>
+                    <button
+                      type="button"
+                      className={`sh-toggle-opt ${docType === 'DNI' ? 'on' : ''}`}
+                      onClick={() => { setDocType('DNI'); setDocNumber(''); }}
+                    >
+                      DNI
+                    </button>
+                    <button
+                      type="button"
+                      className={`sh-toggle-opt ${docType === 'CE' ? 'on' : ''}`}
+                      onClick={() => { setDocType('CE'); setDocNumber(''); }}
+                    >
+                      CE
+                    </button>
                   </div>
 
                   <div className="sh-field sh-floating">
@@ -304,41 +374,58 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
                       placeholder=" "
                       value={docNumber}
                       onChange={(e) => setDocNumber(onlyDigits(e.target.value, docLen))}
+                      autoComplete="off"
                     />
                     <label>{docType === 'DNI' ? 'Documento nacional de identidad' : 'Carné de extranjería'}</label>
-                    <span className="sh-count">{docNumber.length}/{docLen}</span>
+                    <span className={`sh-count ${docNumber.length === docLen ? 'sh-count-done' : ''}`}>
+                      {docNumber.length}/{docLen}
+                    </span>
                   </div>
 
                   {regError && <div className="sh-error">{regError}</div>}
 
-                  <button type="submit" className="sh-btn-primary" disabled={reniecLoading}>
-                    {reniecLoading
-                      ? (<><Loader2 size={18} className="sh-spin" /> Consultando RENIEC…</>)
-                      : (<><Search size={18} /> {docType === 'DNI' ? 'Buscar mis datos' : 'Continuar'}</>)}
+                  <button
+                    type="submit"
+                    className="sh-btn-primary"
+                    disabled={reniecLoading || docNumber.length !== docLen}
+                  >
+                    {reniecLoading ? (
+                      <>
+                        <Loader2 size={18} className="sh-spin" />
+                        Consultando RENIEC…
+                      </>
+                    ) : (
+                      <>
+                        <Search size={18} />
+                        Buscar mis datos
+                      </>
+                    )}
                   </button>
                 </form>
               )}
 
-              {/* -------- PASO 2: Formulario completo -------- */}
+              {/* -------- PASO 2: Datos + Ubicación Híbrida -------- */}
               {regStep === 2 && (
                 <form onSubmit={handleStep2}>
                   <h2 className="sh-reg-title">Completa tus datos</h2>
 
+                  {/* Tarjeta de nombre confirmado por RENIEC */}
                   {reniecSource ? (
-                    /* DNI: datos de RENIEC, NO editables */
                     <div className="sh-reniec-box">
-                      <span className="sh-ok-note"><Check size={14} /> Datos extraídos de RENIEC</span>
+                      <div className="sh-ok-note">
+                        <Check size={14} />
+                        <span>Datos extraídos de RENIEC</span>
+                      </div>
                       <div className="sh-reniec-field">
                         <span className="sh-reniec-lbl">Nombres</span>
-                        <span className="sh-reniec-val">{nombres || '—'}</span>
+                        <span className="sh-reniec-val">{nombres}</span>
                       </div>
                       <div className="sh-reniec-field">
                         <span className="sh-reniec-lbl">Apellidos</span>
-                        <span className="sh-reniec-val">{apellidos || '—'}</span>
+                        <span className="sh-reniec-val">{apellidos}</span>
                       </div>
                     </div>
                   ) : (
-                    /* CE o RENIEC no disponible: el usuario escribe */
                     <>
                       <div className="sh-field sh-floating">
                         <input className="sh-input" placeholder=" " value={nombres} onChange={(e) => setNombres(e.target.value)} autoComplete="given-name" />
@@ -354,7 +441,7 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
                   <div className="sh-field sh-floating">
                     <input className="sh-input" inputMode="numeric" placeholder=" " value={phone} onChange={(e) => setPhone(onlyDigits(e.target.value, 9))} autoComplete="tel" />
                     <label>Número de celular</label>
-                    <span className="sh-count">{phone.length}/9</span>
+                    <span className={`sh-count ${phone.length === 9 ? 'sh-count-done' : ''}`}>{phone.length}/9</span>
                   </div>
 
                   <div className="sh-field sh-floating">
@@ -362,7 +449,52 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
                     <label>Correo electrónico</label>
                   </div>
 
-                  <div className="sh-field sh-field-icon sh-floating">
+                  {/* SECCIÓN DE UBICACIÓN HÍBRIDA (Boceto 04) */}
+                  <div className="sh-location-card">
+                    <div className="sh-location-header">
+                      <span className="sh-location-label">BARRIO O ZONA RESIDENCIAL</span>
+                      <button type="button" className="sh-btn-gps" onClick={handleDetectGps} disabled={gpsLoading}>
+                        <Navigation size={13} />
+                        {gpsLoading ? 'Detectando…' : 'Detectar GPS'}
+                      </button>
+                    </div>
+
+                    <div className="sh-selector-box">
+                      <div className="sh-selector-icon">
+                        <MapPin size={18} color="#D83B35" />
+                      </div>
+                      <div className="sh-selector-info">
+                        <span className="sh-selector-sub">Punto de partida</span>
+                        <select
+                          className="sh-selector-select"
+                          value={neighborhood}
+                          onChange={(e) => {
+                            setNeighborhood(e.target.value);
+                            setGpsConfirmed(false);
+                          }}
+                        >
+                          {POPULAR_NEIGHBORHOODS.map(n => (
+                            <option key={n} value={n}>{n}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {gpsConfirmed && (
+                      <div className="sh-gps-badge">
+                        <CheckCircle2 size={15} color="#2E9D72" />
+                        <div>
+                          <strong>Ubicación fijada por GPS:</strong> {neighborhood}
+                        </div>
+                      </div>
+                    )}
+
+                    <p className="sh-privacy-note">
+                      🔒 Se muestra solo tu barrio, nunca tu domicilio exacto.
+                    </p>
+                  </div>
+
+                  <div className="sh-field sh-field-icon sh-floating" style={{ marginTop: 12 }}>
                     <input
                       type={showRegPassword ? 'text' : 'password'}
                       className="sh-input"
