@@ -20,6 +20,7 @@ import {
 import { ServiceItem, HelpRequest, Booking, OfflineEnvelope, CommunityPost, CommunityActivity, ChatMessage, AppNotification } from './types';
 import { AuthModal } from './AuthModal';
 import { AyniMap } from './AyniMap';
+import { LocationAddressPicker } from './LocationAddressPicker';
 import { InteractiveTutorial } from './InteractiveTutorial';
 import { api } from './api';
 import './App.css';
@@ -1968,14 +1969,26 @@ export function App() {
               </div>
 
               {/* Resumen de tarifa y modalidad de cobro */}
-              <div style={{ background: selectedService.priceType === 'quote' ? '#F0FDF4' : '#FFF7ED', border: `1px solid ${selectedService.priceType === 'quote' ? '#BBF7D0' : '#FFEDD5'}`, borderRadius: 12, padding: '10px 14px', marginBottom: 14 }}>
+              <div style={{
+                background: selectedService.priceType === 'quote'
+                  ? (isDarkMode ? 'rgba(34, 197, 94, 0.14)' : '#F0FDF4')
+                  : (isDarkMode ? 'rgba(234, 88, 12, 0.14)' : '#FFF7ED'),
+                border: `1px solid ${
+                  selectedService.priceType === 'quote'
+                    ? (isDarkMode ? 'rgba(34, 197, 94, 0.35)' : '#BBF7D0')
+                    : (isDarkMode ? 'rgba(234, 88, 12, 0.35)' : '#FFEDD5')
+                }`,
+                borderRadius: 12,
+                padding: '10px 14px',
+                marginBottom: 14
+              }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--carbon)' }}>Modalidad de cobro</span>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: selectedService.priceType === 'quote' ? '#166534' : 'var(--coral)' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: isDarkMode ? '#CBD5E1' : 'var(--carbon)' }}>Modalidad de cobro</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: selectedService.priceType === 'quote' ? (isDarkMode ? '#86EFAC' : '#166534') : 'var(--coral)' }}>
                     {selectedService.priceType === 'quote' ? 'A cotizar en el lugar' : `S/ ${selectedService.priceAmount || 35} / hora`}
                   </span>
                 </div>
-                <p style={{ fontSize: '0.73rem', color: selectedService.priceType === 'quote' ? '#15803D' : '#C2410C', margin: '4px 0 0 0' }}>
+                <p style={{ fontSize: '0.73rem', color: selectedService.priceType === 'quote' ? (isDarkMode ? '#A7F3D0' : '#15803D') : (isDarkMode ? '#FFAB8A' : '#C2410C'), margin: '4px 0 0 0' }}>
                   {selectedService.priceType === 'quote'
                     ? 'El profesional se acercará a tu domicilio para evaluar la labor y acordar el monto final.'
                     : 'Tarifa de referencia fijada por el profesional.'}
@@ -2007,7 +2020,7 @@ export function App() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <label style={{ margin: 0 }}>Adjuntar fotos (opcional)</label>
                   {requestPhotos.length > 0 && (
-                    <span style={{ fontSize: '0.74rem', color: '#6B7280' }}>
+                    <span style={{ fontSize: '0.74rem', color: isDarkMode ? '#94A3B8' : '#6B7280' }}>
                       {requestPhotos.length} foto(s) agregada(s)
                     </span>
                   )}
@@ -2052,37 +2065,15 @@ export function App() {
               <div className="field">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <label style={{ margin: 0 }}>Barrio / Dirección de atención</label>
-                  <button
-                    type="button"
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--coral)',
-                      fontSize: '0.74rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      padding: 0
-                    }}
-                    onClick={() => setRequestAddress(selectedNeighborhood || 'Ciclovía Malachowsky, San Borja')}
-                  >
-                    <Navigation size={12} /> Mi barrio actual
-                  </button>
                 </div>
-                <div style={{ position: 'relative' }}>
-                  <MapPin size={16} color="var(--coral)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-                  <input
-                    type="text"
-                    className="finput"
-                    style={{ paddingLeft: 40 }}
-                    placeholder="Escribe la dirección donde requieres el servicio..."
-                    value={requestAddress}
-                    onChange={e => setRequestAddress(e.target.value)}
-                  />
-                </div>
-                <p style={{ fontSize: '0.72rem', color: '#6B7280', marginTop: 4 }}>
+                <LocationAddressPicker
+                  value={requestAddress}
+                  onChange={(addr) => setRequestAddress(addr)}
+                  userCoords={userCoords}
+                  isDarkMode={isDarkMode}
+                  placeholder="Escribe tu dirección o búscala en el mapa..."
+                />
+                <p style={{ fontSize: '0.72rem', color: isDarkMode ? '#94A3B8' : '#6B7280', marginTop: 6 }}>
                   Puedes cambiar o detallar la dirección exacta para que el profesional llegue sin demoras.
                 </p>
               </div>
@@ -2121,12 +2112,19 @@ export function App() {
                       value={requestScheduledDateTime}
                       onChange={handleScheduleChange}
                     />
-                    <p style={{ fontSize: '0.72rem', color: '#6B7280', marginTop: 4 }}>
+                    <p style={{ fontSize: '0.72rem', color: isDarkMode ? '#94A3B8' : '#6B7280', marginTop: 4 }}>
                       Solo puedes seleccionar fechas y horarios futuros.
                     </p>
                   </div>
                 ) : (
-                  <div className="finput" style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#374151', background: '#F9FAFB' }}>
+                  <div className="finput" style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    color: isDarkMode ? '#F8FAFC' : '#374151',
+                    background: isDarkMode ? '#1E293B' : '#F9FAFB',
+                    border: isDarkMode ? '1px solid #334155' : undefined
+                  }}>
                     <Clock size={16} color="#10B981" />
                     <span style={{ fontSize: '0.86rem', fontWeight: 600 }}>Atención inmediata · Hoy lo antes posible</span>
                   </div>
@@ -2410,10 +2408,10 @@ export function App() {
                           {PRO_INITIALS[curBk.providerId] || 'PR'}
                         </div>
                         <div>
-                          <div style={{ fontWeight: 700, color: 'var(--carbon)', fontSize: '0.92rem' }}>
+                          <div style={{ fontWeight: 700, color: isDarkMode ? '#F8FAFC' : 'var(--carbon)', fontSize: '0.92rem' }}>
                             {providerNameClean}
                           </div>
-                          <div style={{ fontSize: '0.78rem', color: '#6B7280' }}>
+                          <div style={{ fontSize: '0.78rem', color: isDarkMode ? '#94A3B8' : '#6B7280' }}>
                             {isOnTheWay
                               ? 'Llegando en bicicleta / ~15 min'
                               : isInProgress
@@ -2424,11 +2422,11 @@ export function App() {
                           </div>
                         </div>
                         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-                          <a href="tel:999888777" className="icon-circle" style={{ background: '#E8F8F0' }} aria-label="Llamar">
-                            <Phone size={16} color="#2E9D72" />
+                          <a href="tel:999888777" className="icon-circle" style={{ background: isDarkMode ? 'rgba(34, 197, 94, 0.16)' : '#E8F8F0', border: isDarkMode ? '1px solid rgba(34, 197, 94, 0.35)' : 'none' }} aria-label="Llamar">
+                            <Phone size={16} color={isDarkMode ? '#4ADE80' : '#2E9D72'} />
                           </a>
-                          <a href="https://wa.me/51999888777" target="_blank" rel="noreferrer" className="icon-circle" style={{ background: '#FFF7ED' }} aria-label="WhatsApp">
-                            <MessageCircle size={16} color="#FF875C" />
+                          <a href="https://wa.me/51999888777" target="_blank" rel="noreferrer" className="icon-circle" style={{ background: isDarkMode ? 'rgba(255, 90, 95, 0.16)' : '#FFF7ED', border: isDarkMode ? '1px solid rgba(255, 90, 95, 0.35)' : 'none' }} aria-label="WhatsApp">
+                            <MessageCircle size={16} color={isDarkMode ? '#FF875C' : '#FF875C'} />
                           </a>
                         </div>
                       </div>
@@ -2770,11 +2768,11 @@ export function App() {
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#EFF6FF', padding: '8px 12px', borderRadius: 8, fontSize: '0.78rem', color: '#1D4ED8', fontWeight: 700 }}>
                                 <span>Servicio en proceso en el domicilio</span>
                                 <div style={{ display: 'flex', gap: 6 }}>
-                                  <a href="tel:999888777" className="icon-circle" style={{ width: 28, height: 28, background: '#E8F8F0' }} aria-label="Llamar">
-                                    <Phone size={13} color="#2E9D72" />
+                                  <a href="tel:999888777" className="icon-circle" style={{ width: 28, height: 28, background: isDarkMode ? 'rgba(34, 197, 94, 0.16)' : '#E8F8F0', border: isDarkMode ? '1px solid rgba(34, 197, 94, 0.35)' : 'none' }} aria-label="Llamar">
+                                    <Phone size={13} color={isDarkMode ? '#4ADE80' : '#2E9D72'} />
                                   </a>
-                                  <a href="https://wa.me/51999888777" target="_blank" rel="noreferrer" className="icon-circle" style={{ width: 28, height: 28, background: '#FFF7ED' }} aria-label="WhatsApp">
-                                    <MessageCircle size={13} color="#FF875C" />
+                                  <a href="https://wa.me/51999888777" target="_blank" rel="noreferrer" className="icon-circle" style={{ width: 28, height: 28, background: isDarkMode ? 'rgba(255, 90, 95, 0.16)' : '#FFF7ED', border: isDarkMode ? '1px solid rgba(255, 90, 95, 0.35)' : 'none' }} aria-label="WhatsApp">
+                                    <MessageCircle size={13} color={isDarkMode ? '#FF875C' : '#FF875C'} />
                                   </a>
                                 </div>
                               </div>
@@ -3353,11 +3351,11 @@ export function App() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <a href="tel:999888777" className="icon-circle" style={{ width: 32, height: 32, background: '#E8F8F0' }} aria-label="Llamar">
-                      <Phone size={14} color="#2E9D72" />
+                    <a href="tel:999888777" className="icon-circle" style={{ width: 32, height: 32, background: isDarkMode ? 'rgba(34, 197, 94, 0.16)' : '#E8F8F0', border: isDarkMode ? '1px solid rgba(34, 197, 94, 0.35)' : 'none' }} aria-label="Llamar">
+                      <Phone size={14} color={isDarkMode ? '#4ADE80' : '#2E9D72'} />
                     </a>
-                    <a href="https://wa.me/51999888777" target="_blank" rel="noreferrer" className="icon-circle" style={{ width: 32, height: 32, background: '#FFF7ED' }} aria-label="WhatsApp">
-                      <MessageCircle size={14} color="#FF875C" />
+                    <a href="https://wa.me/51999888777" target="_blank" rel="noreferrer" className="icon-circle" style={{ width: 32, height: 32, background: isDarkMode ? 'rgba(255, 90, 95, 0.16)' : '#FFF7ED', border: isDarkMode ? '1px solid rgba(255, 90, 95, 0.35)' : 'none' }} aria-label="WhatsApp">
+                      <MessageCircle size={14} color={isDarkMode ? '#FF875C' : '#FF875C'} />
                     </a>
                   </div>
                 </div>
@@ -3366,22 +3364,22 @@ export function App() {
               <div className="card" style={{ padding: '12px 14px', margin: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
-                    <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--carbon)', margin: 0 }}>
+                    <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: isDarkMode ? '#F8FAFC' : 'var(--carbon)', margin: 0 }}>
                       Carmen Morales
                     </h4>
-                    <span style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 700 }}>
+                    <span style={{ fontSize: '0.74rem', color: isDarkMode ? '#86EFAC' : '#059669', fontWeight: 700 }}>
                       Gasfitería y Detección de Fugas · Sector Central
                     </span>
-                    <div style={{ fontSize: '0.72rem', color: '#6B7280', marginTop: 2 }}>
+                    <div style={{ fontSize: '0.72rem', color: isDarkMode ? '#94A3B8' : '#6B7280', marginTop: 2 }}>
                       A cotizar en el lugar · Calificación: 4.8 (9 opiniones)
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <a href="tel:999888777" className="icon-circle" style={{ width: 32, height: 32, background: '#E8F8F0' }} aria-label="Llamar">
-                      <Phone size={14} color="#2E9D72" />
+                    <a href="tel:999888777" className="icon-circle" style={{ width: 32, height: 32, background: isDarkMode ? 'rgba(34, 197, 94, 0.16)' : '#E8F8F0', border: isDarkMode ? '1px solid rgba(34, 197, 94, 0.35)' : 'none' }} aria-label="Llamar">
+                      <Phone size={14} color={isDarkMode ? '#4ADE80' : '#2E9D72'} />
                     </a>
-                    <a href="https://wa.me/51999888777" target="_blank" rel="noreferrer" className="icon-circle" style={{ width: 32, height: 32, background: '#FFF7ED' }} aria-label="WhatsApp">
-                      <MessageCircle size={14} color="#FF875C" />
+                    <a href="https://wa.me/51999888777" target="_blank" rel="noreferrer" className="icon-circle" style={{ width: 32, height: 32, background: isDarkMode ? 'rgba(255, 90, 95, 0.16)' : '#FFF7ED', border: isDarkMode ? '1px solid rgba(255, 90, 95, 0.35)' : 'none' }} aria-label="WhatsApp">
+                      <MessageCircle size={14} color={isDarkMode ? '#FF875C' : '#FF875C'} />
                     </a>
                   </div>
                 </div>
@@ -3390,22 +3388,22 @@ export function App() {
               <div className="card" style={{ padding: '12px 14px', margin: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
-                    <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--carbon)', margin: 0 }}>
+                    <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: isDarkMode ? '#F8FAFC' : 'var(--carbon)', margin: 0 }}>
                       Pedro Quispe
                     </h4>
-                    <span style={{ fontSize: '0.74rem', color: '#4F46E5', fontWeight: 700 }}>
+                    <span style={{ fontSize: '0.74rem', color: isDarkMode ? '#A5B4FC' : '#4F46E5', fontWeight: 700 }}>
                       Carpintería y Préstamo de Escalera · Zona Alta
                     </span>
-                    <div style={{ fontSize: '0.72rem', color: '#6B7280', marginTop: 2 }}>
+                    <div style={{ fontSize: '0.72rem', color: isDarkMode ? '#94A3B8' : '#6B7280', marginTop: 2 }}>
                       Vecino solidario (Préstamo de herramientas)
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <a href="tel:999888777" className="icon-circle" style={{ width: 32, height: 32, background: '#E8F8F0' }} aria-label="Llamar">
-                      <Phone size={14} color="#2E9D72" />
+                    <a href="tel:999888777" className="icon-circle" style={{ width: 32, height: 32, background: isDarkMode ? 'rgba(34, 197, 94, 0.16)' : '#E8F8F0', border: isDarkMode ? '1px solid rgba(34, 197, 94, 0.35)' : 'none' }} aria-label="Llamar">
+                      <Phone size={14} color={isDarkMode ? '#4ADE80' : '#2E9D72'} />
                     </a>
-                    <a href="https://wa.me/51999888777" target="_blank" rel="noreferrer" className="icon-circle" style={{ width: 32, height: 32, background: '#FFF7ED' }} aria-label="WhatsApp">
-                      <MessageCircle size={14} color="#FF875C" />
+                    <a href="https://wa.me/51999888777" target="_blank" rel="noreferrer" className="icon-circle" style={{ width: 32, height: 32, background: isDarkMode ? 'rgba(255, 90, 95, 0.16)' : '#FFF7ED', border: isDarkMode ? '1px solid rgba(255, 90, 95, 0.35)' : 'none' }} aria-label="WhatsApp">
+                      <MessageCircle size={14} color={isDarkMode ? '#FF875C' : '#FF875C'} />
                     </a>
                   </div>
                 </div>
@@ -3938,7 +3936,16 @@ export function App() {
                 <div className="chat-date-pill">HOY</div>
 
                 {!isJoined && (
-                  <div style={{ background: '#FEF3C7', border: '1px solid #FDE68A', padding: '8px 12px', borderRadius: 10, fontSize: '0.78rem', color: '#92400E', textAlign: 'center', margin: '2px 0 6px 0' }}>
+                  <div style={{
+                    background: isDarkMode ? 'rgba(245, 158, 11, 0.14)' : '#FEF3C7',
+                    border: `1px solid ${isDarkMode ? 'rgba(245, 158, 11, 0.35)' : '#FDE68A'}`,
+                    padding: '8px 12px',
+                    borderRadius: 10,
+                    fontSize: '0.78rem',
+                    color: isDarkMode ? '#FDE68A' : '#92400E',
+                    textAlign: 'center',
+                    margin: '2px 0 6px 0'
+                  }}>
                     Estás en modo lectura. Envía un mensaje o toca el título para unirte a la coordinación vecinal.
                   </div>
                 )}

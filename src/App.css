@@ -3463,6 +3463,48 @@ html.dark {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
 }
 
+/* Chat Vecinal en Modo Oscuro */
+.phone.dark-theme .chat-pin-banner-wa {
+  background: #161F30 !important;
+  border-bottom: 1px solid #233044 !important;
+  color: #FDE68A !important;
+}
+
+.phone.dark-theme .chat-pin-banner-wa button {
+  color: #94A3B8 !important;
+}
+
+.phone.dark-theme .chat-messages-container {
+  background-color: #0B0F19 !important;
+}
+
+.phone.dark-theme .chat-date-pill {
+  background: #161F30 !important;
+  color: #94A3B8 !important;
+  border: 1px solid #233044 !important;
+}
+
+/* Avatares y fotos de perfil de profesionales en Modo Oscuro */
+.phone.dark-theme .feat-pro-photo {
+  background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%) !important;
+  border: 1px solid rgba(255, 90, 95, 0.4) !important;
+  color: #FF7B75 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Círculos de contacto (Llamada y WhatsApp) en Modo Oscuro */
+.phone.dark-theme a.icon-circle[aria-label="Llamar"] {
+  background: rgba(34, 197, 94, 0.16) !important;
+  border: 1px solid rgba(34, 197, 94, 0.35) !important;
+  color: #4ADE80 !important;
+}
+
+.phone.dark-theme a.icon-circle[aria-label="WhatsApp"] {
+  background: rgba(255, 90, 95, 0.16) !important;
+  border: 1px solid rgba(255, 90, 95, 0.35) !important;
+  color: #FF875C !important;
+}
+
 
 
 
