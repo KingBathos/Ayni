@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, ChevronLeft, Check, Search, Loader2, MapPin, CheckCircle2, Navigation, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, ChevronLeft, Check, Search, Loader2, MapPin, CheckCircle2, Navigation, ShieldCheck, Sun, Moon } from 'lucide-react';
 import { api } from './api';
 import './AuthModal.css';
 
 interface AuthModalProps {
   onSuccess: (user: { name: string; documentNumber: string; neighborhood: string; district: string }) => void;
   onClose?: () => void;
+  isDarkMode?: boolean;
+  onToggleTheme?: () => void;
 }
 
 const DEFAULT_NEIGHBORHOOD = 'Sector Central / Santa Rosa';
@@ -21,7 +23,7 @@ const POPULAR_NEIGHBORHOODS = [
   'Miraflores - Reducto'
 ];
 
-export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
+export function AuthModal({ onSuccess, onClose, isDarkMode = false, onToggleTheme }: AuthModalProps) {
   const [view, setView] = useState<'login' | 'register'>('login');
 
   // ---------- LOGIN ----------
@@ -218,7 +220,7 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
 
   // ============================ RENDER ============================
   return (
-    <div className="sh-overlay">
+    <div className={`sh-overlay ${isDarkMode ? 'dark-theme' : ''}`}>
       <div className="sh-screen">
 
         {/* ---------- HERO AYNI (Diseño oficial Boceto 01/02) ---------- */}
@@ -325,6 +327,26 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
                 }}
               >
                 Usar cuenta demo (maria@ayni.pe)
+              </div>
+
+              {/* Interruptor modo claro / modo oscuro */}
+              <div className="sh-theme-bar">
+                <div className="sh-theme-bar-info">
+                  {isDarkMode ? <Moon size={16} color="#FF7B75" /> : <Sun size={16} color="#F59E0B" />}
+                  <span className="sh-theme-bar-text">
+                    {isDarkMode ? 'Modo nocturno activado' : 'Modo claro activado'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className={`theme-toggle-switch ${isDarkMode ? 'on' : ''}`}
+                  onClick={onToggleTheme}
+                  aria-label="Alternar modo claro u oscuro"
+                >
+                  <span className="theme-toggle-handle">
+                    {isDarkMode ? <Moon size={12} /> : <Sun size={12} />}
+                  </span>
+                </button>
               </div>
             </form>
           )}
@@ -572,6 +594,26 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
                 ¿Ya tienes cuenta?{' '}
                 <span className="sh-link-red" onClick={() => { resetReg(); setView('login'); }}>Inicia sesión</span>
               </p>
+
+              {/* Interruptor modo claro / modo oscuro */}
+              <div className="sh-theme-bar">
+                <div className="sh-theme-bar-info">
+                  {isDarkMode ? <Moon size={16} color="#FF7B75" /> : <Sun size={16} color="#F59E0B" />}
+                  <span className="sh-theme-bar-text">
+                    {isDarkMode ? 'Modo nocturno activado' : 'Modo claro activado'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className={`theme-toggle-switch ${isDarkMode ? 'on' : ''}`}
+                  onClick={onToggleTheme}
+                  aria-label="Alternar modo claro u oscuro"
+                >
+                  <span className="theme-toggle-handle">
+                    {isDarkMode ? <Moon size={12} /> : <Sun size={12} />}
+                  </span>
+                </button>
+              </div>
             </div>
           )}
         </div>

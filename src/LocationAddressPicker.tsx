@@ -13,7 +13,7 @@ interface SuggestionItem {
 interface LocationAddressPickerProps {
   value: string;
   onChange: (address: string, coords?: [number, number]) => void;
-  userCoords?: [number, number];
+  userCoords?: [number, number] | null;
   isDarkMode?: boolean;
   placeholder?: string;
 }
@@ -35,10 +35,11 @@ const POPULAR_LOCAL_PLACES: SuggestionItem[] = [
 export const LocationAddressPicker: React.FC<LocationAddressPickerProps> = ({
   value,
   onChange,
-  userCoords = [-12.0952, -77.0014],
+  userCoords,
   isDarkMode = false,
   placeholder = 'Escribe tu dirección o búscala en el mapa...'
 }) => {
+  const safeCoords: [number, number] = userCoords || [-12.0952, -77.0014];
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>(POPULAR_LOCAL_PLACES);
@@ -46,7 +47,7 @@ export const LocationAddressPicker: React.FC<LocationAddressPickerProps> = ({
   const [isSearching, setIsSearching] = useState(false);
 
   // Estados del selector interactivo de mapa (Point-on-Map)
-  const [mapCenterCoords, setMapCenterCoords] = useState<[number, number]>(userCoords);
+  const [mapCenterCoords, setMapCenterCoords] = useState<[number, number]>(safeCoords);
   const [resolvedMapAddress, setResolvedMapAddress] = useState<string>(value || 'Avenida Malachowsky, 433, San Borja');
   const [isResolvingAddress, setIsResolvingAddress] = useState<boolean>(false);
   const [isPinFloating, setIsPinFloating] = useState<boolean>(false);
@@ -154,14 +155,14 @@ export const LocationAddressPicker: React.FC<LocationAddressPickerProps> = ({
         },
         () => {
           setIsLoadingGps(false);
-          onChange('Ciclovía Malachowsky, San Borja', userCoords);
+          onChange('Ciclovía Malachowsky, San Borja', safeCoords);
           setIsDropdownOpen(false);
         },
         { enableHighAccuracy: true, timeout: 6000 }
       );
     } else {
       setIsLoadingGps(false);
-      onChange('Ciclovía Malachowsky, San Borja', userCoords);
+      onChange('Ciclovía Malachowsky, San Borja', safeCoords);
       setIsDropdownOpen(false);
     }
   };
@@ -176,7 +177,7 @@ export const LocationAddressPicker: React.FC<LocationAddressPickerProps> = ({
   const handleOpenMapPicker = () => {
     setIsDropdownOpen(false);
     setIsMapModalOpen(true);
-    setMapCenterCoords(userCoords);
+    setMapCenterCoords(safeCoords);
     setResolvedMapAddress(value || 'Avenida Malachowsky, 433, San Borja');
   };
 
@@ -290,14 +291,14 @@ export const LocationAddressPicker: React.FC<LocationAddressPickerProps> = ({
         setMapCenterCoords([lat, lng]);
         reverseGeocodeCenter(lat, lng);
       }, () => {
-        mapInstanceRef.current?.setView(userCoords, 17);
-        setMapCenterCoords(userCoords);
-        reverseGeocodeCenter(userCoords[0], userCoords[1]);
+        mapInstanceRef.current?.setView(safeCoords, 17);
+        setMapCenterCoords(safeCoords);
+        reverseGeocodeCenter(safeCoords[0], safeCoords[1]);
       });
     } else {
-      mapInstanceRef.current.setView(userCoords, 17);
-      setMapCenterCoords(userCoords);
-      reverseGeocodeCenter(userCoords[0], userCoords[1]);
+      mapInstanceRef.current.setView(safeCoords, 17);
+      setMapCenterCoords(safeCoords);
+      reverseGeocodeCenter(safeCoords[0], safeCoords[1]);
     }
   };
 
@@ -765,3 +766,4 @@ export const LocationAddressPicker: React.FC<LocationAddressPickerProps> = ({
     </div>
   );
 };
+

@@ -3007,18 +3007,27 @@ export function App() {
               </div>
 
               <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 20, background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Radio size={20} color="#6D28D9" />
+                <div style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  background: isDarkMode ? 'rgba(109, 40, 217, 0.2)' : '#EDE9FE',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Radio size={20} color={isDarkMode ? '#C4B5FD' : '#6D28D9'} />
                 </div>
                 <div>
                   <strong style={{ fontSize: '0.88rem', color: 'var(--carbon)', display: 'block' }}>Dispositivos cercanos (BLE)</strong>
-                  <span style={{ fontSize: '0.76rem', color: '#6B7280' }}>1 teléfono compatible a ~8 m</span>
+                  <span style={{ fontSize: '0.76rem', color: isDarkMode ? '#94A3B8' : '#6B7280' }}>1 teléfono compatible a ~8 m</span>
                 </div>
                 <span
                   style={{
                     marginLeft: 'auto',
-                    background: '#E8F8F0',
-                    color: '#2E9D72',
+                    background: isDarkMode ? 'rgba(34, 197, 94, 0.18)' : '#E8F8F0',
+                    color: isDarkMode ? '#86EFAC' : '#2E9D72',
+                    border: isDarkMode ? '1px solid rgba(34, 197, 94, 0.4)' : 'none',
                     fontSize: '0.72rem',
                     fontWeight: 700,
                     padding: '3px 8px',
@@ -3113,13 +3122,36 @@ export function App() {
                 {/* Switch Simular Modo Sin Conexión para pruebas */}
                 <div className="profile-setting-toggle-row" style={{ borderTop: '1px solid var(--gray-200)', paddingTop: 10, marginTop: 10 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div className="profile-menu-icon" style={{ background: simulateOffline ? '#FEE2E2' : '#ECFDF5', color: simulateOffline ? '#D83B35' : '#16A34A' }}>
+                    <div
+                      className="profile-menu-icon"
+                      style={{
+                        background: simulateOffline
+                          ? (isDarkMode ? 'rgba(239, 68, 68, 0.18)' : '#FEE2E2')
+                          : (isDarkMode ? 'rgba(34, 197, 94, 0.18)' : '#ECFDF5'),
+                        color: simulateOffline
+                          ? (isDarkMode ? '#FCA5A5' : '#D83B35')
+                          : (isDarkMode ? '#86EFAC' : '#16A34A')
+                      }}
+                    >
                       {simulateOffline ? <WifiOff size={18} /> : <Wifi size={18} />}
                     </div>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <strong style={{ fontSize: '0.90rem', color: 'var(--carbon)' }}>Simular modo sin conexión</strong>
-                        {simulateOffline && <span className="badge-com" style={{ background: '#FEF3C7', color: '#92400E', fontSize: '0.66rem', padding: '1px 6px' }}>Forzado</span>}
+                        {simulateOffline && (
+                          <span
+                            className="badge-com"
+                            style={{
+                              background: isDarkMode ? 'rgba(245, 158, 11, 0.18)' : '#FEF3C7',
+                              color: isDarkMode ? '#FCD34D' : '#92400E',
+                              border: isDarkMode ? '1px solid rgba(245, 158, 11, 0.4)' : 'none',
+                              fontSize: '0.66rem',
+                              padding: '1px 6px'
+                            }}
+                          >
+                            Forzado
+                          </span>
+                        )}
                       </div>
                       <div style={{ fontSize: '0.74rem', color: 'var(--gray-500)' }}>
                         {simulateOffline ? 'Simulación offline activa para probar BLE' : 'Desactivado (detecta internet del celular)'}
@@ -3427,12 +3459,18 @@ export function App() {
         <InteractiveTutorial
           onComplete={handleCompleteTutorial}
           onSkip={handleSkipTutorial}
+          isDarkMode={isDarkMode}
         />
       )}
 
       {/* ===== AUTH MODAL (Mantiene login/registro y agrega ubicación híbrida) ===== */}
       {isAuthModalOpen && (
-        <AuthModal onSuccess={handleLogin} onClose={() => setIsAuthModalOpen(false)} />
+        <AuthModal
+          onSuccess={handleLogin}
+          onClose={() => setIsAuthModalOpen(false)}
+          isDarkMode={isDarkMode}
+          onToggleTheme={toggleDarkMode}
+        />
       )}
 
       {/* ===== MODAL: PUBLICAR SERVICIO (Boceto 16) ===== */}

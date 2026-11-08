@@ -397,3 +397,233 @@
   line-height: 1.35;
 }
 
+/* ===== THEME TOGGLE BAR EN AUTH MODAL ===== */
+.sh-theme-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding: 10px 14px;
+  background: var(--sh-bg-soft, #f4f6fb);
+  border: 1px solid var(--sh-gray-line, #d9dce3);
+  border-radius: 14px;
+}
+
+.sh-theme-bar-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sh-theme-bar-text {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #4B5563;
+}
+
+/* ===== MODO OSCURO EN AUTH MODAL ===== */
+.dark-theme.sh-overlay,
+.dark-theme .sh-overlay,
+.phone.dark-theme .sh-overlay {
+  background: #0B0F19 !important;
+}
+
+.dark-theme .sh-screen,
+.phone.dark-theme .sh-screen {
+  background: #0B0F19 !important;
+}
+
+.dark-theme .ayni-auth-hero,
+.phone.dark-theme .ayni-auth-hero {
+  background: linear-gradient(135deg, #101726 0%, #161F30 50%, #1C273C 100%) !important;
+}
+
+.dark-theme .ayni-auth-tagline,
+.phone.dark-theme .ayni-auth-tagline {
+  color: #CBD5E1 !important;
+}
+
+.dark-theme .sh-card,
+.phone.dark-theme .sh-card {
+  background: #161F30 !important;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45) !important;
+  color: #F8FAFC !important;
+}
+
+.dark-theme .sh-title,
+.phone.dark-theme .sh-title,
+.dark-theme .sh-reg-title,
+.phone.dark-theme .sh-reg-title {
+  color: #FFFFFF !important;
+}
+
+.dark-theme .sh-subtitle,
+.phone.dark-theme .sh-subtitle,
+.dark-theme .sh-foot,
+.phone.dark-theme .sh-foot,
+.dark-theme .sh-hint,
+.phone.dark-theme .sh-hint {
+  color: #94A3B8 !important;
+}
+
+.dark-theme .sh-input,
+.phone.dark-theme .sh-input {
+  background: #0B0F19 !important;
+  border: 1.5px solid #334155 !important;
+  color: #F8FAFC !important;
+}
+
+.dark-theme .sh-input:focus,
+.phone.dark-theme .sh-input:focus {
+  border-color: #FF5A5F !important;
+  box-shadow: 0 0 0 3px rgba(255, 90, 95, 0.2) !important;
+}
+
+.dark-theme .sh-floating label,
+.phone.dark-theme .sh-floating label {
+  background: #161F30 !important;
+  color: #94A3B8 !important;
+}
+
+.dark-theme .sh-floating .sh-input:focus + label,
+.dark-theme .sh-floating .sh-input:not(:placeholder-shown) + label,
+.phone.dark-theme .sh-floating .sh-input:focus + label,
+.phone.dark-theme .sh-floating .sh-input:not(:placeholder-shown) + label {
+  color: #FF7B75 !important;
+}
+
+.dark-theme .sh-check,
+.phone.dark-theme .sh-check {
+  color: #CBD5E1 !important;
+}
+
+.dark-theme .sh-link-red,
+.phone.dark-theme .sh-link-red {
+  color: #FF7B75 !important;
+}
+
+.dark-theme .sh-stepper .sh-step,
+.phone.dark-theme .sh-stepper .sh-step {
+  border-color: #334155 !important;
+  background: #1E293B !important;
+  color: #94A3B8 !important;
+}
+
+.dark-theme .sh-stepper .sh-step.active,
+.phone.dark-theme .sh-stepper .sh-step.active {
+  background: var(--coral, #FF5A5F) !important;
+  border-color: var(--coral, #FF5A5F) !important;
+  color: #FFFFFF !important;
+}
+
+.dark-theme .sh-stepper .sh-step-line,
+.phone.dark-theme .sh-stepper .sh-step-line {
+  background: #334155 !important;
+}
+
+.dark-theme .sh-stepper .sh-step-line.active,
+.phone.dark-theme .sh-stepper .sh-step-line.active {
+  background: var(--coral, #FF5A5F) !important;
+}
+
+.dark-theme .sh-toggle-opt,
+.phone.dark-theme .sh-toggle-opt {
+  background: #1E293B !important;
+  color: #94A3B8 !important;
+}
+
+.dark-theme .sh-toggle-opt.on,
+.phone.dark-theme .sh-toggle-opt.on {
+  background: var(--coral, #FF5A5F) !important;
+  color: #FFFFFF !important;
+}
+
+.dark-theme .sh-reniec-box,
+.phone.dark-theme .sh-reniec-box {
+  background: #111827 !important;
+  border-color: #233044 !important;
+}
+
+.dark-theme .sh-reniec-field,
+.phone.dark-theme .sh-reniec-field {
+  border-top-color: #233044 !important;
+}
+
+.dark-theme .sh-reniec-val,
+.phone.dark-theme .sh-reniec-val {
+  color: #F8FAFC !important;
+}
+
+.dark-theme .sh-location-card,
+.phone.dark-theme .sh-location-card {
+  background: #161F30 !important;
+  border-color: #233044 !important;
+}
+
+.dark-theme .sh-location-label,
+.phone.dark-theme .sh-location-label {
+  color: #94A3B8 !important;
+}
+
+.dark-theme .sh-btn-gps,
+.phone.dark-theme .sh-btn-gps {
+  background: #111827 !important;
+  border-color: #334155 !important;
+  color: #FF7B75 !important;
+}
+
+.dark-theme .sh-selector-box,
+.phone.dark-theme .sh-selector-box {
+  background: #111827 !important;
+  border-color: #334155 !important;
+}
+
+.dark-theme .sh-selector-icon,
+.phone.dark-theme .sh-selector-icon {
+  background: rgba(255, 90, 95, 0.16) !important;
+}
+
+.dark-theme .sh-selector-select,
+.phone.dark-theme .sh-selector-select {
+  color: #F8FAFC !important;
+  background: #111827 !important;
+}
+
+.dark-theme .sh-gps-badge,
+.phone.dark-theme .sh-gps-badge {
+  background: rgba(34, 197, 94, 0.16) !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+  color: #86EFAC !important;
+}
+
+.dark-theme .sh-dev-code,
+.phone.dark-theme .sh-dev-code {
+  background: rgba(245, 158, 11, 0.16) !important;
+  border-color: rgba(245, 158, 11, 0.45) !important;
+  color: #FCD34D !important;
+}
+
+.dark-theme .sh-back,
+.phone.dark-theme .sh-back {
+  background: rgba(22, 31, 48, 0.85) !important;
+  border-color: rgba(255, 90, 95, 0.3) !important;
+  color: #FF7B75 !important;
+}
+
+.dark-theme .sh-demo,
+.phone.dark-theme .sh-demo {
+  color: #94A3B8 !important;
+}
+
+.dark-theme .sh-theme-bar,
+.phone.dark-theme .sh-theme-bar {
+  background: #111827 !important;
+  border-color: #233044 !important;
+}
+
+.dark-theme .sh-theme-bar-text,
+.phone.dark-theme .sh-theme-bar-text {
+  color: #CBD5E1 !important;
+}
+
+

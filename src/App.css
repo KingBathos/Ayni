@@ -3505,6 +3505,125 @@ html.dark {
   color: #FF875C !important;
 }
 
+/* Banner de modo sin conexión en Modo Oscuro */
+.phone.dark-theme .off-banner {
+  background: rgba(245, 158, 11, 0.16) !important;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.4) !important;
+  color: #FCD34D !important;
+}
+
+.phone.dark-theme .off-banner svg {
+  color: #F59E0B !important;
+}
+
+/* Tutorial Interactivo (Onboarding) en Modo Oscuro */
+.phone.dark-theme .tutorial-overlay {
+  background: #0B0F19 !important;
+  color: #F8FAFC !important;
+}
+
+.phone.dark-theme .tutorial-container {
+  background: #0B0F19 !important;
+}
+
+.phone.dark-theme .tutorial-step-pill {
+  background: #1E293B !important;
+  color: #94A3B8 !important;
+}
+
+.phone.dark-theme .tutorial-skip-btn {
+  color: #94A3B8 !important;
+}
+
+.phone.dark-theme .tutorial-skip-btn:hover {
+  color: var(--coral) !important;
+}
+
+.phone.dark-theme .tutorial-progress-seg {
+  background: #233044 !important;
+}
+
+.phone.dark-theme .tutorial-progress-seg.active {
+  background: var(--coral) !important;
+}
+
+.phone.dark-theme .tutorial-title {
+  color: #FFFFFF !important;
+}
+
+.phone.dark-theme .tutorial-tagline {
+  color: #FF7B75 !important;
+}
+
+.phone.dark-theme .tutorial-desc {
+  color: #CBD5E1 !important;
+}
+
+.phone.dark-theme .tutorial-desc strong {
+  color: #F8FAFC !important;
+}
+
+.phone.dark-theme .tutorial-interactive-box {
+  background: #161F30 !important;
+  border: 1px solid #233044 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+.phone.dark-theme .tutorial-box-label {
+  color: #94A3B8 !important;
+}
+
+.phone.dark-theme .tutorial-choice-btn {
+  background: #1E293B !important;
+  border: 1.5px solid #334155 !important;
+  color: #F8FAFC !important;
+}
+
+.phone.dark-theme .tutorial-choice-btn:hover {
+  border-color: #475569 !important;
+}
+
+.phone.dark-theme .tutorial-choice-btn.active {
+  border-color: var(--coral) !important;
+  background: rgba(255, 90, 95, 0.16) !important;
+}
+
+.phone.dark-theme .tutorial-choice-title {
+  color: #FFFFFF !important;
+}
+
+.phone.dark-theme .tutorial-choice-btn.active .tutorial-choice-title {
+  color: #FF7B75 !important;
+}
+
+.phone.dark-theme .tutorial-choice-sub {
+  color: #94A3B8 !important;
+}
+
+.phone.dark-theme .tutorial-card-preview {
+  background: #1E293B !important;
+  border: 1px solid #233044 !important;
+  color: #F8FAFC !important;
+}
+
+.phone.dark-theme .tutorial-feedback-chip {
+  background: rgba(34, 197, 94, 0.16) !important;
+  border: 1px solid rgba(34, 197, 94, 0.4) !important;
+  color: #86EFAC !important;
+}
+
+.phone.dark-theme .tutorial-footer {
+  border-top: 1px solid #1E293B !important;
+  background: #0B0F19 !important;
+}
+
+.phone.dark-theme .tutorial-nav-btn {
+  background: #1E293B !important;
+  color: #CBD5E1 !important;
+  border-color: #334155 !important;
+}
+
+
 
 
 

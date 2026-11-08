@@ -10,9 +10,10 @@ import {
 interface InteractiveTutorialProps {
   onComplete: () => void;
   onSkip: () => void;
+  isDarkMode?: boolean;
 }
 
-export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialProps) {
+export function InteractiveTutorial({ onComplete, onSkip, isDarkMode = false }: InteractiveTutorialProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 6;
 
@@ -61,7 +62,7 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
             <span style={{ fontWeight: 900, color: 'var(--coral)', fontSize: '1.15rem', letterSpacing: '-0.5px' }}>
               ayni
             </span>
-            <span style={{ fontSize: '0.75rem', color: '#6B7280', fontWeight: 700 }}>
+            <span style={{ fontSize: '0.75rem', color: isDarkMode ? '#94A3B8' : '#6B7280', fontWeight: 700 }}>
               · Red Vecinal Solidaria
             </span>
           </div>
@@ -96,7 +97,7 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
           {/* PASO 1: Identidad comunitaria y Pilares de Ayni */}
           {currentStep === 1 && (
             <div className="tutorial-step-view">
-              <div className="tutorial-icon-circle" style={{ background: '#FFF1F2', color: 'var(--coral)' }}>
+              <div className="tutorial-icon-circle" style={{ background: isDarkMode ? 'rgba(255, 90, 95, 0.16)' : '#FFF1F2', color: 'var(--coral)' }}>
                 <HeartHandshake size={32} />
               </div>
 
@@ -116,7 +117,7 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
                     onClick={() => setActivePillar('solidaridad')}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div className="tutorial-mini-icon" style={{ background: '#ECFDF5', color: '#059669' }}>
+                      <div className="tutorial-mini-icon" style={{ background: isDarkMode ? 'rgba(34, 197, 94, 0.18)' : '#ECFDF5', color: isDarkMode ? '#4ADE80' : '#059669' }}>
                         <HandHeart size={18} />
                       </div>
                       <div style={{ textAlign: 'left' }}>
@@ -124,7 +125,7 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
                         <div className="tutorial-choice-sub">Agua potable, préstamo de herramientas, ayuda a adultos mayores</div>
                       </div>
                     </div>
-                    {activePillar === 'solidaridad' ? <CheckCircle2 size={18} color="var(--coral)" /> : <Circle size={18} color="#D1D5DB" />}
+                    {activePillar === 'solidaridad' ? <CheckCircle2 size={18} color="var(--coral)" /> : <Circle size={18} color={isDarkMode ? '#475569' : '#D1D5DB'} />}
                   </button>
 
                   <button
@@ -133,7 +134,7 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
                     onClick={() => setActivePillar('alertas')}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div className="tutorial-mini-icon" style={{ background: '#FFFBEB', color: '#D97706' }}>
+                      <div className="tutorial-mini-icon" style={{ background: isDarkMode ? 'rgba(245, 158, 11, 0.18)' : '#FFFBEB', color: isDarkMode ? '#FCD34D' : '#D97706' }}>
                         <ShieldCheck size={18} />
                       </div>
                       <div style={{ textAlign: 'left' }}>
@@ -141,7 +142,7 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
                         <div className="tutorial-choice-sub">Cortes de servicios y chat vecinal verificado en tiempo real</div>
                       </div>
                     </div>
-                    {activePillar === 'alertas' ? <CheckCircle2 size={18} color="var(--coral)" /> : <Circle size={18} color="#D1D5DB" />}
+                    {activePillar === 'alertas' ? <CheckCircle2 size={18} color="var(--coral)" /> : <Circle size={18} color={isDarkMode ? '#475569' : '#D1D5DB'} />}
                   </button>
 
                   <button
@@ -150,7 +151,7 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
                     onClick={() => setActivePillar('oficios')}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div className="tutorial-mini-icon" style={{ background: '#EEF2FF', color: '#4F46E5' }}>
+                      <div className="tutorial-mini-icon" style={{ background: isDarkMode ? 'rgba(99, 102, 241, 0.18)' : '#EEF2FF', color: isDarkMode ? '#818CF8' : '#4F46E5' }}>
                         <Store size={18} />
                       </div>
                       <div style={{ textAlign: 'left' }}>
@@ -158,12 +159,16 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
                         <div className="tutorial-choice-sub">Contratar al técnico de tu cuadra a precio fijo o a cotizar en el lugar</div>
                       </div>
                     </div>
-                    {activePillar === 'oficios' ? <CheckCircle2 size={18} color="var(--coral)" /> : <Circle size={18} color="#D1D5DB" />}
+                    {activePillar === 'oficios' ? <CheckCircle2 size={18} color="var(--coral)" /> : <Circle size={18} color={isDarkMode ? '#475569' : '#D1D5DB'} />}
                   </button>
                 </div>
 
-                <div className="tutorial-feedback-chip">
-                  <Check size={14} color="#059669" />
+                <div className="tutorial-feedback-chip" style={{
+                  background: isDarkMode ? 'rgba(34, 197, 94, 0.16)' : '#ECFDF5',
+                  border: `1px solid ${isDarkMode ? 'rgba(34, 197, 94, 0.4)' : '#A7F3D0'}`,
+                  color: isDarkMode ? '#86EFAC' : '#065F46'
+                }}>
+                  <Check size={14} color={isDarkMode ? '#4ADE80' : '#059669'} />
                   <span>
                     {activePillar === 'solidaridad' && 'La solidaridad es 100% gratuita: pedir o dar una mano solidaria sin dinero de por medio.'}
                     {activePillar === 'alertas' && 'Los vecinos corroboran la información para evitar falsas alarmas y coordinar soluciones.'}
@@ -177,7 +182,7 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
           {/* PASO 2: Ayuda Solidaria Mutua (100% Gratuita) */}
           {currentStep === 2 && (
             <div className="tutorial-step-view">
-              <div className="tutorial-icon-circle" style={{ background: '#ECFDF5', color: '#059669' }}>
+              <div className="tutorial-icon-circle" style={{ background: isDarkMode ? 'rgba(34, 197, 94, 0.18)' : '#ECFDF5', color: isDarkMode ? '#4ADE80' : '#059669' }}>
                 <HandHeart size={32} />
               </div>
 
@@ -194,22 +199,22 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
                 <div className="tutorial-card-preview">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
-                      <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 800, textTransform: 'uppercase' }}>
+                      <span style={{ fontSize: '0.72rem', color: isDarkMode ? '#4ADE80' : '#059669', fontWeight: 800, textTransform: 'uppercase' }}>
                         Auxilio Vecinal · 100% Gratuito
                       </span>
-                      <h4 style={{ fontSize: '1.02rem', fontWeight: 800, color: '#0F172A', margin: '2px 0', lineHeight: 1.3 }}>
+                      <h4 style={{ fontSize: '1.02rem', fontWeight: 800, color: isDarkMode ? '#F8FAFC' : '#0F172A', margin: '2px 0', lineHeight: 1.3 }}>
                         Adulto mayor necesita 2 bidones de agua
                       </h4>
-                      <div style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 600 }}>
+                      <div style={{ fontSize: '0.78rem', color: isDarkMode ? '#94A3B8' : '#64748B', fontWeight: 600 }}>
                         Familia Mendoza · Sector Central
                       </div>
                     </div>
-                    <span style={{ fontSize: '0.72rem', background: '#FEF2F2', color: '#991B1B', border: '1px solid #FECACA', padding: '3px 8px', borderRadius: 6, fontWeight: 700 }}>
+                    <span style={{ fontSize: '0.72rem', background: isDarkMode ? 'rgba(239, 68, 68, 0.18)' : '#FEF2F2', color: isDarkMode ? '#FCA5A5' : '#991B1B', border: `1px solid ${isDarkMode ? 'rgba(239, 68, 68, 0.4)' : '#FECACA'}`, padding: '3px 8px', borderRadius: 6, fontWeight: 700 }}>
                       Urgente
                     </span>
                   </div>
 
-                  <p style={{ fontSize: '0.86rem', color: '#334155', margin: '8px 0 12px 0', lineHeight: 1.5 }}>
+                  <p style={{ fontSize: '0.86rem', color: isDarkMode ? '#CBD5E1' : '#334155', margin: '8px 0 12px 0', lineHeight: 1.5 }}>
                     "Mi mamá tiene 78 años y no puede cargar los bidones desde la pista por corte de Sedapal. Agradecemos cualquier mano solidaria."
                   </p>
 
@@ -223,8 +228,8 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
                       <HandHeart size={15} /> Ofrecer mi ayuda solidaria
                     </button>
                   ) : (
-                    <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '10px 12px', borderRadius: 10, color: '#065F46', fontSize: '0.76rem', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                      <CheckCircle2 size={16} color="#059669" style={{ flexShrink: 0, marginTop: 2 }} />
+                    <div style={{ background: isDarkMode ? 'rgba(34, 197, 94, 0.16)' : '#ECFDF5', border: `1px solid ${isDarkMode ? 'rgba(34, 197, 94, 0.4)' : '#A7F3D0'}`, padding: '10px 12px', borderRadius: 10, color: isDarkMode ? '#86EFAC' : '#065F46', fontSize: '0.76rem', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                      <CheckCircle2 size={16} color={isDarkMode ? '#4ADE80' : '#059669'} style={{ flexShrink: 0, marginTop: 2 }} />
                       <div>
                         <strong>¡Gracias por tu apoyo solidario!</strong> Te has conectado con la Familia Mendoza y se habilitó el chat vecinal para coordinar la entrega.
                       </div>
@@ -238,7 +243,7 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
           {/* PASO 3: Alertas Vecinales y Chat Comunitario */}
           {currentStep === 3 && (
             <div className="tutorial-step-view">
-              <div className="tutorial-icon-circle" style={{ background: '#FEF3C7', color: '#D97706' }}>
+              <div className="tutorial-icon-circle" style={{ background: isDarkMode ? 'rgba(245, 158, 11, 0.18)' : '#FEF3C7', color: isDarkMode ? '#FCD34D' : '#D97706' }}>
                 <Megaphone size={32} />
               </div>
 
@@ -255,22 +260,22 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
                 <div className="tutorial-card-preview">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
-                      <span style={{ fontSize: '0.72rem', color: '#D97706', fontWeight: 800, textTransform: 'uppercase' }}>
+                      <span style={{ fontSize: '0.72rem', color: isDarkMode ? '#FCD34D' : '#D97706', fontWeight: 800, textTransform: 'uppercase' }}>
                         Aviso de Servicio
                       </span>
-                      <h4 style={{ fontSize: '1.02rem', fontWeight: 800, color: '#0F172A', margin: '2px 0', lineHeight: 1.3 }}>
+                      <h4 style={{ fontSize: '1.02rem', fontWeight: 800, color: isDarkMode ? '#F8FAFC' : '#0F172A', margin: '2px 0', lineHeight: 1.3 }}>
                         Corte imprevisto de agua en Sector 4
                       </h4>
-                      <div style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 600 }}>
+                      <div style={{ fontSize: '0.78rem', color: isDarkMode ? '#94A3B8' : '#64748B', fontWeight: 600 }}>
                         Junta Vecinal Manzana F · Sector Central
                       </div>
                     </div>
-                    <span style={{ fontSize: '0.72rem', background: '#EFF6FF', color: '#1E40AF', border: '1px solid #BFDBFE', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
+                    <span style={{ fontSize: '0.72rem', background: isDarkMode ? 'rgba(59, 130, 246, 0.18)' : '#EFF6FF', color: isDarkMode ? '#93C5FD' : '#1E40AF', border: `1px solid ${isDarkMode ? 'rgba(59, 130, 246, 0.4)' : '#BFDBFE'}`, padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
                       Vigente
                     </span>
                   </div>
 
-                  <p style={{ fontSize: '0.86rem', color: '#334155', margin: '6px 0 10px 0', lineHeight: 1.5 }}>
+                  <p style={{ fontSize: '0.86rem', color: isDarkMode ? '#CBD5E1' : '#334155', margin: '6px 0 10px 0', lineHeight: 1.5 }}>
                     Sedapal confirmó que la cisterna llegará al parque principal a las 5:00 PM. Máximo 3 baldes por familia.
                   </p>
 
@@ -305,9 +310,9 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
                   </div>
 
                   {showSimulatedChat && (
-                    <div style={{ marginTop: 10, padding: '10px', background: '#F9FAFB', borderRadius: 8, border: '1px solid var(--gray-200)', fontSize: '0.76rem' }}>
+                    <div style={{ marginTop: 10, padding: '10px', background: isDarkMode ? '#111827' : '#F9FAFB', borderRadius: 8, border: `1px solid ${isDarkMode ? '#233044' : 'var(--gray-200)'}`, fontSize: '0.76rem' }}>
                       <div style={{ color: 'var(--coral)', fontWeight: 700, marginBottom: 2 }}>Junta Vecinal Mz F:</div>
-                      <div style={{ color: '#1F2937' }}>"Vecinos, lleven baldes limpios y respeten el turno para los adultos mayores."</div>
+                      <div style={{ color: isDarkMode ? '#E2E8F0' : '#1F2937' }}>"Vecinos, lleven baldes limpios y respeten el turno para los adultos mayores."</div>
                     </div>
                   )}
                 </div>
@@ -318,7 +323,7 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
           {/* PASO 4: Faenas y Actividades Colectivas */}
           {currentStep === 4 && (
             <div className="tutorial-step-view">
-              <div className="tutorial-icon-circle" style={{ background: '#EFF6FF', color: '#1D4ED8' }}>
+              <div className="tutorial-icon-circle" style={{ background: isDarkMode ? 'rgba(59, 130, 246, 0.18)' : '#EFF6FF', color: isDarkMode ? '#60A5FA' : '#1D4ED8' }}>
                 <Users size={32} />
               </div>
 
@@ -335,27 +340,27 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
                 <div className="tutorial-card-preview">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
-                      <span style={{ fontSize: '0.72rem', color: '#1D4ED8', fontWeight: 800, textTransform: 'uppercase' }}>
+                      <span style={{ fontSize: '0.72rem', color: isDarkMode ? '#93C5FD' : '#1D4ED8', fontWeight: 800, textTransform: 'uppercase' }}>
                         Convocatoria abierta
                       </span>
-                      <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#111827', margin: '2px 0' }}>
+                      <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: isDarkMode ? '#F8FAFC' : '#111827', margin: '2px 0' }}>
                         Faena: Limpieza y Mantenimiento de Parque
                       </h4>
-                      <div style={{ fontSize: '0.74rem', color: '#6B7280' }}>
+                      <div style={{ fontSize: '0.74rem', color: isDarkMode ? '#94A3B8' : '#6B7280' }}>
                         Comité Vecinal Sector 3 · Este Sábado 8:00 AM
                       </div>
                     </div>
-                    <span style={{ fontSize: '0.72rem', background: '#DBEAFE', color: '#1E40AF', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
+                    <span style={{ fontSize: '0.72rem', background: isDarkMode ? 'rgba(59, 130, 246, 0.2)' : '#DBEAFE', color: isDarkMode ? '#93C5FD' : '#1E40AF', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
                       Faena
                     </span>
                   </div>
 
-                  <p style={{ fontSize: '0.78rem', color: '#374151', margin: '8px 0 10px 0', lineHeight: 1.4 }}>
+                  <p style={{ fontSize: '0.78rem', color: isDarkMode ? '#CBD5E1' : '#374151', margin: '8px 0 10px 0', lineHeight: 1.4 }}>
                     Traer escobas, bolsas y palas. La municipalidad aportará plantones y pintura para las bancas del parque.
                   </p>
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
-                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#4B5563' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: isDarkMode ? '#CBD5E1' : '#4B5563' }}>
                       {participantsCount} vecinos participando
                     </span>
 
@@ -384,7 +389,7 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
           {/* PASO 5: El Adicional: Oficios Vecinales de Confianza (SIN PARTE OFFLINE) */}
           {currentStep === 5 && (
             <div className="tutorial-step-view">
-              <div className="tutorial-icon-circle" style={{ background: '#FFF1F2', color: 'var(--coral)' }}>
+              <div className="tutorial-icon-circle" style={{ background: isDarkMode ? 'rgba(255, 90, 95, 0.16)' : '#FFF1F2', color: 'var(--coral)' }}>
                 <Store size={32} />
               </div>
 
@@ -424,16 +429,23 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
                   </button>
                 </div>
 
-                <div className="tutorial-card-preview" style={{ background: tutorialPriceType === 'quote' ? '#F0FDF4' : '#FFF7ED', borderColor: tutorialPriceType === 'quote' ? '#BBF7D0' : '#FFEDD5' }}>
+                <div className="tutorial-card-preview" style={{
+                  background: tutorialPriceType === 'quote'
+                    ? (isDarkMode ? 'rgba(34, 197, 94, 0.12)' : '#F0FDF4')
+                    : (isDarkMode ? 'rgba(245, 158, 11, 0.12)' : '#FFF7ED'),
+                  borderColor: tutorialPriceType === 'quote'
+                    ? (isDarkMode ? 'rgba(34, 197, 94, 0.35)' : '#BBF7D0')
+                    : (isDarkMode ? 'rgba(245, 158, 11, 0.35)' : '#FFEDD5')
+                }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#111827' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: isDarkMode ? '#F8FAFC' : '#111827' }}>
                       {tutorialPriceType === 'fixed' ? 'Electricista de Emergencia' : 'Gasfitería y Fugas Complejas'}
                     </span>
-                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: tutorialPriceType === 'quote' ? '#166534' : 'var(--coral)' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: tutorialPriceType === 'quote' ? (isDarkMode ? '#86EFAC' : '#166534') : 'var(--coral)' }}>
                       {tutorialPriceType === 'fixed' ? 'S/ 45.00 / hora' : 'A cotizar en el lugar'}
                     </span>
                   </div>
-                  <p style={{ fontSize: '0.74rem', color: tutorialPriceType === 'quote' ? '#15803D' : '#C2410C', margin: '4px 0 0' }}>
+                  <p style={{ fontSize: '0.74rem', color: tutorialPriceType === 'quote' ? (isDarkMode ? '#86EFAC' : '#15803D') : (isDarkMode ? '#FCD34D' : '#C2410C'), margin: '4px 0 0' }}>
                     {tutorialPriceType === 'fixed'
                       ? 'Tarifa acordada de antemano para trabajos puntuales y definidos.'
                       : 'El vecino técnico se acerca primero a tu domicilio para evaluar la labor y acordar el presupuesto final en el lugar.'}
@@ -446,12 +458,12 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
           {/* PASO 6: Resiliencia Offline: Pedir Ayuda sin Internet (PASO APARTE Y EXCLUSIVO PARA PEDIR AYUDA) */}
           {currentStep === 6 && (
             <div className="tutorial-step-view">
-              <div className="tutorial-icon-circle" style={{ background: '#FEF2F2', color: '#DC2626' }}>
+              <div className="tutorial-icon-circle" style={{ background: isDarkMode ? 'rgba(239, 68, 68, 0.18)' : '#FEF2F2', color: isDarkMode ? '#F87171' : '#DC2626' }}>
                 <Radio size={32} />
               </div>
 
               <h2 className="tutorial-title">Pedir Ayuda sin Internet</h2>
-              <p className="tutorial-tagline" style={{ color: '#DC2626' }}>
+              <p className="tutorial-tagline" style={{ color: isDarkMode ? '#FF7B75' : '#DC2626' }}>
                 Protocolo Offline BLE Mesh exclusivo para emergencias
               </p>
               <p className="tutorial-desc">
@@ -462,20 +474,24 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
               <div className="tutorial-interactive-box">
                 <span className="tutorial-box-label">Prueba interactiva · Simula pedir ayuda en una emergencia:</span>
 
-                <div className="tutorial-card-preview" style={{ background: '#FEF2F2', borderColor: '#FECACA', marginTop: 8 }}>
+                <div className="tutorial-card-preview" style={{
+                  background: isDarkMode ? 'rgba(239, 68, 68, 0.12)' : '#FEF2F2',
+                  borderColor: isDarkMode ? 'rgba(239, 68, 68, 0.35)' : '#FECACA',
+                  marginTop: 8
+                }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                    <WifiOff size={18} color="#DC2626" />
+                    <WifiOff size={18} color={isDarkMode ? '#F87171' : '#DC2626'} />
                     <div>
-                      <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#991B1B' }}>
+                      <div style={{ fontWeight: 800, fontSize: '0.82rem', color: isDarkMode ? '#FCA5A5' : '#991B1B' }}>
                         Sin conexión a internet ni red celular
                       </div>
-                      <div style={{ fontSize: '0.72rem', color: '#B91C1C' }}>
+                      <div style={{ fontSize: '0.72rem', color: isDarkMode ? '#F87171' : '#B91C1C' }}>
                         Emergencia barrial detectada · Malla BLE activa
                       </div>
                     </div>
                   </div>
 
-                  <p style={{ fontSize: '0.76rem', color: '#4B5563', margin: '6px 0 10px 0', lineHeight: 1.35 }}>
+                  <p style={{ fontSize: '0.76rem', color: isDarkMode ? '#CBD5E1' : '#4B5563', margin: '6px 0 10px 0', lineHeight: 1.35 }}>
                     Caso: Necesitas agua potable de emergencia o botiquín y no hay línea telefónica.
                   </p>
 
@@ -489,9 +505,9 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
                       <Radio size={15} /> Emitir Pedido de Auxilio Offline (BLE)
                     </button>
                   ) : (
-                    <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '10px 12px', borderRadius: 10, color: '#065F46', fontSize: '0.76rem' }}>
+                    <div style={{ background: isDarkMode ? 'rgba(34, 197, 94, 0.16)' : '#ECFDF5', border: `1px solid ${isDarkMode ? 'rgba(34, 197, 94, 0.4)' : '#A7F3D0'}`, padding: '10px 12px', borderRadius: 10, color: isDarkMode ? '#86EFAC' : '#065F46', fontSize: '0.76rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 800, marginBottom: 2 }}>
-                        <CheckCircle2 size={16} color="#059669" />
+                        <CheckCircle2 size={16} color={isDarkMode ? '#4ADE80' : '#059669'} />
                         ¡Señal de auxilio transmitida con éxito!
                       </div>
                       <div style={{ lineHeight: 1.35 }}>
@@ -501,10 +517,20 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
                   )}
                 </div>
 
-                <div style={{ background: '#F9FAFB', border: '1px solid var(--gray-200)', borderRadius: 8, padding: '8px 10px', marginTop: 10, fontSize: '0.72rem', color: '#6B7280', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                <div style={{
+                  background: isDarkMode ? 'rgba(245, 158, 11, 0.12)' : '#F9FAFB',
+                  border: `1px solid ${isDarkMode ? 'rgba(245, 158, 11, 0.35)' : 'var(--gray-200)'}`,
+                  borderRadius: 8,
+                  padding: '8px 10px',
+                  marginTop: 10,
+                  fontSize: '0.72rem',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 6
+                }}>
                   <AlertTriangle size={14} color="#D97706" style={{ flexShrink: 0, marginTop: 2 }} />
-                  <span>
-                    <strong>Importante:</strong> Los oficios y servicios comerciales requieren conexión a internet. La red offline está reservada con prioridad absoluta para <strong>salvar vidas y auxilio vecinal</strong>.
+                  <span style={{ color: isDarkMode ? '#CBD5E1' : '#6B7280' }}>
+                    <strong style={{ color: isDarkMode ? '#FCD34D' : '#374151' }}>Importante:</strong> Los oficios y servicios comerciales requieren conexión a internet. La red offline está reservada con prioridad absoluta para <strong style={{ color: isDarkMode ? '#FCD34D' : '#374151' }}>salvar vidas y auxilio vecinal</strong>.
                   </span>
                 </div>
               </div>
