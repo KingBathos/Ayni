@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { App as CapApp } from '@capacitor/app';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import {
   Store, MapPin, Wifi, WifiOff, Radio, Users, HeartHandshake,
   AlertTriangle, Star, CheckCircle2, Plus, Search, RefreshCw,
@@ -8,13 +9,15 @@ import {
   HelpCircle, LogOut, ArrowLeft, Camera, Calendar, Send, Navigation,
   Zap, Wrench, Hammer, Sparkles, GraduationCap, Utensils, MoreHorizontal,
   Phone, MessageCircle, CheckCircle, Circle, ThumbsUp, Droplet, Megaphone,
-  CalendarDays, HandHeart, Shield, X, ChevronDown, Check, XCircle, AlertCircle, Trash2, Image as ImageIcon
+  CalendarDays, HandHeart, Shield, X, ChevronDown, Check, XCircle, AlertCircle, Trash2, Image as ImageIcon,
+  Pin, Edit2, Smile, CheckCheck, BellRing, Hourglass
 } from 'lucide-react';
 import {
   INITIAL_SERVICES, INITIAL_COMMUNITY_POSTS, INITIAL_HELP_REQUESTS,
-  INITIAL_BOOKINGS, INITIAL_CATEGORIES, INITIAL_ACTIVITIES
+  INITIAL_BOOKINGS, INITIAL_CATEGORIES, INITIAL_ACTIVITIES,
+  INITIAL_CHAT_MESSAGES, INITIAL_NOTIFICATIONS
 } from './mockData';
-import { ServiceItem, HelpRequest, Booking, OfflineEnvelope, CommunityPost, CommunityActivity } from './types';
+import { ServiceItem, HelpRequest, Booking, OfflineEnvelope, CommunityPost, CommunityActivity, ChatMessage, AppNotification } from './types';
 import { AuthModal } from './AuthModal';
 import { AyniMap } from './AyniMap';
 import { api } from './api';
@@ -98,11 +101,41 @@ export function App() {
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [isNoticeModalOpen, setIsNoticeModalOpen] = useState(false);
 
-  const [newHelp, setNewHelp] = useState({ type: 'agua', description: '', urgency: 'alta' });
-  const [newNotice, setNewNotice] = useState({ title: '', category: 'general', body: '' });
+  const [newHelp, setNewHelp] = useState({
+    type: 'agua', description: '', urgency: 'alta', expiresHours: 24, customExpiresAt: ''
+  });
+  const [newNotice, setNewNotice] = useState({
+    title: '', category: 'general', body: '', expiresHours: 24, customExpiresAt: ''
+  });
   const [newService, setNewService] = useState({
     title: '', categoryId: 'electricidad', description: '', priceAmount: 35, priceType: 'fixed' as 'fixed' | 'quote', coverageArea: 'Radio 2 km'
   });
+  // Modal de Prórroga / Extender vigencia
+  const [extendModalItem, setExtendModalItem] = useState<{
+    id: string; type: 'aviso' | 'ayuda' | 'actividad'; title: string; currentExpiresAt?: string;
+  } | null>(null);
+
+  // Estados del Chat Comunitario estilo WhatsApp
+  const [chatMessages, setChatMessages] = useState<Record<string, ChatMessage[]>>(INITIAL_CHAT_MESSAGES);
+  const [activeChatThread, setActiveChatThread] = useState<{
+    id: string; title: string; subtitle: string; itemType: 'aviso' | 'ayuda' | 'actividad';
+  } | null>(null);
+  const [joinedChats, setJoinedChats] = useState<string[]>(['chat-post-1', 'chat-help-1']);
+  const [chatInputText, setChatInputText] = useState('');
+  const [showEmojiTray, setShowEmojiTray] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [activeMessageMenuId, setActiveMessageMenuId] = useState<string | null>(null);
+  const [pinnedMessages, setPinnedMessages] = useState<Record<string, string>>({
+    'chat-post-1': 'msg-p1-1',
+    'chat-post-2': 'msg-p2-1',
+    'chat-act-1': 'msg-a1-1'
+  });
+
+  // Centro de Notificaciones y Permiso del Teléfono
+  const [notifications, setNotifications] = useState<AppNotification[]>(INITIAL_NOTIFICATIONS);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [hasNotificationPermission, setHasNotificationPermission] = useState(false);
+
   // Estados para solicitar servicio (Boceto 08)
   const [requestDesc, setRequestDesc] = useState('');
   const [requestPhotos, setRequestPhotos] = useState<string[]>([]);
@@ -275,14 +308,20 @@ export function App() {
     isHelpModalOpen,
     isServiceModalOpen,
     isRateModalOpen,
-    isNoticeModalOpen
+    isNoticeModalOpen,
+    activeChatThread,
+    isNotificationsOpen,
+    extendModalItem
   });
   modalsRef.current = {
     isAuthModalOpen,
     isHelpModalOpen,
     isServiceModalOpen,
     isRateModalOpen,
-    isNoticeModalOpen
+    isNoticeModalOpen,
+    activeChatThread,
+    isNotificationsOpen,
+    extendModalItem
   };
 
   const navigateTo = (nextView: ViewType) => {
@@ -296,7 +335,14 @@ export function App() {
   };
 
   const handleBack = useCallback(() => {
-    const { isAuthModalOpen, isHelpModalOpen, isServiceModalOpen, isRateModalOpen, isNoticeModalOpen } = modalsRef.current;
+    const {
+      isAuthModalOpen, isHelpModalOpen, isServiceModalOpen,
+      isRateModalOpen, isNoticeModalOpen, activeChatThread,
+      isNotificationsOpen, extendModalItem
+    } = modalsRef.current;
+    if (activeChatThread) { setActiveChatThread(null); return; }
+    if (isNotificationsOpen) { setIsNotificationsOpen(false); return; }
+    if (extendModalItem) { setExtendModalItem(null); return; }
     if (isRateModalOpen) { setIsRateModalOpen(false); return; }
     if (isNoticeModalOpen) { setIsNoticeModalOpen(false); return; }
     if (isHelpModalOpen) { setIsHelpModalOpen(false); return; }
@@ -381,11 +427,62 @@ export function App() {
     alert('Tu servicio ha sido publicado para tus vecinos.');
   };
 
+  // Helper para calcular y formatear tiempo restante
+  const formatTimeRemaining = (isoString?: string) => {
+    if (!isoString) return 'Vigente';
+    const diff = new Date(isoString).getTime() - Date.now();
+    if (diff <= 0) return 'Vencido';
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+    if (days > 1) return `Vence en ${days} días`;
+    if (hours > 1) return `Vence en ${hours} h`;
+    const minutes = Math.floor(diff / (1000 * 60));
+    return `Vence en ${Math.max(1, minutes)} min`;
+  };
+
+  // Prórroga / Extender vigencia de publicación
+  const handleExtendItem = (id: string, type: 'aviso' | 'ayuda' | 'actividad', additionalHours: number) => {
+    const addMs = additionalHours * 60 * 60 * 1000;
+    if (type === 'aviso') {
+      setCommunityPosts(prev => prev.map(p => {
+        if (p.id !== id) return p;
+        const currentBase = p.expiresAt && new Date(p.expiresAt).getTime() > Date.now()
+          ? new Date(p.expiresAt).getTime()
+          : Date.now();
+        return { ...p, expiresAt: new Date(currentBase + addMs).toISOString() };
+      }));
+    } else if (type === 'ayuda') {
+      setHelpRequests(prev => prev.map(h => {
+        if (h.id !== id) return h;
+        const currentBase = h.expiresAt && new Date(h.expiresAt).getTime() > Date.now()
+          ? new Date(h.expiresAt).getTime()
+          : Date.now();
+        return { ...h, expiresAt: new Date(currentBase + addMs).toISOString() };
+      }));
+    } else if (type === 'actividad') {
+      setActivities(prev => prev.map(a => {
+        if (a.id !== id) return a;
+        const currentBase = a.expiresAt && new Date(a.expiresAt).getTime() > Date.now()
+          ? new Date(a.expiresAt).getTime()
+          : Date.now();
+        return { ...a, expiresAt: new Date(currentBase + addMs).toISOString() };
+      }));
+    }
+    setExtendModalItem(null);
+    alert(`Publicación prorrogada por ${additionalHours} horas más.`);
+  };
+
   // Crear solicitud de ayuda solidaria (Boceto 12)
   const handleCreateHelp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newHelp.description.trim()) return;
 
+    const expiresHours = newHelp.expiresHours || 24;
+    const expiresAt = newHelp.customExpiresAt
+      ? new Date(newHelp.customExpiresAt).toISOString()
+      : new Date(Date.now() + expiresHours * 3600 * 1000).toISOString();
+
+    const threadId = `chat-help-${Date.now()}`;
     const newReq: HelpRequest = {
       id: `help-${Date.now()}`,
       authorName: userName,
@@ -395,12 +492,14 @@ export function App() {
       urgency: newHelp.urgency as any,
       neighborhood: selectedNeighborhood,
       status: 'abierta',
-      date: 'Recién publicado'
+      date: 'Recién publicado',
+      expiresAt,
+      chatThreadId: threadId
     };
 
     setHelpRequests([newReq, ...helpRequests]);
     setIsHelpModalOpen(false);
-    setNewHelp({ type: 'agua', description: '', urgency: 'alta' });
+    setNewHelp({ type: 'agua', description: '', urgency: 'alta', expiresHours: 24, customExpiresAt: '' });
 
     if (!isOnline) {
       setOfflineQueue(prev => [
@@ -426,6 +525,12 @@ export function App() {
     e.preventDefault();
     if (!newNotice.title.trim() || !newNotice.body.trim()) return;
 
+    const expiresHours = newNotice.expiresHours || 24;
+    const expiresAt = newNotice.customExpiresAt
+      ? new Date(newNotice.customExpiresAt).toISOString()
+      : new Date(Date.now() + expiresHours * 3600 * 1000).toISOString();
+
+    const threadId = `chat-post-${Date.now()}`;
     const post: CommunityPost = {
       id: `post-${Date.now()}`,
       authorName: `${userName} (Tú)`,
@@ -435,13 +540,193 @@ export function App() {
       neighborhood: selectedNeighborhood,
       verificationStatus: 'reportado',
       date: 'Recién publicado',
-      corroborations: 1
+      corroborations: 1,
+      expiresAt,
+      chatThreadId: threadId
     };
 
     setCommunityPosts([post, ...communityPosts]);
     setIsNoticeModalOpen(false);
-    setNewNotice({ title: '', category: 'general', body: '' });
+    setNewNotice({ title: '', category: 'general', body: '', expiresHours: 24, customExpiresAt: '' });
     alert('Aviso publicado en la comunidad.');
+  };
+
+  // Handlers para Chat Comunitario estilo WhatsApp
+  const handleOpenChat = (threadId: string, title: string, subtitle: string, itemType: 'aviso' | 'ayuda' | 'actividad') => {
+    setActiveChatThread({ id: threadId, title, subtitle, itemType });
+    setActiveMessageMenuId(null);
+    setEditingMessageId(null);
+    setShowEmojiTray(false);
+  };
+
+  const handleJoinChat = (threadId: string) => {
+    if (!joinedChats.includes(threadId)) {
+      setJoinedChats(prev => [...prev, threadId]);
+      alert('Te has unido al chat vecinal. Ahora podrás participar y coordinar directamente.');
+    }
+  };
+
+  const handleLeaveChat = (threadId: string) => {
+    setJoinedChats(prev => prev.filter(id => id !== threadId));
+    alert('Has salido del chat vecinal.');
+  };
+
+  const handleSendMessage = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!activeChatThread || !chatInputText.trim()) return;
+
+    const timeLabel = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const currentUserId = currentUser?.documentNumber || 'usr-me';
+
+    if (editingMessageId) {
+      setChatMessages(prev => {
+        const list = prev[activeChatThread.id] || [];
+        return {
+          ...prev,
+          [activeChatThread.id]: list.map(m => m.id === editingMessageId ? {
+            ...m,
+            text: chatInputText.trim(),
+            isEdited: true,
+            editedAt: timeLabel
+          } : m)
+        };
+      });
+      setEditingMessageId(null);
+      setChatInputText('');
+      return;
+    }
+
+    const newMsg: ChatMessage = {
+      id: `msg-${Date.now()}`,
+      threadId: activeChatThread.id,
+      senderId: currentUserId,
+      senderName: `${userName} (Tú)`,
+      senderRole: 'vecino',
+      text: chatInputText.trim(),
+      createdAt: new Date().toISOString(),
+      timestampLabel: timeLabel
+    };
+
+    setChatMessages(prev => ({
+      ...prev,
+      [activeChatThread.id]: [...(prev[activeChatThread.id] || []), newMsg]
+    }));
+
+    if (!joinedChats.includes(activeChatThread.id)) {
+      setJoinedChats(prev => [...prev, activeChatThread.id]);
+    }
+
+    setChatInputText('');
+    setShowEmojiTray(false);
+  };
+
+  const handlePinMessage = (threadId: string, msgId: string) => {
+    setPinnedMessages(prev => {
+      if (prev[threadId] === msgId) {
+        const next = { ...prev };
+        delete next[threadId];
+        return next;
+      }
+      return { ...prev, [threadId]: msgId };
+    });
+    setActiveMessageMenuId(null);
+  };
+
+  const handleStartEdit = (msg: ChatMessage) => {
+    setEditingMessageId(msg.id);
+    setChatInputText(msg.text);
+    setActiveMessageMenuId(null);
+  };
+
+  const handleDeleteMessage = (msgId: string, mode: 'me' | 'everyone') => {
+    if (!activeChatThread) return;
+    const currentUserId = currentUser?.documentNumber || 'usr-me';
+
+    setChatMessages(prev => {
+      const list = prev[activeChatThread.id] || [];
+      return {
+        ...prev,
+        [activeChatThread.id]: list.map(m => {
+          if (m.id !== msgId) return m;
+          if (mode === 'everyone') {
+            return {
+              ...m,
+              deletedForEveryone: true,
+              text: '🚫 Este mensaje fue eliminado'
+            };
+          } else {
+            return {
+              ...m,
+              deletedForUserIds: [...(m.deletedForUserIds || []), currentUserId]
+            };
+          }
+        })
+      };
+    });
+    setActiveMessageMenuId(null);
+  };
+
+  // Handlers para Notificaciones y Permisos
+  const handleRequestNotificationPermission = async () => {
+    try {
+      const res = await LocalNotifications.requestPermissions();
+      if (res.display === 'granted') {
+        setHasNotificationPermission(true);
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: 101,
+              title: 'Ayni Vecinal',
+              body: '¡Notificaciones activadas en el teléfono! Recibirás alertas vecinales en tiempo real.',
+              schedule: { at: new Date(Date.now() + 500) }
+            }
+          ]
+        });
+        alert('¡Notificaciones activadas en el teléfono con éxito!');
+        return;
+      }
+    } catch {}
+
+    if ('Notification' in window) {
+      const perm = await Notification.requestPermission();
+      if (perm === 'granted') {
+        setHasNotificationPermission(true);
+        new Notification('Ayni Vecinal', {
+          body: '¡Notificaciones activadas! Te avisaremos de emergencias y mensajes en tu sector.',
+          icon: '/Ayni logo.png'
+        });
+        alert('¡Notificaciones web concedidas con éxito!');
+      } else {
+        alert('No se otorgaron permisos de notificación en el navegador.');
+      }
+    }
+  };
+
+  const handleTestNotification = async () => {
+    try {
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: Date.now() % 100000,
+            title: '🚨 Alerta Comunitaria: Prueba de Notificación',
+            body: 'Ayni: El sistema de avisos vecinales y segundo plano funciona correctamente.',
+            schedule: { at: new Date(Date.now() + 500) }
+          }
+        ]
+      });
+    } catch {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('🚨 Alerta Comunitaria: Prueba', {
+          body: 'Ayni: El sistema de avisos vecinales funciona correctamente.',
+          icon: '/Ayni logo.png'
+        });
+      }
+    }
+    alert('Notificación de prueba enviada a tu dispositivo.');
+  };
+
+  const handleMarkAllNotificationsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
   // Helper para fecha mínima permitida (ahora mismo)
@@ -779,9 +1064,16 @@ export function App() {
                 >
                   {isOnline ? <Wifi size={17} color="#2E9D72" /> : <WifiOff size={17} color="#D83B35" />}
                 </button>
-                <button className="icon-circle" style={{ position: 'relative' }}>
+                <button
+                  className="icon-circle"
+                  style={{ position: 'relative' }}
+                  onClick={() => setIsNotificationsOpen(true)}
+                  aria-label="Abrir centro de notificaciones"
+                >
                   <Bell size={17} color="#4B5563" />
-                  <span style={{ position: 'absolute', top: 8, right: 8, width: 7, height: 7, borderRadius: '50%', background: '#D83B35' }} />
+                  {notifications.filter(n => !n.read).length > 0 && (
+                    <span className="notif-badge-pill">{notifications.filter(n => !n.read).length}</span>
+                  )}
                 </button>
               </div>
             </div>
@@ -856,7 +1148,9 @@ export function App() {
                     <button className="sec-link" onClick={() => setIsNoticeModalOpen(true)}>+ Publicar</button>
                   </div>
 
-                  {communityPosts.map(post => (
+                  {communityPosts
+                    .filter(post => !post.expiresAt || new Date(post.expiresAt).getTime() > Date.now())
+                    .map(post => (
                     <div key={post.id} className="card">
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                         <div style={{
@@ -909,6 +1203,36 @@ export function App() {
                           <ThumbsUp size={12} /> Confirmar
                         </button>
                       </div>
+
+                      {/* Vigencia, Prórroga y Chat Vecinal */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 8, borderTop: '1px dashed #E5E7EB' }}>
+                        <span className="badge-expiry">
+                          <Clock size={11} /> {formatTimeRemaining(post.expiresAt)}
+                        </span>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button
+                            type="button"
+                            className="btn-extend-chip"
+                            onClick={() => setExtendModalItem({ id: post.id, type: 'aviso', title: post.title, currentExpiresAt: post.expiresAt })}
+                          >
+                            <Hourglass size={12} /> Prorrogar
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-extend-chip"
+                            style={{ color: '#1F2937' }}
+                            onClick={() => handleOpenChat(
+                              post.chatThreadId || `chat-${post.id}`,
+                              post.title,
+                              `${post.neighborhood} · Chat vecinal`,
+                              'aviso'
+                            )}
+                          >
+                            <MessageCircle size={13} color="var(--coral)" />
+                            Chat ({chatMessages[post.chatThreadId || `chat-${post.id}`]?.filter(m => !m.deletedForUserIds?.includes(currentUser?.documentNumber || 'usr-me')).length || 0})
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -925,7 +1249,9 @@ export function App() {
                     <button className="sec-link" onClick={() => setIsHelpModalOpen(true)}>+ Pedir ayuda</button>
                   </div>
 
-                  {helpRequests.map(req => (
+                  {helpRequests
+                    .filter(req => !req.expiresAt || new Date(req.expiresAt).getTime() > Date.now())
+                    .map(req => (
                     <div key={req.id} className="card">
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                         <div>
@@ -967,6 +1293,36 @@ export function App() {
                             <CheckCircle2 size={13} /> Ayuda: {req.helperName || userName}
                           </span>
                         )}
+                      </div>
+
+                      {/* Vigencia, Prórroga y Chat Vecinal */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 8, borderTop: '1px dashed #E5E7EB' }}>
+                        <span className="badge-expiry">
+                          <Clock size={11} /> {formatTimeRemaining(req.expiresAt)}
+                        </span>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button
+                            type="button"
+                            className="btn-extend-chip"
+                            onClick={() => setExtendModalItem({ id: req.id, type: 'ayuda', title: `Ayuda: ${req.description.slice(0, 30)}...`, currentExpiresAt: req.expiresAt })}
+                          >
+                            <Hourglass size={12} /> Prorrogar
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-extend-chip"
+                            style={{ color: '#1F2937' }}
+                            onClick={() => handleOpenChat(
+                              req.chatThreadId || `chat-${req.id}`,
+                              `Ayuda: ${req.authorName}`,
+                              `${req.neighborhood} · Coordinación solidaria`,
+                              'ayuda'
+                            )}
+                          >
+                            <MessageCircle size={13} color="var(--coral)" />
+                            Chat ({chatMessages[req.chatThreadId || `chat-${req.id}`]?.filter(m => !m.deletedForUserIds?.includes(currentUser?.documentNumber || 'usr-me')).length || 0})
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1044,7 +1400,9 @@ export function App() {
                     </h3>
                   </div>
 
-                  {activities.map(act => (
+                  {activities
+                    .filter(act => !act.expiresAt || new Date(act.expiresAt).getTime() > Date.now())
+                    .map(act => (
                     <div key={act.id} className="activity-card">
                       <div className="activity-header">
                         <div
@@ -1096,6 +1454,36 @@ export function App() {
                         >
                           {act.joined ? 'Inscrito' : act.buttonText}
                         </button>
+                      </div>
+
+                      {/* Vigencia, Prórroga y Chat Vecinal */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 8, borderTop: '1px dashed #E5E7EB' }}>
+                        <span className="badge-expiry">
+                          <Clock size={11} /> {formatTimeRemaining(act.expiresAt)}
+                        </span>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button
+                            type="button"
+                            className="btn-extend-chip"
+                            onClick={() => setExtendModalItem({ id: act.id, type: 'actividad', title: act.title, currentExpiresAt: act.expiresAt })}
+                          >
+                            <Hourglass size={12} /> Prorrogar
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-extend-chip"
+                            style={{ color: '#1F2937' }}
+                            onClick={() => handleOpenChat(
+                              act.chatThreadId || `chat-${act.id}`,
+                              act.title,
+                              `${act.organizer} · Coordinación`,
+                              'actividad'
+                            )}
+                          >
+                            <MessageCircle size={13} color="var(--coral)" />
+                            Chat ({chatMessages[act.chatThreadId || `chat-${act.id}`]?.filter(m => !m.deletedForUserIds?.includes(currentUser?.documentNumber || 'usr-me')).length || 0})
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -2314,6 +2702,38 @@ export function App() {
                   onChange={e => setNewHelp({ ...newHelp, description: e.target.value })}
                 />
               </div>
+
+              <div className="field">
+                <label>Tiempo de vigencia / ¿Hasta cuándo necesitas la ayuda?</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 8 }}>
+                  {[
+                    { label: '12 Horas', hours: 12 },
+                    { label: '24 Horas', hours: 24 },
+                    { label: '3 Días', hours: 72 }
+                  ].map(opt => (
+                    <button
+                      key={opt.hours}
+                      type="button"
+                      className={`com-tab-pill ${newHelp.expiresHours === opt.hours && !newHelp.customExpiresAt ? 'active' : ''}`}
+                      style={{ height: 36, fontSize: '0.78rem', padding: '0 8px', justifyContent: 'center' }}
+                      onClick={() => setNewHelp({ ...newHelp, expiresHours: opt.hours, customExpiresAt: '' })}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="datetime-local"
+                  min={getMinDateTime()}
+                  className="finput"
+                  value={newHelp.customExpiresAt}
+                  onChange={e => setNewHelp({ ...newHelp, customExpiresAt: e.target.value })}
+                />
+                <p style={{ fontSize: '0.72rem', color: '#6B7280', marginTop: 4 }}>
+                  Al vencer la fecha, el pedido se retirará automáticamente del muro.
+                </p>
+              </div>
+
               <button type="submit" className="btn btn-coral btn-block" style={{ borderRadius: 'var(--radius-full)', marginTop: 4 }}>
                 {isOnline ? 'Publicar pedido de auxilio' : 'Guardar en malla BLE'}
               </button>
@@ -2372,10 +2792,432 @@ export function App() {
                   onChange={e => setNewNotice({ ...newNotice, body: e.target.value })}
                 />
               </div>
+
+              <div className="field">
+                <label>Tiempo de vigencia / Expiración automática</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 8 }}>
+                  {[
+                    { label: '12 Horas', hours: 12 },
+                    { label: '24 Horas', hours: 24 },
+                    { label: '3 Días', hours: 72 }
+                  ].map(opt => (
+                    <button
+                      key={opt.hours}
+                      type="button"
+                      className={`com-tab-pill ${newNotice.expiresHours === opt.hours && !newNotice.customExpiresAt ? 'active' : ''}`}
+                      style={{ height: 36, fontSize: '0.78rem', padding: '0 8px', justifyContent: 'center' }}
+                      onClick={() => setNewNotice({ ...newNotice, expiresHours: opt.hours, customExpiresAt: '' })}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="datetime-local"
+                  min={getMinDateTime()}
+                  className="finput"
+                  value={newNotice.customExpiresAt}
+                  onChange={e => setNewNotice({ ...newNotice, customExpiresAt: e.target.value })}
+                />
+                <p style={{ fontSize: '0.72rem', color: '#6B7280', marginTop: 4 }}>
+                  El aviso desaparecerá al vencer la fecha establecida para mantener limpia la comunidad.
+                </p>
+              </div>
+
               <button type="submit" className="btn btn-coral btn-block" style={{ borderRadius: 'var(--radius-full)', marginTop: 4 }}>
                 Publicar en el barrio
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===== MODAL: PRÓRROGA / EXTENDER VIGENCIA ===== */}
+      {extendModalItem && (
+        <div className="modal-bg">
+          <div className="modal-card">
+            <button className="modal-close" onClick={() => setExtendModalItem(null)} aria-label="Cerrar modal">
+              <X size={20} />
+            </button>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 4, color: 'var(--coral)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Hourglass size={20} color="var(--coral)" /> Prorrogar publicación
+            </h3>
+            <p style={{ fontSize: '0.82rem', color: '#4B5563', marginBottom: 12 }}>
+              <strong>{extendModalItem.title}</strong>
+            </p>
+            <p style={{ fontSize: '0.78rem', color: '#6B7280', marginBottom: 16 }}>
+              Cualquier integrante de la comunidad puede explayar o extender la duración para que siga visible para todos los vecinos.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <button
+                type="button"
+                className="btn btn-outline"
+                style={{ borderRadius: 12, padding: '12px', fontWeight: 700 }}
+                onClick={() => handleExtendItem(extendModalItem.id, extendModalItem.type, 12)}
+              >
+                + 12 Horas
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline"
+                style={{ borderRadius: 12, padding: '12px', fontWeight: 700, borderColor: 'var(--coral)', color: 'var(--coral)' }}
+                onClick={() => handleExtendItem(extendModalItem.id, extendModalItem.type, 24)}
+              >
+                + 24 Horas
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline"
+                style={{ borderRadius: 12, padding: '12px', fontWeight: 700 }}
+                onClick={() => handleExtendItem(extendModalItem.id, extendModalItem.type, 72)}
+              >
+                + 3 Días
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline"
+                style={{ borderRadius: 12, padding: '12px', fontWeight: 700 }}
+                onClick={() => handleExtendItem(extendModalItem.id, extendModalItem.type, 168)}
+              >
+                + 1 Semana
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== MODAL: CHAT COMUNITARIO ESTILO WHATSAPP ===== */}
+      {activeChatThread && (() => {
+        const currentUserId = currentUser?.documentNumber || 'usr-me';
+        const msgs = (chatMessages[activeChatThread.id] || []).filter(
+          m => !m.deletedForUserIds?.includes(currentUserId)
+        );
+        const pinnedId = pinnedMessages[activeChatThread.id];
+        const pinnedMsg = msgs.find(m => m.id === pinnedId);
+        const isJoined = joinedChats.includes(activeChatThread.id);
+
+        return (
+          <div className="chat-overlay">
+            <div className="chat-modal-window">
+              {/* Header estilo WhatsApp */}
+              <div className="chat-header">
+                <button
+                  className="icon-circle"
+                  style={{ width: 34, height: 34 }}
+                  onClick={() => setActiveChatThread(null)}
+                  aria-label="Volver"
+                >
+                  <ArrowLeft size={18} />
+                </button>
+                <div className="chat-header-info">
+                  <div className="chat-header-title">{activeChatThread.title}</div>
+                  <div className="chat-header-sub">
+                    <Users size={12} />
+                    <span>{activeChatThread.subtitle}</span>
+                  </div>
+                </div>
+                <div>
+                  {isJoined ? (
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      style={{ fontSize: '0.74rem', padding: '4px 10px', borderRadius: 14 }}
+                      onClick={() => handleLeaveChat(activeChatThread.id)}
+                    >
+                      Salir
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-coral"
+                      style={{ fontSize: '0.74rem', padding: '4px 10px', borderRadius: 14 }}
+                      onClick={() => handleJoinChat(activeChatThread.id)}
+                    >
+                      Unirme
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Mensaje Fijado si existe */}
+              {pinnedMsg && (
+                <div className="chat-pin-banner">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
+                    <Pin size={13} style={{ flexShrink: 0 }} />
+                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <strong>{pinnedMsg.senderName}:</strong> {pinnedMsg.text}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    style={{ background: 'none', border: 'none', color: '#92400E', cursor: 'pointer', padding: 2 }}
+                    onClick={() => handlePinMessage(activeChatThread.id, pinnedMsg.id)}
+                    title="Desfijar mensaje"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+
+              {/* Lista de mensajes tipo WhatsApp */}
+              <div className="chat-messages-scroll">
+                {!isJoined && (
+                  <div style={{ background: '#FEF3C7', border: '1px solid #FDE68A', padding: '8px 12px', borderRadius: 10, fontSize: '0.78rem', color: '#92400E', textAlign: 'center', margin: '4px 0 8px 0' }}>
+                    Estás en modo lectura. Puedes unirte al chat o enviar un mensaje para participar en la conversación vecinal.
+                  </div>
+                )}
+
+                {msgs.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px 0', color: '#6B7280', fontSize: '0.85rem' }}>
+                    <MessageCircle size={32} style={{ margin: '0 auto 8px', opacity: 0.4 }} />
+                    <p>No hay mensajes en este chat aún.</p>
+                    <p style={{ fontSize: '0.75rem' }}>¡Sé el primero en iniciar la conversación vecinal!</p>
+                  </div>
+                ) : (
+                  msgs.map(m => {
+                    const isMe = m.senderId === currentUserId;
+                    const isPinned = pinnedId === m.id;
+                    const isDeleted = m.deletedForEveryone;
+
+                    return (
+                      <div key={m.id} className={`chat-bubble-wrap ${isMe ? 'me' : 'other'}`}>
+                        <div
+                          className="chat-bubble"
+                          style={isPinned ? { borderLeft: '4px solid #F59E0B' } : undefined}
+                          onClick={() => {
+                            if (!isDeleted) {
+                              setActiveMessageMenuId(activeMessageMenuId === m.id ? null : m.id);
+                            }
+                          }}
+                        >
+                          {!isMe && <div className="chat-sender-name">{m.senderName}</div>}
+
+                          {isPinned && (
+                            <div style={{ fontSize: '0.68rem', color: '#B45309', display: 'flex', alignItems: 'center', gap: 3, marginBottom: 2 }}>
+                              <Pin size={10} /> Mensaje fijado
+                            </div>
+                          )}
+
+                          <div className={isDeleted ? 'chat-bubble-deleted' : ''}>
+                            {m.text}
+                          </div>
+
+                          <div className="chat-meta">
+                            {m.isEdited && <span style={{ fontSize: '0.64rem', color: '#9CA3AF' }}>(editado)</span>}
+                            <span>{m.timestampLabel}</span>
+                            {isMe && <CheckCheck size={13} color="#3B82F6" />}
+                          </div>
+                        </div>
+
+                        {/* Menú de opciones de mensaje (Fijar, Editar, Borrar) */}
+                        {activeMessageMenuId === m.id && !isDeleted && (
+                          <div className="chat-actions-popup">
+                            <button
+                              type="button"
+                              className="chat-action-item"
+                              onClick={() => handlePinMessage(activeChatThread.id, m.id)}
+                            >
+                              <Pin size={13} /> {isPinned ? 'Desfijar' : 'Fijar mensaje'}
+                            </button>
+
+                            {isMe && (
+                              <button
+                                type="button"
+                                className="chat-action-item"
+                                onClick={() => handleStartEdit(m)}
+                              >
+                                <Edit2 size={13} /> Editar mensaje
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              className="chat-action-item danger"
+                              onClick={() => handleDeleteMessage(m.id, 'me')}
+                            >
+                              <Trash2 size={13} /> Eliminar para mí
+                            </button>
+
+                            {isMe && (
+                              <button
+                                type="button"
+                                className="chat-action-item danger"
+                                onClick={() => handleDeleteMessage(m.id, 'everyone')}
+                              >
+                                <Trash2 size={13} /> Eliminar para todos
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Selector de Emojis estilo WhatsApp */}
+              {showEmojiTray && (
+                <div className="emoji-tray">
+                  {['👍', '🙏', '⚠️', '💧', '🛠️', '🚨', '💡', '👏', '❤️', '😊', '🏠', '📦', '⏰', '⚡', '🔔', '🤝', '🙌', '👌', '📢', '✅'].map(em => (
+                    <button
+                      key={em}
+                      type="button"
+                      className="emoji-btn"
+                      onClick={() => setChatInputText(prev => prev + em)}
+                    >
+                      {em}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Barra de input estilo WhatsApp */}
+              <form className="chat-input-bar" onSubmit={handleSendMessage}>
+                <button
+                  type="button"
+                  style={{ background: 'none', border: 'none', color: '#6B7280', cursor: 'pointer', padding: 4 }}
+                  onClick={() => setShowEmojiTray(s => !s)}
+                  aria-label="Emojis"
+                >
+                  <Smile size={22} />
+                </button>
+                <input
+                  type="text"
+                  className="chat-input-field"
+                  placeholder={editingMessageId ? 'Editando mensaje...' : 'Escribe un mensaje vecinal...'}
+                  value={chatInputText}
+                  onChange={e => setChatInputText(e.target.value)}
+                />
+                {editingMessageId && (
+                  <button
+                    type="button"
+                    style={{ background: 'none', border: 'none', color: '#6B7280', cursor: 'pointer', fontSize: '0.75rem' }}
+                    onClick={() => { setEditingMessageId(null); setChatInputText(''); }}
+                  >
+                    Cancelar
+                  </button>
+                )}
+                <button type="submit" className="chat-send-btn" aria-label="Enviar">
+                  <Send size={18} />
+                </button>
+              </form>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ===== MODAL: CENTRO DE NOTIFICACIONES FUNCIONAL ===== */}
+      {isNotificationsOpen && (
+        <div className="modal-bg">
+          <div className="modal-card" style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Bell size={20} color="var(--coral)" />
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--carbon)', margin: 0 }}>
+                  Notificaciones
+                </h3>
+              </div>
+              <button className="modal-close" onClick={() => setIsNotificationsOpen(false)} aria-label="Cerrar modal">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Banner de permiso nativo del teléfono / segundo plano */}
+            <div style={{
+              background: hasNotificationPermission ? '#E8F8F0' : '#FEF3C7',
+              border: `1px solid ${hasNotificationPermission ? '#A7F3D0' : '#FDE68A'}`,
+              borderRadius: 12,
+              padding: '10px 12px',
+              marginBottom: 12,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {hasNotificationPermission ? (
+                  <CheckCircle2 size={18} color="#059669" />
+                ) : (
+                  <BellRing size={18} color="#B45309" />
+                )}
+                <div style={{ fontSize: '0.78rem', color: hasNotificationPermission ? '#065F46' : '#92400E' }}>
+                  <strong>{hasNotificationPermission ? 'Notificaciones activas' : 'Permiso de notificaciones'}</strong>
+                  <div>
+                    {hasNotificationPermission
+                      ? 'Recibirás avisos de emergencias y chats en segundo plano.'
+                      : 'Activa las notificaciones para recibir alertas vecinales en tu teléfono.'}
+                  </div>
+                </div>
+              </div>
+              {!hasNotificationPermission && (
+                <button
+                  type="button"
+                  className="btn btn-coral"
+                  style={{ fontSize: '0.74rem', padding: '6px 10px', borderRadius: 10, whiteSpace: 'nowrap' }}
+                  onClick={handleRequestNotificationPermission}
+                >
+                  Activar
+                </button>
+              )}
+            </div>
+
+            {/* Lista de Notificaciones */}
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 2 }}>
+              {notifications.map(notif => (
+                <div
+                  key={notif.id}
+                  className={`notif-card ${!notif.read ? 'unread' : ''}`}
+                  onClick={() => {
+                    setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n));
+                    if (notif.chatThreadId) {
+                      setIsNotificationsOpen(false);
+                      handleOpenChat(
+                        notif.chatThreadId,
+                        notif.title.replace(/^[^a-zA-Z0-9áéíóúÁÉÍÓÚ]+/, ''),
+                        'Chat vecinal',
+                        'aviso'
+                      );
+                    } else if (notif.linkTab) {
+                      setIsNotificationsOpen(false);
+                      setCommunityTab(notif.linkTab);
+                      navigateTo('home');
+                    }
+                  }}
+                >
+                  {!notif.read && <div className="notif-unread-dot" />}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--carbon)', marginBottom: 2 }}>
+                      {notif.title}
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: '#4B5563', lineHeight: 1.35, marginBottom: 4 }}>
+                      {notif.body}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#9CA3AF' }}>
+                      {notif.date}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Acciones de pie de página */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 10, borderTop: '1px solid #E5E7EB' }}>
+              <button
+                type="button"
+                style={{ background: 'none', border: 'none', color: '#6B7280', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                onClick={handleMarkAllNotificationsRead}
+              >
+                Marcar todas como leídas
+              </button>
+              <button
+                type="button"
+                style={{ background: 'none', border: 'none', color: 'var(--coral)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                onClick={handleTestNotification}
+              >
+                Probar notificación
+              </button>
+            </div>
           </div>
         </div>
       )}

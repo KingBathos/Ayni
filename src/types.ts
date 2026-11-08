@@ -89,6 +89,8 @@ export interface CommunityPost {
   verificationStatus: 'reportado' | 'corroborado' | 'oficial';
   date: string;
   corroborations: number;
+  expiresAt?: string; // Fecha y hora límite hasta cuándo debe mostrarse (ISO)
+  chatThreadId?: string;
 }
 
 export interface HelpRequest {
@@ -103,6 +105,8 @@ export interface HelpRequest {
   date: string;
   helperName?: string;
   isOfflineCreated?: boolean;
+  expiresAt?: string; // Fecha y hora límite de expiración (ISO)
+  chatThreadId?: string;
 }
 
 export interface OfflineEnvelope {
@@ -126,6 +130,48 @@ export interface CommunityActivity {
   buttonText: string;
   participantsCount: number;
   joined?: boolean;
+  expiresAt?: string; // Fecha y hora límite de expiración (ISO)
+  chatThreadId?: string;
+}
+
+// Estructura de Chat estilo WhatsApp para Avisos, Ayudas y Actividades
+export interface ChatMessage {
+  id: string;
+  threadId: string;
+  senderId: string;
+  senderName: string;
+  senderRole?: 'vecino' | 'autor' | 'oficial';
+  text: string;
+  createdAt: string; // ISO
+  timestampLabel: string; // ej. "11:45 a. m."
+  isPinned?: boolean;
+  isEdited?: boolean;
+  editedAt?: string;
+  deletedForEveryone?: boolean;
+  deletedForUserIds?: string[];
+}
+
+export interface ChatThread {
+  id: string;
+  itemType: 'aviso' | 'ayuda' | 'actividad';
+  itemId: string;
+  itemTitle: string;
+  neighborhood: string;
+  pinnedMessageId?: string;
+  joinedUserIds: string[];
+}
+
+// Sistema funcional de notificaciones y permisos
+export interface AppNotification {
+  id: string;
+  title: string;
+  body: string;
+  type: 'aviso' | 'ayuda' | 'servicio' | 'chat' | 'sistema';
+  date: string;
+  read: boolean;
+  linkTab?: 'avisos' | 'ayuda' | 'servicios' | 'actividades';
+  chatThreadId?: string;
+  serviceId?: string;
 }
 
 
