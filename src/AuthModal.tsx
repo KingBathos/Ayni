@@ -50,29 +50,35 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
   const [regStep, setRegStep] = useState<1 | 2 | 3>(1);
   const [docType, setDocType] = useState<'DNI' | 'CE'>('DNI');
   const [docNumber, setDocNumber] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [nombres, setNombres] = useState('');
+  const [apellidos, setApellidos] = useState('');
   const [reniecLoading, setReniecLoading] = useState(false);
   const [reniecSource, setReniecSource] = useState<'reniec' | 'mock' | null>(null);
   const [regError, setRegError] = useState('');
 
   const [phone, setPhone] = useState('');
-
   const [regEmail, setRegEmail] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regPassword2, setRegPassword2] = useState('');
+  const [showRegPassword, setShowRegPassword] = useState(false);
+
   const [code, setCode] = useState('');
   const [codeSent, setCodeSent] = useState(false);
+  const [codeChannel, setCodeChannel] = useState<'email' | 'dev'>('email');
   const [devCode, setDevCode] = useState<string | null>(null);
   const [sendingCode, setSendingCode] = useState(false);
   const [finishing, setFinishing] = useState(false);
 
   const docLen = docType === 'DNI' ? 8 : 9;
+  const onlyDigits = (v: string, max: number) => v.replace(/\D/g, '').slice(0, max);
 
   const resetReg = () => {
-    setRegStep(1); setDocNumber(''); setFullName(''); setReniecSource(null);
-    setPhone(''); setRegEmail(''); setCode(''); setCodeSent(false); setDevCode(null);
-    setRegError('');
+    setRegStep(1); setDocNumber(''); setNombres(''); setApellidos(''); setReniecSource(null);
+    setPhone(''); setRegEmail(''); setRegPassword(''); setRegPassword2('');
+    setCode(''); setCodeSent(false); setDevCode(null); setRegError('');
   };
 
-  // Paso 1 → buscar en RENIEC y pasar al paso 2
+  // Paso 1 → consultar RENIEC (DNI) y pasar al formulario
   const handleStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
     setRegError('');
@@ -80,73 +86,83 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
       setRegError(`El ${docType} debe tener ${docLen} dígitos.`);
       return;
     }
-    // CE no se consulta en RENIEC: el usuario escribe su nombre.
     if (docType === 'CE') {
-      if (!fullName.trim()) { setRegError('Escribe tus nombres y apellidos.'); return; }
-      setRegStep(2);
+      setReniecSource(null);
+      setRegStep(2); // CE no se consulta; el usuario escribe su nombre
       return;
     }
     setReniecLoading(true);
     try {
       const r = await api.lookupDni(docNumber);
-      setFullName(r.nombre_completo);
+      setNombres(r.nombres);
+      setApellidos(`${r.apellido_paterno} ${r.apellido_materno}`.trim());
       setReniecSource(r.source);
-      setRegStep(2);
     } catch (err: any) {
-      setRegError(err?.message || 'No se pudo consultar el DNI. Escribe tu nombre manualmente.');
-      // Permitir continuar manual si RENIEC falla
+      setRegError(err?.message || 'No se encontró el DNI. Puedes escribir tus datos manualmente.');
       setReniecSource(null);
     } finally {
       setReniecLoading(false);
+      setRegStep(2);
     }
   };
 
-  // Paso 2 → teléfono
-  const handleStep2 = (e: React.FormEvent) => {
+  // Paso 2 → validar formulario, enviar código y pasar al paso 3
+  const handleStep2 = async (e: React.FormEvent) => {
     e.preventDefault();
     setRegError('');
-    if (!fullName.trim()) { setRegError('Confirma tus nombres y apellidos.'); return; }
+    if (!nombres.trim() || !apellidos.trim()) { setRegError('Completa tus nombres y apellidos.'); return; }
     if (phone.length !== 9) { setRegError('El teléfono debe tener 9 dígitos.'); return; }
-    setRegStep(3);
-  };
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(regEmail.trim())) { setRegError('Ingresa un correo válido.'); return; }
+    if (regPassword.length < 6) { setRegError('La contraseña debe tener al menos 6 caracteres.'); return; }
+    if (regPassword !== regPassword2) { setRegError('Las contraseñas no coinciden.'); return; }
 
-  // Paso 3a → enviar código al correo
-  const sendCode = async () => {
-    setRegError('');
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(regEmail.trim())) {
-      setRegError('Ingresa un correo válido.');
-      return;
-    }
     setSendingCode(true);
     try {
       const r = await api.requestEmailCode(regEmail.trim());
+      setCodeChannel(r.channel);
+      setDevCode(r.dev_code || null);
       setCodeSent(true);
-      setDevCode(r.dev_code || null); // en modo demo llega el código aquí
+      setRegStep(3);
     } catch (err: any) {
-      setRegError(err?.message || 'No se pudo enviar el código.');
+      setRegError(err?.message || 'No se pudo enviar el código. Intenta de nuevo.');
     } finally {
       setSendingCode(false);
     }
   };
 
-  // Paso 3b → verificar código y crear cuenta
+  const resendCode = async () => {
+    setRegError('');
+    setSendingCode(true);
+    try {
+      const r = await api.requestEmailCode(regEmail.trim());
+      setCodeChannel(r.channel);
+      setDevCode(r.dev_code || null);
+      setCodeSent(true);
+    } catch (err: any) {
+      setRegError(err?.message || 'No se pudo reenviar el código.');
+    } finally {
+      setSendingCode(false);
+    }
+  };
+
+  // Paso 3 → verificar código y crear la cuenta
   const handleFinish = async (e: React.FormEvent) => {
     e.preventDefault();
     setRegError('');
     if (code.length < 6) { setRegError('Ingresa el código de 6 dígitos.'); return; }
     setFinishing(true);
+    const fullName = `${nombres} ${apellidos}`.replace(/\s+/g, ' ').trim();
     try {
       await api.verifyEmailCode(regEmail.trim(), code.trim());
-      // La contraseña inicial es el número de documento (se puede cambiar luego).
       await api.register({
-        display_name: fullName.trim(),
+        display_name: fullName,
         email: regEmail.trim(),
-        phone: phone,
-        password: docNumber,
+        phone,
+        password: regPassword,
         role: 'vecino',
       });
       onSuccess({
-        name: fullName.trim(),
+        name: fullName,
         documentNumber: docNumber,
         neighborhood: DEFAULT_NEIGHBORHOOD,
         district: DEFAULT_DISTRICT,
@@ -158,8 +174,6 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
     }
   };
 
-  const onlyDigits = (v: string, max: number) => v.replace(/\D/g, '').slice(0, max);
-
   // ============================ RENDER ============================
   return (
     <div className="sh-overlay">
@@ -167,7 +181,7 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
 
         {/* ---------- BANNER ---------- */}
         <div className="sh-banner">
-          {(view === 'register') && (
+          {view === 'register' && (
             <button
               type="button"
               className="sh-back"
@@ -182,11 +196,7 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
               <ChevronLeft size={22} />
             </button>
           )}
-          <img
-            className="sh-banner-img"
-            src="/shalom-login-banner.png"
-            alt="Bienvenido a Ayni"
-          />
+          <img className="sh-banner-img" src="/shalom-login-banner.png" alt="Bienvenido a Ayni" />
         </div>
 
         {/* ---------- TARJETA ---------- */}
@@ -205,7 +215,8 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
                   placeholder="Correo electrónico"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
+                  autoComplete="username"
+                  name="email"
                 />
               </div>
 
@@ -217,6 +228,7 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
+                  name="password"
                 />
                 <button type="button" className="sh-eye" onClick={() => setShowPassword((s) => !s)} aria-label="Ver contraseña">
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -243,7 +255,6 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
                 ¿No tienes una cuenta?{' '}
                 <span className="sh-link-red" onClick={() => { resetReg(); setView('register'); }}>Regístrate</span>
               </p>
-
               <p className="sh-demo" onClick={() => { setEmail('maria@ayni.pe'); setPassword('ayni1234'); }}>
                 Usar cuenta demo (maria@ayni.pe)
               </p>
@@ -253,7 +264,6 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
           {/* ===================== REGISTRO ===================== */}
           {view === 'register' && (
             <div className="sh-form">
-              {/* Stepper 1-2-3 */}
               <div className="sh-stepper">
                 {[1, 2, 3].map((n, i) => (
                   <React.Fragment key={n}>
@@ -265,11 +275,10 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
                 ))}
               </div>
 
-              <h2 className="sh-reg-title">¡Únete fácil, rápido<br /><strong>y seguro</strong> a Ayni!</h2>
-
-              {/* -------- PASO 1: Documento + RENIEC -------- */}
+              {/* -------- PASO 1: Documento -------- */}
               {regStep === 1 && (
                 <form onSubmit={handleStep1}>
+                  <h2 className="sh-reg-title">¡Únete fácil, rápido<br /><strong>y seguro</strong> a Ayni!</h2>
                   <div className="sh-toggle">
                     <button type="button" className={`sh-toggle-opt ${docType === 'DNI' ? 'on' : ''}`} onClick={() => { setDocType('DNI'); setDocNumber(''); }}>DNI</button>
                     <button type="button" className={`sh-toggle-opt ${docType === 'CE' ? 'on' : ''}`} onClick={() => { setDocType('CE'); setDocNumber(''); }}>CE</button>
@@ -287,13 +296,6 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
                     <span className="sh-count">{docNumber.length}/{docLen}</span>
                   </div>
 
-                  {docType === 'CE' && (
-                    <div className="sh-field sh-floating">
-                      <input className="sh-input" placeholder=" " value={fullName} onChange={(e) => setFullName(e.target.value)} />
-                      <label>Nombres y apellidos</label>
-                    </div>
-                  )}
-
                   {regError && <div className="sh-error">{regError}</div>}
 
                   <button type="submit" className="sh-btn-primary" disabled={reniecLoading}>
@@ -304,86 +306,100 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
                 </form>
               )}
 
-              {/* -------- PASO 2: Nombre confirmado + teléfono -------- */}
+              {/* -------- PASO 2: Formulario completo -------- */}
               {regStep === 2 && (
                 <form onSubmit={handleStep2}>
-                  <div className="sh-name-card">
-                    <span className="sh-name-label">
-                      {reniecSource === 'reniec' ? '✓ Datos verificados en RENIEC' : reniecSource === 'mock' ? 'Datos de prueba (demo)' : 'Tus datos'}
-                    </span>
-                    <input
-                      className="sh-name-input"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                    />
-                  </div>
+                  <h2 className="sh-reg-title">Completa tus datos</h2>
 
                   <div className="sh-field sh-floating">
-                    <input
-                      className="sh-input"
-                      inputMode="numeric"
-                      placeholder=" "
-                      value={phone}
-                      onChange={(e) => setPhone(onlyDigits(e.target.value, 9))}
-                    />
+                    <input className="sh-input" placeholder=" " value={nombres} onChange={(e) => setNombres(e.target.value)} autoComplete="given-name" />
+                    <label>Nombres</label>
+                  </div>
+                  <div className="sh-field sh-floating">
+                    <input className="sh-input" placeholder=" " value={apellidos} onChange={(e) => setApellidos(e.target.value)} autoComplete="family-name" />
+                    <label>Apellidos</label>
+                  </div>
+                  {reniecSource === 'reniec' && (
+                    <p className="sh-ok-note"><Check size={13} /> Datos traídos de RENIEC. Puedes corregirlos si hace falta.</p>
+                  )}
+
+                  <div className="sh-field sh-floating">
+                    <input className="sh-input" inputMode="numeric" placeholder=" " value={phone} onChange={(e) => setPhone(onlyDigits(e.target.value, 9))} autoComplete="tel" />
                     <label>Número de celular</label>
                     <span className="sh-count">{phone.length}/9</span>
                   </div>
 
+                  <div className="sh-field sh-floating">
+                    <input type="email" className="sh-input" placeholder=" " value={regEmail} onChange={(e) => setRegEmail(e.target.value)} autoComplete="username" name="email" />
+                    <label>Correo electrónico</label>
+                  </div>
+
+                  <div className="sh-field sh-field-icon sh-floating">
+                    <input
+                      type={showRegPassword ? 'text' : 'password'}
+                      className="sh-input"
+                      placeholder=" "
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      autoComplete="new-password"
+                      name="new-password"
+                    />
+                    <label>Crea una contraseña</label>
+                    <button type="button" className="sh-eye" onClick={() => setShowRegPassword((s) => !s)} aria-label="Ver contraseña">
+                      {showRegPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+
+                  <div className="sh-field sh-floating">
+                    <input
+                      type={showRegPassword ? 'text' : 'password'}
+                      className="sh-input"
+                      placeholder=" "
+                      value={regPassword2}
+                      onChange={(e) => setRegPassword2(e.target.value)}
+                      autoComplete="new-password"
+                      name="confirm-password"
+                    />
+                    <label>Repite la contraseña</label>
+                  </div>
+
                   {regError && <div className="sh-error">{regError}</div>}
 
-                  <button type="submit" className="sh-btn-primary">Continuar</button>
+                  <button type="submit" className="sh-btn-primary" disabled={sendingCode}>
+                    {sendingCode ? 'Enviando código…' : 'Continuar'}
+                  </button>
                 </form>
               )}
 
-              {/* -------- PASO 3: Correo + código -------- */}
+              {/* -------- PASO 3: Código -------- */}
               {regStep === 3 && (
                 <form onSubmit={handleFinish}>
-                  <div className="sh-field sh-field-icon sh-floating">
-                    <input
-                      type="email"
-                      className="sh-input"
-                      placeholder=" "
-                      value={regEmail}
-                      onChange={(e) => { setRegEmail(e.target.value); setCodeSent(false); }}
-                      disabled={codeSent}
-                    />
-                    <label>Correo electrónico</label>
-                    {!codeSent && (
-                      <button type="button" className="sh-inline-btn" onClick={sendCode} disabled={sendingCode}>
-                        {sendingCode ? '…' : 'Enviar'}
-                      </button>
-                    )}
-                  </div>
-
-                  {codeSent && (
-                    <>
-                      <p className="sh-hint">
-                        Te enviamos un código de 6 dígitos a <strong>{regEmail}</strong>.{' '}
-                        <span className="sh-link-red" onClick={sendCode}>Reenviar</span>
-                      </p>
-                      {devCode && (
-                        <div className="sh-dev-code">Modo demo — tu código es: <strong>{devCode}</strong></div>
-                      )}
-                      <div className="sh-field sh-floating">
-                        <input
-                          className="sh-input sh-code"
-                          inputMode="numeric"
-                          placeholder=" "
-                          value={code}
-                          onChange={(e) => setCode(onlyDigits(e.target.value, 6))}
-                        />
-                        <label>Código de verificación</label>
-                      </div>
-                    </>
+                  <h2 className="sh-reg-title">Verifica tu correo</h2>
+                  <p className="sh-hint">
+                    Ingresa el código de 6 dígitos que enviamos a <strong>{regEmail}</strong>.{' '}
+                    <span className="sh-link-red" onClick={resendCode}>Reenviar</span>
+                  </p>
+                  {codeChannel === 'dev' && devCode && (
+                    <div className="sh-dev-code">Modo demo — tu código es: <strong>{devCode}</strong></div>
                   )}
+
+                  <div className="sh-field sh-floating">
+                    <input
+                      className="sh-input sh-code"
+                      inputMode="numeric"
+                      placeholder=" "
+                      value={code}
+                      onChange={(e) => setCode(onlyDigits(e.target.value, 6))}
+                      autoComplete="one-time-code"
+                    />
+                    <label>Código de verificación</label>
+                  </div>
 
                   {regError && <div className="sh-error">{regError}</div>}
 
-                  <button type="submit" className="sh-btn-primary" disabled={!codeSent || finishing}>
+                  <button type="submit" className="sh-btn-primary" disabled={finishing}>
                     {finishing ? 'Creando cuenta…' : 'Verificar y crear cuenta'}
                   </button>
-                  <p className="sh-note-small">Tu contraseña inicial será tu número de documento. Podrás cambiarla luego.</p>
                 </form>
               )}
 
