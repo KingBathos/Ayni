@@ -2346,8 +2346,10 @@ export function App() {
 
           <div className="body" style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
             <AyniMap
-              services={services}
-              helpRequests={helpRequests}
+              services={services.filter(s => s.status === 'published')}
+              helpRequests={helpRequests.filter(h => !h.expiresAt || new Date(h.expiresAt).getTime() > Date.now())}
+              communityPosts={communityPosts.filter(p => !p.expiresAt || new Date(p.expiresAt).getTime() > Date.now())}
+              activities={activities.filter(a => !a.expiresAt || new Date(a.expiresAt).getTime() > Date.now())}
               neighborhood={selectedNeighborhood}
               userCoords={userCoords}
               onLocationDetected={(coords, name) => {
@@ -2355,6 +2357,30 @@ export function App() {
                 setRealLocationName(name);
               }}
               onSelectService={openProDetail}
+              onSelectHelp={(req) => {
+                handleOpenChat(
+                  req.chatThreadId || `chat-${req.id}`,
+                  req.authorName,
+                  `${req.neighborhood} · ${req.type.toUpperCase()}`,
+                  'ayuda'
+                );
+              }}
+              onSelectPost={(post) => {
+                handleOpenChat(
+                  post.chatThreadId || `chat-${post.id}`,
+                  post.title,
+                  `${post.neighborhood} · ${post.category}`,
+                  'aviso'
+                );
+              }}
+              onSelectActivity={(act) => {
+                handleOpenChat(
+                  act.chatThreadId || `chat-${act.id}`,
+                  act.title,
+                  `${act.organizer} · ${act.date}`,
+                  'actividad'
+                );
+              }}
             />
           </div>
         </>
