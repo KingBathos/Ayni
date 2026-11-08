@@ -165,11 +165,12 @@ export const AyniMap: React.FC<AyniMapProps> = ({
         zoomControl: false,
       });
 
-      const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+      const tileUrl = 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&hl=es';
 
       const tileLayer = L.tileLayer(tileUrl, {
-        maxZoom: 19,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 20,
+        subdomains: ['0', '1', '2', '3'],
+        attribution: '&copy; Google Maps',
         className: 'map-tiles'
       }).addTo(map);
 

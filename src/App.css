@@ -3402,13 +3402,13 @@ html.dark {
 
 /* Leaflet container y popups en modo oscuro */
 .phone.dark-theme .leaflet-container {
-  background: #0B0F19 !important;
+  background: #0B0E14 !important;
 }
 
-/* Modo oscuro elegante para OpenStreetMap (sin API key, sin marcas de agua, alto contraste) */
+/* Modo oscuro Google Maps: transforma las capas de calles en el estilo Google Maps Dark/Noche */
 .phone.dark-theme .leaflet-tile-pane,
 .phone.dark-theme .map-tiles {
-  filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7) !important;
+  filter: invert(100%) hue-rotate(180deg) brightness(92%) contrast(105%) !important;
 }
 
 .phone.dark-theme .leaflet-popup-content-wrapper,
