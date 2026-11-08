@@ -245,6 +245,8 @@ export const api = {
     price_type?: string;
     price_amount?: number;
     neighborhood_id?: number;
+    lat?: number;
+    lng?: number;
   }): Promise<any> {
     return this.request<any>('/api/v1/services', {
       method: 'POST',

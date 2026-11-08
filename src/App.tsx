@@ -365,8 +365,7 @@ export function App() {
           category_id: 1,
           description: newItem.description,
           price_type: newItem.priceType,
-          price_amount: newItem.priceAmount,
-          coverage_area: newItem.coverageArea
+          price_amount: newItem.priceAmount
         });
       }
     } catch {}
