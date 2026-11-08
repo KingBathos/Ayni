@@ -319,6 +319,21 @@ export function App() {
     fetchRealLocation();
   }, [fetchRealLocation]);
 
+  // Verificar permisos reales de notificación en el teléfono al iniciar
+  useEffect(() => {
+    LocalNotifications.checkPermissions()
+      .then(res => {
+        if (res.display === 'granted') {
+          setHasNotificationPermission(true);
+        }
+      })
+      .catch(() => {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          setHasNotificationPermission(true);
+        }
+      });
+  }, []);
+
   // Carga inicial y sincronización con Backend FastAPI
   useEffect(() => {
     const syncWithBackend = async () => {
@@ -1731,9 +1746,9 @@ export function App() {
                                 borderRadius: 16,
                                 padding: '0 16px',
                                 fontSize: '0.78rem',
-                                borderColor: act.joined ? '#16A34A' : 'var(--coral)',
-                                color: act.joined ? '#16A34A' : 'var(--coral)',
-                                background: act.joined ? '#ECFDF5' : 'transparent',
+                                borderColor: act.joined ? (isDarkMode ? 'rgba(34, 197, 94, 0.5)' : '#16A34A') : 'var(--coral)',
+                                color: act.joined ? (isDarkMode ? '#86EFAC' : '#16A34A') : 'var(--coral)',
+                                background: act.joined ? (isDarkMode ? 'rgba(34, 197, 94, 0.18)' : '#ECFDF5') : 'transparent',
                                 fontWeight: 700
                               }}
                               onClick={() => handleToggleActivity(act.id)}
@@ -4386,7 +4401,7 @@ export function App() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Bell size={20} color="var(--coral)" />
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--carbon)', margin: 0 }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: isDarkMode ? '#F8FAFC' : 'var(--carbon)', margin: 0 }}>
                   Notificaciones
                 </h3>
               </div>
@@ -4395,44 +4410,38 @@ export function App() {
               </button>
             </div>
 
-            {/* Banner de permiso nativo del teléfono / segundo plano */}
-            <div style={{
-              background: hasNotificationPermission ? '#E8F8F0' : '#FEF3C7',
-              border: `1px solid ${hasNotificationPermission ? '#A7F3D0' : '#FDE68A'}`,
-              borderRadius: 12,
-              padding: '10px 12px',
-              marginBottom: 12,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 8
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {hasNotificationPermission ? (
-                  <CheckCircle2 size={18} color="#059669" />
-                ) : (
-                  <BellRing size={18} color="#B45309" />
-                )}
-                <div style={{ fontSize: '0.78rem', color: hasNotificationPermission ? '#065F46' : '#92400E' }}>
-                  <strong>{hasNotificationPermission ? 'Notificaciones activas' : 'Permiso de notificaciones'}</strong>
-                  <div>
-                    {hasNotificationPermission
-                      ? 'Recibirás avisos de emergencias y chats en segundo plano.'
-                      : 'Activa las notificaciones para recibir alertas vecinales en tu teléfono.'}
+            {/* Banner de permiso: SE OCULTA COMPLETAMENTE SI YA SE OTORGARON LOS PERMISOS */}
+            {!hasNotificationPermission && (
+              <div style={{
+                background: isDarkMode ? 'rgba(245, 158, 11, 0.14)' : '#FEF3C7',
+                border: `1px solid ${isDarkMode ? 'rgba(245, 158, 11, 0.35)' : '#FDE68A'}`,
+                borderRadius: 12,
+                padding: '10px 12px',
+                marginBottom: 12,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <BellRing size={18} color="#F59E0B" />
+                  <div style={{ fontSize: '0.78rem', color: isDarkMode ? '#FDE68A' : '#92400E' }}>
+                    <strong>Permiso de notificaciones</strong>
+                    <div style={{ color: isDarkMode ? '#CBD5E1' : '#92400E', fontSize: '0.74rem' }}>
+                      Activa las notificaciones para recibir alertas vecinales en tu teléfono.
+                    </div>
                   </div>
                 </div>
-              </div>
-              {!hasNotificationPermission && (
                 <button
                   type="button"
                   className="btn btn-coral"
-                  style={{ fontSize: '0.74rem', padding: '6px 10px', borderRadius: 10, whiteSpace: 'nowrap' }}
+                  style={{ fontSize: '0.74rem', padding: '6px 12px', borderRadius: 10, whiteSpace: 'nowrap', fontWeight: 700 }}
                   onClick={handleRequestNotificationPermission}
                 >
                   Activar
                 </button>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Lista de Notificaciones */}
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 2 }}>
@@ -4463,13 +4472,13 @@ export function App() {
                 >
                   {!notif.read && <div className="notif-unread-dot" />}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--carbon)', marginBottom: 2 }}>
+                    <div className="notif-title" style={{ fontSize: '0.86rem', fontWeight: 700, color: isDarkMode ? '#F8FAFC' : 'var(--carbon)', marginBottom: 2 }}>
                       {notif.title}
                     </div>
-                    <div style={{ fontSize: '0.78rem', color: '#4B5563', lineHeight: 1.35, marginBottom: 4 }}>
+                    <div className="notif-body" style={{ fontSize: '0.78rem', color: isDarkMode ? '#CBD5E1' : '#4B5563', lineHeight: 1.35, marginBottom: 4 }}>
                       {notif.body}
                     </div>
-                    <div style={{ fontSize: '0.7rem', color: '#9CA3AF' }}>
+                    <div className="notif-date" style={{ fontSize: '0.7rem', color: isDarkMode ? '#94A3B8' : '#9CA3AF' }}>
                       {notif.date}
                     </div>
                   </div>
@@ -4478,17 +4487,17 @@ export function App() {
             </div>
 
             {/* Acciones de pie de página */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 10, borderTop: '1px solid #E5E7EB' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 10, borderTop: isDarkMode ? '1px solid #233044' : '1px solid #E5E7EB' }}>
               <button
                 type="button"
-                style={{ background: 'none', border: 'none', color: '#6B7280', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: isDarkMode ? '#94A3B8' : '#6B7280', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
                 onClick={handleMarkAllNotificationsRead}
               >
                 Marcar todas como leídas
               </button>
               <button
                 type="button"
-                style={{ background: 'none', border: 'none', color: 'var(--coral)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: isDarkMode ? '#FF7B75' : 'var(--coral)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
                 onClick={handleTestNotification}
               >
                 Probar notificación

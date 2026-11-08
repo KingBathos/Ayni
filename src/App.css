@@ -3122,16 +3122,29 @@ html.dark {
   color: #94A3B8 !important;
 }
 
+.phone.dark-theme .btn-confirmar-aviso,
 .phone.dark-theme .btn-confirm-action {
-  background: rgba(34, 197, 94, 0.16);
-  color: #4ADE80;
-  border: 1px solid rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.16) !important;
+  color: #4ADE80 !important;
+  border: 1px solid rgba(34, 197, 94, 0.4) !important;
 }
 
+.phone.dark-theme .btn-confirmar-aviso:hover,
+.phone.dark-theme .btn-confirm-action:hover {
+  background: rgba(34, 197, 94, 0.28) !important;
+  border-color: rgba(34, 197, 94, 0.6) !important;
+}
+
+.phone.dark-theme .btn-confirmado-pill,
 .phone.dark-theme .btn-confirm-action.confirmed {
-  background: #16A34A;
-  color: #FFFFFF;
-  border-color: #16A34A;
+  background: rgba(34, 197, 94, 0.24) !important;
+  color: #86EFAC !important;
+  border: 1px solid rgba(34, 197, 94, 0.5) !important;
+}
+
+.phone.dark-theme .btn-confirmado-pill:hover {
+  background: rgba(34, 197, 94, 0.35) !important;
+  border-color: rgba(34, 197, 94, 0.7) !important;
 }
 
 .phone.dark-theme .btn-prorrogar {
@@ -3405,10 +3418,15 @@ html.dark {
   background: #0B0E14 !important;
 }
 
-/* Modo oscuro Google Maps: transforma las capas de calles en el estilo Google Maps Dark/Noche */
+/* Modo oscuro Google Maps: transforma directamente los tiles de Google Maps al modo oscuro de Android */
+.phone.dark-theme .leaflet-tile,
+.phone.dark-theme img.leaflet-tile,
+.phone.dark-theme .leaflet-tile-pane img,
+.phone.dark-theme .leaflet-layer img,
 .phone.dark-theme .leaflet-tile-pane,
 .phone.dark-theme .map-tiles {
-  filter: invert(100%) hue-rotate(180deg) brightness(92%) contrast(105%) !important;
+  filter: invert(100%) hue-rotate(185deg) brightness(88%) contrast(110%) saturate(85%) !important;
+  -webkit-filter: invert(100%) hue-rotate(185deg) brightness(88%) contrast(110%) saturate(85%) !important;
 }
 
 .phone.dark-theme .leaflet-popup-content-wrapper,
@@ -3427,6 +3445,22 @@ html.dark {
 
 .phone.dark-theme .leaflet-control-attribution a {
   color: #94A3B8 !important;
+}
+
+/* Centro de Notificaciones en Modo Oscuro */
+.phone.dark-theme .notif-card {
+  background: #161F30 !important;
+  border-color: #233044 !important;
+}
+
+.phone.dark-theme .notif-card.unread {
+  background: #1E293B !important;
+  border-color: rgba(255, 90, 95, 0.45) !important;
+}
+
+.phone.dark-theme .notif-card:hover {
+  background: #1E293B !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
 }
 
 

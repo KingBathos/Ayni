@@ -172,8 +172,22 @@ export const AyniMap: React.FC<AyniMapProps> = ({
         subdomains: ['0', '1', '2', '3'],
         attribution: '&copy; Google Maps',
         className: 'map-tiles'
-      }).addTo(map);
+      });
 
+      // Asegurar que cada tile reciba el filtro directamente en el elemento (indispensable para WebView en Android)
+      tileLayer.on('tileload', (event: any) => {
+        if (event.tile) {
+          if (isDarkMode) {
+            event.tile.style.filter = 'invert(100%) hue-rotate(185deg) brightness(88%) contrast(110%) saturate(85%)';
+            event.tile.style.webkitFilter = 'invert(100%) hue-rotate(185deg) brightness(88%) contrast(110%) saturate(85%)';
+          } else {
+            event.tile.style.filter = '';
+            event.tile.style.webkitFilter = '';
+          }
+        }
+      });
+
+      tileLayer.addTo(map);
       tileLayerRef.current = tileLayer;
 
       const markersLayer = L.layerGroup().addTo(map);
@@ -192,6 +206,21 @@ export const AyniMap: React.FC<AyniMapProps> = ({
       }
     };
   }, []);
+
+  // Sincronizar estilo oscuro en todos los tiles cargados cuando el usuario cambia de modo
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+    const tiles = mapContainerRef.current.querySelectorAll<HTMLImageElement>('.leaflet-tile, .leaflet-tile-pane img');
+    tiles.forEach(tile => {
+      if (isDarkMode) {
+        tile.style.filter = 'invert(100%) hue-rotate(185deg) brightness(88%) contrast(110%) saturate(85%)';
+        tile.style.webkitFilter = 'invert(100%) hue-rotate(185deg) brightness(88%) contrast(110%) saturate(85%)';
+      } else {
+        tile.style.filter = '';
+        tile.style.webkitFilter = '';
+      }
+    });
+  }, [isDarkMode]);
 
   // FILTRADO ESTRICTO DE VIGENCIA:
   // Solo los avisos, auxilios y actividades NO vencidos aparecen en el mapa.
