@@ -110,14 +110,23 @@ export interface HelpRequest {
   chatThreadId?: string;
 }
 
+export type OfflineHopsStep = 'guardado' | 'enviando' | 'recibido' | 'sincronizado';
+
 export interface OfflineEnvelope {
   id: string;
   type: 'help_request' | 'booking_status';
-  payload: any;
+  title?: string;
+  description?: string;
+  payload?: any;
   createdAt: string;
+  timeAgo?: string;
   status: 'local' | 'retransmitido' | 'sincronizado';
+  step: OfflineHopsStep;
   hops: number;
   hopLimit: number;
+  expiresIn?: string;
+  statusText?: string;
+  statusSubtext?: string;
 }
 
 export interface CommunityActivity {

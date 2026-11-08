@@ -3526,8 +3526,12 @@ export function App() {
                     type="button"
                     onClick={() => setNewService({ ...newService, priceType: 'fixed' })}
                     style={{
-                      border: newService.priceType === 'fixed' ? '2px solid var(--coral)' : '1px solid var(--gray-300)',
-                      background: newService.priceType === 'fixed' ? '#FFF5F4' : '#FFFFFF',
+                      border: newService.priceType === 'fixed'
+                        ? '2px solid var(--coral)'
+                        : `1px solid ${isDarkMode ? '#334155' : 'var(--gray-300)'}`,
+                      background: newService.priceType === 'fixed'
+                        ? (isDarkMode ? 'rgba(255, 90, 95, 0.16)' : '#FFF5F4')
+                        : (isDarkMode ? '#1E293B' : '#FFFFFF'),
                       borderRadius: 12,
                       padding: '12px 10px',
                       cursor: 'pointer',
@@ -3539,16 +3543,16 @@ export function App() {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                      <span style={{ fontSize: '0.84rem', fontWeight: 800, color: newService.priceType === 'fixed' ? 'var(--coral)' : 'var(--carbon)' }}>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 800, color: newService.priceType === 'fixed' ? 'var(--coral)' : (isDarkMode ? '#F8FAFC' : 'var(--carbon)') }}>
                         Precio fijo
                       </span>
                       {newService.priceType === 'fixed' ? (
                         <CheckCircle2 size={16} color="var(--coral)" />
                       ) : (
-                        <Circle size={16} color="#9CA3AF" />
+                        <Circle size={16} color={isDarkMode ? '#475569' : '#9CA3AF'} />
                       )}
                     </div>
-                    <span style={{ fontSize: '0.73rem', color: '#6B7280', lineHeight: 1.25 }}>
+                    <span style={{ fontSize: '0.73rem', color: isDarkMode ? '#94A3B8' : '#6B7280', lineHeight: 1.25 }}>
                       Tarifa cerrada o por hora en Soles
                     </span>
                   </button>
@@ -3557,8 +3561,12 @@ export function App() {
                     type="button"
                     onClick={() => setNewService({ ...newService, priceType: 'quote' })}
                     style={{
-                      border: newService.priceType === 'quote' ? '2px solid var(--coral)' : '1px solid var(--gray-300)',
-                      background: newService.priceType === 'quote' ? '#FFF5F4' : '#FFFFFF',
+                      border: newService.priceType === 'quote'
+                        ? '2px solid var(--coral)'
+                        : `1px solid ${isDarkMode ? '#334155' : 'var(--gray-300)'}`,
+                      background: newService.priceType === 'quote'
+                        ? (isDarkMode ? 'rgba(255, 90, 95, 0.16)' : '#FFF5F4')
+                        : (isDarkMode ? '#1E293B' : '#FFFFFF'),
                       borderRadius: 12,
                       padding: '12px 10px',
                       cursor: 'pointer',
@@ -3570,16 +3578,16 @@ export function App() {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                      <span style={{ fontSize: '0.84rem', fontWeight: 800, color: newService.priceType === 'quote' ? 'var(--coral)' : 'var(--carbon)' }}>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 800, color: newService.priceType === 'quote' ? 'var(--coral)' : (isDarkMode ? '#F8FAFC' : 'var(--carbon)') }}>
                         A cotizar en el lugar
                       </span>
                       {newService.priceType === 'quote' ? (
                         <CheckCircle2 size={16} color="var(--coral)" />
                       ) : (
-                        <Circle size={16} color="#9CA3AF" />
+                        <Circle size={16} color={isDarkMode ? '#475569' : '#9CA3AF'} />
                       )}
                     </div>
-                    <span style={{ fontSize: '0.73rem', color: '#6B7280', lineHeight: 1.25 }}>
+                    <span style={{ fontSize: '0.73rem', color: isDarkMode ? '#94A3B8' : '#6B7280', lineHeight: 1.25 }}>
                       Al acercarse para evaluar el servicio
                     </span>
                   </button>
