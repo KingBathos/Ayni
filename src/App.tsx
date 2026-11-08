@@ -601,6 +601,7 @@ export function App() {
     const post: CommunityPost = {
       id: `post-${Date.now()}`,
       authorName: `${userName} (Tú)`,
+      authorId: currentUser?.documentNumber || 'usr-me',
       category: newNotice.category as any,
       title: newNotice.title,
       body: newNotice.body,
@@ -1410,7 +1411,7 @@ export function App() {
                     </div>
                   ) : (
                     homeFilteredPosts.map(post => {
-                      const isNoticeConfirmed = confirmedPostIds.includes(post.id) || post.authorId === (currentUser?.documentNumber || 'usr-me');
+                      const isNoticeConfirmed = confirmedPostIds.includes(post.id) || (Boolean(post.authorId) && post.authorId === (currentUser?.documentNumber || 'usr-me')) || post.authorName.includes('(Tú)');
                       const chatCount = chatMessages[post.chatThreadId || `chat-${post.id}`]?.filter(m => !m.deletedForUserIds?.includes(currentUser?.documentNumber || 'usr-me')).length || 0;
 
                       return (

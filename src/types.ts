@@ -82,6 +82,7 @@ export interface Review {
 export interface CommunityPost {
   id: string;
   authorName: string;
+  authorId?: string;
   category: 'corte_agua' | 'corte_luz' | 'seguridad' | 'actividad' | 'general';
   title: string;
   body: string;
