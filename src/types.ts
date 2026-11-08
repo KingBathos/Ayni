@@ -91,3 +91,17 @@ export interface OfflineEnvelope {
   hopLimit: number;
 }
 
+export interface CommunityActivity {
+  id: string;
+  title: string;
+  organizer: string;
+  date: string;
+  badge: string;
+  badgeType: 'open' | 'solidarity' | 'meeting';
+  description: string;
+  buttonText: string;
+  participantsCount: number;
+  joined?: boolean;
+}
+
+

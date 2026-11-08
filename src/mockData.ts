@@ -126,3 +126,42 @@ export const INITIAL_BOOKINGS: Booking[] = [
   }
 ];
 
+export const INITIAL_ACTIVITIES = [
+  {
+    id: 'act-1',
+    title: 'Faena Comunal: Limpieza y Mantenimiento de Parque',
+    organizer: 'Comité Vecinal Sector 3',
+    date: 'Este Sábado · 8:00 AM',
+    badge: 'Convocatoria abierta',
+    badgeType: 'open' as const,
+    description: 'Traer escobas, rastrillos y bolsas. La municipalidad aportará pintura y plantones para áreas verdes.',
+    buttonText: 'Participar en la faena',
+    participantsCount: 18,
+    joined: false
+  },
+  {
+    id: 'act-2',
+    title: 'Olla Común y Taller de Nutrición Vecinal',
+    organizer: 'Comité de Madres Unidas',
+    date: 'Domingo · 12:30 PM',
+    badge: 'Solidario',
+    badgeType: 'solidarity' as const,
+    description: 'Almuerzo solidario para adultos mayores y personas vulnerables de la zona. Se reciben aportes de víveres secos.',
+    buttonText: 'Aportar víveres',
+    participantsCount: 26,
+    joined: false
+  },
+  {
+    id: 'act-3',
+    title: 'Reunión de Coordinación Vecinal y Alarma Comunitaria',
+    organizer: 'Junta de Delegados',
+    date: 'Viernes · 7:00 PM',
+    badge: 'Presencial y Virtual',
+    badgeType: 'meeting' as const,
+    description: 'Balance de gestión de seguridad ciudadana y pruebas sonoras del nuevo sistema de sirenas comunitarias.',
+    buttonText: 'Ver enlace de Zoom',
+    participantsCount: 34,
+    joined: false
+  }
+];
+
