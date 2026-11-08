@@ -165,14 +165,12 @@ export const AyniMap: React.FC<AyniMapProps> = ({
         zoomControl: false,
       });
 
-      const tileUrl = isDarkMode
-        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-        : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+      const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
       const tileLayer = L.tileLayer(tileUrl, {
-        maxZoom: 20,
-        subdomains: isDarkMode ? 'abcd' : 'abc',
-        attribution: isDarkMode ? '&copy; OpenStreetMap &copy; CARTO' : '&copy; OpenStreetMap'
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        className: 'map-tiles'
       }).addTo(map);
 
       tileLayerRef.current = tileLayer;
@@ -193,26 +191,6 @@ export const AyniMap: React.FC<AyniMapProps> = ({
       }
     };
   }, []);
-
-  // Cambiar tile layer dinámicamente si el usuario alterna a modo oscuro
-  useEffect(() => {
-    if (!mapInstanceRef.current) return;
-    if (tileLayerRef.current) {
-      mapInstanceRef.current.removeLayer(tileLayerRef.current);
-    }
-
-    const tileUrl = isDarkMode
-      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-      : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-
-    const newTile = L.tileLayer(tileUrl, {
-      maxZoom: 20,
-      subdomains: isDarkMode ? 'abcd' : 'abc',
-      attribution: isDarkMode ? '&copy; OpenStreetMap &copy; CARTO' : '&copy; OpenStreetMap'
-    }).addTo(mapInstanceRef.current);
-
-    tileLayerRef.current = newTile;
-  }, [isDarkMode]);
 
   // FILTRADO ESTRICTO DE VIGENCIA:
   // Solo los avisos, auxilios y actividades NO vencidos aparecen en el mapa.

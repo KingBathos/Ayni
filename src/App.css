@@ -3405,6 +3405,12 @@ html.dark {
   background: #0B0F19 !important;
 }
 
+/* Modo oscuro elegante para OpenStreetMap (sin API key, sin marcas de agua, alto contraste) */
+.phone.dark-theme .leaflet-tile-pane,
+.phone.dark-theme .map-tiles {
+  filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7) !important;
+}
+
 .phone.dark-theme .leaflet-popup-content-wrapper,
 .phone.dark-theme .leaflet-popup-tip {
   background: #161F30 !important;
@@ -3412,6 +3418,17 @@ html.dark {
   border: 1px solid #233044 !important;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
 }
+
+.phone.dark-theme .leaflet-control-attribution {
+  background: rgba(11, 15, 25, 0.75) !important;
+  color: #64748B !important;
+  font-size: 0.65rem !important;
+}
+
+.phone.dark-theme .leaflet-control-attribution a {
+  color: #94A3B8 !important;
+}
+
 
 
 
