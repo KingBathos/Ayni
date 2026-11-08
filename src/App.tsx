@@ -20,6 +20,7 @@ import {
 import { ServiceItem, HelpRequest, Booking, OfflineEnvelope, CommunityPost, CommunityActivity, ChatMessage, AppNotification } from './types';
 import { AuthModal } from './AuthModal';
 import { AyniMap } from './AyniMap';
+import { InteractiveTutorial } from './InteractiveTutorial';
 import { api } from './api';
 import './App.css';
 
@@ -74,6 +75,29 @@ export function App() {
   } | null>(null);
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isTutorialActive, setIsTutorialActive] = useState(false);
+
+  const handleCompleteTutorial = () => {
+    try {
+      localStorage.setItem('ayni_onboarding_completed', 'true');
+    } catch {}
+    setIsTutorialActive(false);
+    setView('home');
+    if (!currentUser) {
+      setIsAuthModalOpen(true);
+    }
+  };
+
+  const handleSkipTutorial = () => {
+    try {
+      localStorage.setItem('ayni_onboarding_completed', 'true');
+    } catch {}
+    setIsTutorialActive(false);
+    setView('home');
+    if (!currentUser) {
+      setIsAuthModalOpen(true);
+    }
+  };
 
   const [services, setServices] = useState<ServiceItem[]>(INITIAL_SERVICES);
   const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>(INITIAL_COMMUNITY_POSTS);
@@ -315,6 +339,7 @@ export function App() {
 
   const modalsRef = useRef({
     isAuthModalOpen,
+    isTutorialActive,
     isHelpModalOpen,
     isServiceModalOpen,
     isRateModalOpen,
@@ -331,6 +356,7 @@ export function App() {
   });
   modalsRef.current = {
     isAuthModalOpen,
+    isTutorialActive,
     isHelpModalOpen,
     isServiceModalOpen,
     isRateModalOpen,
@@ -358,7 +384,7 @@ export function App() {
 
   const handleBack = useCallback(() => {
     const {
-      isAuthModalOpen, isHelpModalOpen, isServiceModalOpen,
+      isAuthModalOpen, isTutorialActive, isHelpModalOpen, isServiceModalOpen,
       isRateModalOpen, isNoticeModalOpen, activeChatThread,
       isChatInfoOpen, isConfirmLeaveChatOpen, isDeleteMsgDialogOpen,
       deleteConfirmMode, selectedMessageId,
@@ -371,6 +397,7 @@ export function App() {
     if (isChatInfoOpen) { setIsChatInfoOpen(false); return; }
     if (selectedMessageId) { setSelectedMessageId(null); return; }
     if (activeChatThread) { setActiveChatThread(null); return; }
+    if (isTutorialActive) { setIsTutorialActive(false); return; }
     if (isNotificationsOpen) { setIsNotificationsOpen(false); return; }
     if (extendModalItem) { setExtendModalItem(null); return; }
     if (isRateModalOpen) { setIsRateModalOpen(false); return; }
@@ -1137,14 +1164,10 @@ export function App() {
                 className="btn btn-coral btn-block fade-in-btn"
                 style={{ borderRadius: 'var(--radius-full)' }}
                 onClick={() => {
-                  try {
-                    localStorage.setItem('ayni_onboarding_completed', 'true');
-                  } catch {}
-                  navigateTo('home');
-                  setIsAuthModalOpen(true);
+                  setIsTutorialActive(true);
                 }}
               >
-                Comenzar
+                Comenzar tutorial
               </button>
             )}
           </div>
@@ -2839,12 +2862,18 @@ export function App() {
                     }
                   },
                   {
-                    icon: <Clock size={18} color="var(--orange)" />,
-                    label: 'Reiniciar pantalla de bienvenida (Demo)',
+                    icon: <HelpCircle size={18} color="var(--coral)" />,
+                    label: 'Ver tutorial interactivo de Ayni',
+                    action: () => setIsTutorialActive(true)
+                  },
+                  {
+                    icon: <RefreshCw size={18} color="#4B5563" />,
+                    label: 'Restablecer primera vez / Demo',
                     action: () => {
                       try {
                         localStorage.removeItem('ayni_onboarding_completed');
                       } catch {}
+                      setIsTutorialActive(false);
                       navigateTo('welcome');
                     }
                   },
@@ -2979,6 +3008,14 @@ export function App() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* ===== TUTORIAL INTERACTIVO (Primera vez tras instalación o desde Perfil) ===== */}
+      {isTutorialActive && (
+        <InteractiveTutorial
+          onComplete={handleCompleteTutorial}
+          onSkip={handleSkipTutorial}
+        />
       )}
 
       {/* ===== AUTH MODAL (Mantiene login/registro y agrega ubicación híbrida) ===== */}
