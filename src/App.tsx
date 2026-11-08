@@ -1415,26 +1415,24 @@ export function App() {
                       const chatCount = chatMessages[post.chatThreadId || `chat-${post.id}`]?.filter(m => !m.deletedForUserIds?.includes(currentUser?.documentNumber || 'usr-me')).length || 0;
 
                       return (
-                        <div key={post.id} className="card">
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                            <div style={{
-                              width: 34, height: 34, borderRadius: 10,
-                              background: post.category === 'corte_agua' ? '#DBEAFE' : post.category === 'seguridad' ? '#FEE2E2' : '#FEF3C7',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center'
-                            }}>
+                        <div key={post.id} className="card card-community">
+                          <div className="card-header-row">
+                            <div className={`card-icon-box ${post.category === 'corte_agua' ? 'icon-box-water' : post.category === 'seguridad' ? 'icon-box-sec' : 'icon-box-warn'}`}>
                               {renderNoticeIcon(post.category)}
                             </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <h4 style={{ fontSize: '0.92rem', fontWeight: 700, margin: 0, color: 'var(--carbon)' }}>
+                            <div className="card-headline-group">
+                              <h4 className="card-title">
                                 {post.title}
                               </h4>
-                              <span style={{ fontSize: '0.72rem', color: '#6B7280' }}>
-                                {post.authorName} · {post.date}
-                              </span>
+                              <div className="card-meta">
+                                <span>{post.authorName}</span>
+                                <span>·</span>
+                                <span>{post.date}</span>
+                              </div>
                             </div>
                           </div>
 
-                          <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                          <div className="card-badges-row">
                             <span className={`badge-com ${post.verificationStatus === 'corroborado' ? 'badge-corroborado' : 'badge-reportado'}`}>
                               {post.verificationStatus === 'corroborado' ? (
                                 <><CheckCircle2 size={12} /> Corroborado</>
@@ -1449,14 +1447,14 @@ export function App() {
                             )}
                           </div>
 
-                          <p style={{ fontSize: '0.82rem', color: '#4B5563', lineHeight: 1.45, marginBottom: 10 }}>
+                          <p className="card-body-text">
                             {post.body}
                           </p>
 
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #F3F4F6', paddingTop: 8 }}>
-                            <span style={{ fontSize: '0.74rem', color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <Users size={13} color="#6B7280" />
-                              {post.corroborations} vecinos confirmaron
+                          <div className="card-actions-row">
+                            <span className="card-actions-meta">
+                              <Users size={14} color="var(--gray-500)" />
+                              <span><strong>{post.corroborations}</strong> vecinos confirmaron</span>
                             </span>
                             {isNoticeConfirmed ? (
                               <button
@@ -1472,7 +1470,7 @@ export function App() {
                                 className="btn-confirmar-aviso"
                                 onClick={() => handleToggleConfirmNotice(post.id)}
                               >
-                                <ThumbsUp size={12} /> Confirmar
+                                <ThumbsUp size={13} /> Confirmar
                               </button>
                             )}
                           </div>
@@ -1542,12 +1540,14 @@ export function App() {
                       const chatCount = chatMessages[req.chatThreadId || `chat-${req.id}`]?.filter(m => !m.deletedForUserIds?.includes(currentUser?.documentNumber || 'usr-me')).length || 0;
 
                       return (
-                        <div key={req.id} className="card">
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                            <div>
-                              <strong style={{ fontSize: '0.92rem', color: 'var(--carbon)' }}>{req.authorName}</strong>
-                              <div style={{ fontSize: '0.74rem', color: '#6B7280' }}>
-                                {req.neighborhood} · {req.date}
+                        <div key={req.id} className="card card-help">
+                          <div className="card-header-row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div className="card-headline-group">
+                              <h4 className="card-title">{req.authorName}</h4>
+                              <div className="card-meta">
+                                <span>{req.neighborhood}</span>
+                                <span>·</span>
+                                <span>{req.date}</span>
                               </div>
                             </div>
                             <span className={`badge-com ${req.urgency === 'alta' ? 'badge-urgente' : 'badge-reportado'}`}>
@@ -1559,11 +1559,11 @@ export function App() {
                             </span>
                           </div>
 
-                          <p style={{ fontSize: '0.84rem', color: '#4B5563', lineHeight: 1.45, margin: '6px 0 10px' }}>
+                          <p className="card-body-text">
                             {req.description}
                           </p>
 
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #F3F4F6', paddingTop: 8 }}>
+                          <div className="card-actions-row">
                             <span className="badge-com badge-abierta">
                               {req.status === 'abierta' ? 'Abierta' : 'En coordinación'}
                             </span>
@@ -1576,8 +1576,8 @@ export function App() {
                                 <HandHeart size={14} /> Puedo ayudar
                               </button>
                             ) : (
-                              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#2E9D72', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <CheckCircle2 size={13} /> Ayuda en marcha: {req.helperName || userName}
+                              <span style={{ fontSize: '0.80rem', fontWeight: 700, color: '#166534', display: 'flex', alignItems: 'center', gap: 5 }}>
+                                <CheckCircle2 size={14} /> Ayuda en marcha: {req.helperName || userName}
                               </span>
                             )}
                           </div>
@@ -1623,7 +1623,7 @@ export function App() {
               {/* ===== TAB 3: SERVICIOS (Con Categorías y Profesionales Destacados, Sin Banner Comercial) ===== */}
               {communityTab === 'servicios' && (
                 <div>
-                  <div className="sec"><h3>Categorías</h3></div>
+                  <div className="sec"><h3>Categorías de oficios</h3></div>
                   <div className="cat-grid">
                     {INITIAL_CATEGORIES.map(c => (
                       <div key={c.id} className="cat-item" onClick={() => { setSelectedCategory(c.id); navigateTo('explore'); }}>
@@ -1635,7 +1635,7 @@ export function App() {
                     ))}
                     <div className="cat-item" onClick={() => { setSelectedCategory('all'); navigateTo('explore'); }}>
                       <div className="cat-icon more">
-                        <MoreHorizontal size={20} color="#6B7280" />
+                        <MoreHorizontal size={20} color="var(--gray-500)" />
                       </div>
                       <div className="cat-label">Ver todas</div>
                     </div>
@@ -1643,7 +1643,7 @@ export function App() {
 
                   {/* Profesionales Destacados */}
                   <div className="sec">
-                    <h3>Profesionales destacados</h3>
+                    <h3>Profesionales del barrio</h3>
                     <button className="sec-link" onClick={() => navigateTo('explore')}>Ver todos</button>
                   </div>
 
@@ -1665,19 +1665,23 @@ export function App() {
                         </div>
                         <div className="feat-pro-info">
                           <div className="feat-pro-name">
-                            {srv.providerName.split('(')[0].trim()}
-                            <CheckCircle size={14} color="#2E9D72" />
+                            <span>{srv.providerName.split('(')[0].trim()}</span>
+                            <CheckCircle size={15} color="#16A34A" />
                           </div>
                           <div className="feat-pro-meta">
-                            <Star size={12} fill="#F59E0B" color="#F59E0B" /> {srv.rating} &nbsp;·&nbsp;
-                            {srv.coverageArea}
+                            <Star size={13} fill="#F59E0B" color="#F59E0B" />
+                            <strong>{srv.rating}</strong>
+                            <span>·</span>
+                            <span>{srv.coverageArea}</span>
                           </div>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--coral)' }}>
+                        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                          <span style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--coral)' }}>
                             {srv.priceType === 'quote' ? 'A cotizar' : `S/ ${srv.priceAmount || '35'}/h`}
-                          </div>
-                          <ChevronRight size={18} color="#d1d5db" />
+                          </span>
+                          <span style={{ fontSize: '0.70rem', color: 'var(--gray-500)', fontWeight: 600 }}>
+                            {srv.priceType === 'quote' ? 'En el lugar' : 'Tarifa por hora'}
+                          </span>
                         </div>
                       </div>
                     ))
@@ -1716,27 +1720,31 @@ export function App() {
                             <div
                               className="activity-icon-box"
                               style={{
-                                background: act.badgeType === 'open' ? '#E8F8F0' : act.badgeType === 'solidarity' ? '#FFEDD5' : '#DBEAFE'
+                                background: act.badgeType === 'open' ? '#ECFDF5' : act.badgeType === 'solidarity' ? '#FFF7ED' : '#EFF6FF',
+                                border: act.badgeType === 'open' ? '1px solid #A7F3D0' : act.badgeType === 'solidarity' ? '1px solid #FFEDD5' : '1px solid #BFDBFE'
                               }}
                             >
-                              {act.badgeType === 'open' ? <CalendarDays size={18} color="#2E9D72" /> :
-                               act.badgeType === 'solidarity' ? <Utensils size={18} color="#EA580C" /> :
-                               <Users size={18} color="#3B82F6" />}
+                              {act.badgeType === 'open' ? <CalendarDays size={20} color="#16A34A" /> :
+                               act.badgeType === 'solidarity' ? <Utensils size={20} color="#EA580C" /> :
+                               <Users size={20} color="#2563EB" />}
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <h4 className="activity-title">{act.title}</h4>
                               <div className="activity-meta">
-                                {act.organizer} · <strong>{act.date}</strong>
+                                <span>{act.organizer}</span>
+                                <span>·</span>
+                                <strong>{act.date}</strong>
                               </div>
                             </div>
                           </div>
 
-                          <div style={{ marginBottom: 8 }}>
+                          <div className="card-badges-row">
                             <span
                               className="badge-com"
                               style={{
-                                background: act.badgeType === 'open' ? '#E8F8F0' : act.badgeType === 'solidarity' ? '#EDE9FE' : '#F3F4F6',
-                                color: act.badgeType === 'open' ? '#2E9D72' : act.badgeType === 'solidarity' ? '#6D28D9' : '#4B5563'
+                                background: act.badgeType === 'open' ? '#ECFDF5' : act.badgeType === 'solidarity' ? '#F5F3FF' : '#F1F5F9',
+                                color: act.badgeType === 'open' ? '#065F46' : act.badgeType === 'solidarity' ? '#5B21B6' : '#334155',
+                                border: act.badgeType === 'open' ? '1px solid #A7F3D0' : act.badgeType === 'solidarity' ? '1px solid #DDD6FE' : '1px solid #E2E8F0'
                               }}
                             >
                               {act.badge}
@@ -1746,16 +1754,20 @@ export function App() {
                           <p className="activity-desc">{act.description}</p>
 
                           <div className="activity-footer">
-                            <span style={{ fontSize: '0.75rem', color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <Users size={13} color="#6B7280" />
-                              {act.participantsCount} vecinos participando
+                            <span className="card-actions-meta">
+                              <Users size={14} color="var(--gray-500)" />
+                              <span><strong>{act.participantsCount}</strong> vecinos participando</span>
                             </span>
                             <button
                               className="btn btn-outline btn-sm"
                               style={{
-                                borderColor: act.joined ? '#2E9D72' : 'var(--coral)',
-                                color: act.joined ? '#2E9D72' : 'var(--coral)',
-                                background: act.joined ? '#E8F8F0' : 'transparent',
+                                height: 32,
+                                borderRadius: 16,
+                                padding: '0 16px',
+                                fontSize: '0.78rem',
+                                borderColor: act.joined ? '#16A34A' : 'var(--coral)',
+                                color: act.joined ? '#16A34A' : 'var(--coral)',
+                                background: act.joined ? '#ECFDF5' : 'transparent',
                                 fontWeight: 700
                               }}
                               onClick={() => handleToggleActivity(act.id)}
@@ -2475,7 +2487,7 @@ export function App() {
         return (
           <>
             <div className="top-bar" style={{ borderBottom: '1px solid var(--gray-200)', paddingBottom: 14 }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--carbon)' }}>Mis solicitudes</h3>
+              <h2 style={{ fontSize: '1.30rem', fontWeight: 800, color: 'var(--carbon)', margin: 0, letterSpacing: '-0.3px' }}>Mis solicitudes</h2>
             </div>
 
             <div className="body">
@@ -2507,8 +2519,8 @@ export function App() {
                   myClientBookings.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '40px 0', color: '#9CA3AF' }}>
                       <Store size={40} style={{ margin: '0 auto 8px', opacity: 0.4, display: 'block' }} />
-                      <p style={{ fontWeight: 700 }}>No tienes solicitudes en curso</p>
-                      <p style={{ fontSize: '0.82rem' }}>Explora servicios cercanos de tu barrio para pedir una atención</p>
+                      <p style={{ fontWeight: 700, fontSize: '0.96rem', color: 'var(--carbon)' }}>No tienes solicitudes en curso</p>
+                      <p style={{ fontSize: '0.82rem', color: '#64748B', marginTop: 4 }}>Explora servicios cercanos de tu barrio para pedir una atención</p>
                     </div>
                   ) : (
                     myClientBookings.map(b => (
@@ -2522,8 +2534,8 @@ export function App() {
                           navigateTo('tracking');
                         }}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <span style={{ fontWeight: 700, color: 'var(--carbon)', fontSize: '0.92rem' }}>{b.serviceTitle}</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                          <h4 className="card-title" style={{ fontSize: '1.02rem', margin: 0 }}>{b.serviceTitle}</h4>
                           <span
                             className="tag"
                             style={{
@@ -2531,15 +2543,18 @@ export function App() {
                                 b.status === 'en_revision' || b.status === 'solicitado' ? '#FEF3C7' :
                                 b.status === 'en_proceso' ? '#DBEAFE' : '#FFEDD5',
                               color:
-                                b.status === 'en_revision' || b.status === 'solicitado' ? '#B45309' :
-                                b.status === 'en_proceso' ? '#1D4ED8' : 'var(--coral)',
-                              fontSize: '0.72rem',
+                                b.status === 'en_revision' || b.status === 'solicitado' ? '#92400E' :
+                                b.status === 'en_proceso' ? '#1E40AF' : '#9A3412',
+                              border:
+                                b.status === 'en_revision' || b.status === 'solicitado' ? '1px solid #FDE68A' :
+                                b.status === 'en_proceso' ? '1px solid #BFDBFE' : '1px solid #FED7AA',
+                              fontSize: '0.73rem',
                               fontWeight: 700,
                               padding: '3px 8px',
                               borderRadius: 6,
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: 3
+                              gap: 4
                             }}
                           >
                             {b.status === 'en_revision' || b.status === 'solicitado' ? (
@@ -2974,14 +2989,14 @@ export function App() {
       {/* ========== PERFIL (Boceto 17) ========== */}
       {view === 'profile' && (
         <>
-          <div className="top-bar" style={{ textAlign: 'center', borderBottom: '1px solid var(--gray-200)', paddingBottom: 18 }}>
-            <div className="header-avatar" style={{ width: 64, height: 64, fontSize: '1.5rem', margin: '0 auto 10px' }}>
+          <div className="top-bar" style={{ textAlign: 'center', borderBottom: '1px solid var(--gray-200)', padding: '24px 18px 20px' }}>
+            <div className="header-avatar" style={{ width: 72, height: 72, fontSize: '1.8rem', margin: '0 auto 12px', boxShadow: '0 4px 16px rgba(216, 59, 53, 0.32)' }}>
               {userInitial}
             </div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--carbon)' }}>{userName}</h3>
-            <p style={{ fontSize: '0.82rem', color: '#6B7280' }}>{currentUser?.documentNumber ? `Doc: ${currentUser.documentNumber}` : 'maria@ayni.pe'}</p>
-            <span className="verified-badge" style={{ marginTop: 6, display: 'inline-flex' }}>
-              <CheckCircle size={12} /> Vecino Verificado Ayni
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--carbon)', margin: 0, letterSpacing: '-0.3px' }}>{userName}</h2>
+            <p style={{ fontSize: '0.82rem', color: 'var(--gray-500)', marginTop: 3, fontWeight: 500 }}>{currentUser?.documentNumber ? `DNI / Documento: ${currentUser.documentNumber}` : 'maria@ayni.pe'}</p>
+            <span className="badge-com badge-corroborado" style={{ marginTop: 8, display: 'inline-flex', padding: '5px 12px', borderRadius: 20 }}>
+              <CheckCircle size={13} /> Vecino Verificado Ayni
             </span>
           </div>
 

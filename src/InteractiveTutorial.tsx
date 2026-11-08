@@ -197,19 +197,19 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
                       <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 800, textTransform: 'uppercase' }}>
                         Auxilio Vecinal · 100% Gratuito
                       </span>
-                      <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#111827', margin: '2px 0' }}>
+                      <h4 style={{ fontSize: '1.02rem', fontWeight: 800, color: '#0F172A', margin: '2px 0', lineHeight: 1.3 }}>
                         Adulto mayor necesita 2 bidones de agua
                       </h4>
-                      <div style={{ fontSize: '0.74rem', color: '#6B7280' }}>
+                      <div style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 600 }}>
                         Familia Mendoza · Sector Central
                       </div>
                     </div>
-                    <span style={{ fontSize: '0.72rem', background: '#FEF3C7', color: '#B45309', padding: '3px 8px', borderRadius: 6, fontWeight: 700 }}>
+                    <span style={{ fontSize: '0.72rem', background: '#FEF2F2', color: '#991B1B', border: '1px solid #FECACA', padding: '3px 8px', borderRadius: 6, fontWeight: 700 }}>
                       Urgente
                     </span>
                   </div>
 
-                  <p style={{ fontSize: '0.78rem', color: '#374151', margin: '8px 0 12px 0', lineHeight: 1.4 }}>
+                  <p style={{ fontSize: '0.86rem', color: '#334155', margin: '8px 0 12px 0', lineHeight: 1.5 }}>
                     "Mi mamá tiene 78 años y no puede cargar los bidones desde la pista por corte de Sedapal. Agradecemos cualquier mano solidaria."
                   </p>
 
@@ -258,19 +258,19 @@ export function InteractiveTutorial({ onComplete, onSkip }: InteractiveTutorialP
                       <span style={{ fontSize: '0.72rem', color: '#D97706', fontWeight: 800, textTransform: 'uppercase' }}>
                         Aviso de Servicio
                       </span>
-                      <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#111827', margin: '2px 0' }}>
+                      <h4 style={{ fontSize: '1.02rem', fontWeight: 800, color: '#0F172A', margin: '2px 0', lineHeight: 1.3 }}>
                         Corte imprevisto de agua en Sector 4
                       </h4>
-                      <div style={{ fontSize: '0.74rem', color: '#6B7280' }}>
+                      <div style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 600 }}>
                         Junta Vecinal Manzana F · Sector Central
                       </div>
                     </div>
-                    <span style={{ fontSize: '0.72rem', background: '#E0F2FE', color: '#0369A1', padding: '2px 6px', borderRadius: 6, fontWeight: 700 }}>
+                    <span style={{ fontSize: '0.72rem', background: '#EFF6FF', color: '#1E40AF', border: '1px solid #BFDBFE', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
                       Vigente
                     </span>
                   </div>
 
-                  <p style={{ fontSize: '0.78rem', color: '#374151', margin: '6px 0 10px 0', lineHeight: 1.4 }}>
+                  <p style={{ fontSize: '0.86rem', color: '#334155', margin: '6px 0 10px 0', lineHeight: 1.5 }}>
                     Sedapal confirmó que la cisterna llegará al parque principal a las 5:00 PM. Máximo 3 baldes por familia.
                   </p>
 
