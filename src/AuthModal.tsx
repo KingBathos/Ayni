@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, ChevronLeft, Check, Search, Loader2, MapPin, CheckCircle2, Navigation } from 'lucide-react';
+import { Eye, EyeOff, ChevronLeft, Check, Search, Loader2, MapPin, CheckCircle2, Navigation, ShieldCheck } from 'lucide-react';
 import { api } from './api';
 import './AuthModal.css';
 
@@ -490,7 +490,8 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
                     )}
 
                     <p className="sh-privacy-note">
-                      🔒 Se muestra solo tu barrio, nunca tu domicilio exacto.
+                      <ShieldCheck size={14} style={{ display: 'inline', verticalAlign: '-2px', marginRight: 4, color: '#2E9D72' }} />
+                      Se muestra solo tu barrio, nunca tu domicilio exacto.
                     </p>
                   </div>
 

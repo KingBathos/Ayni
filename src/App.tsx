@@ -8,7 +8,7 @@ import {
   HelpCircle, LogOut, ArrowLeft, Camera, Calendar, Send, Navigation,
   Zap, Wrench, Hammer, Sparkles, GraduationCap, Utensils, MoreHorizontal,
   Phone, MessageCircle, CheckCircle, Circle, ThumbsUp, Droplet, Megaphone,
-  CalendarDays, HandHeart, Shield
+  CalendarDays, HandHeart, Shield, X, ChevronDown
 } from 'lucide-react';
 import {
   INITIAL_SERVICES, INITIAL_COMMUNITY_POSTS, INITIAL_HELP_REQUESTS,
@@ -41,7 +41,8 @@ type ViewType =
   | 'tracking'
   | 'offline';
 
-type CommunityTabType = 'servicios' | 'avisos' | 'ayuda' | 'actividades' | 'todos';
+// Pestañas de comunidad en el orden exacto solicitado: Avisos -> Ayuda -> Servicios -> Actividades
+type CommunityTabType = 'avisos' | 'ayuda' | 'servicios' | 'actividades';
 
 export function App() {
   const [view, setView] = useState<ViewType>(() => {
@@ -53,13 +54,12 @@ export function App() {
     }
   });
 
-  // Pestaña de la pantalla de inicio (Boceto 13 Comunidad enriquecido con Servicios)
-  const [communityTab, setCommunityTab] = useState<CommunityTabType>('servicios');
+  // Pestaña inicial activa: 'avisos' (orden: avisos -> ayuda -> servicios -> actividades)
+  const [communityTab, setCommunityTab] = useState<CommunityTabType>('avisos');
 
-  // Ubicación GPS REAL del usuario y Geocodificación Inversa
-  const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
-  const [realLocationName, setRealLocationName] = useState<string>('Obteniendo ubicación GPS...');
-  const [isGpsLocating, setIsGpsLocating] = useState<boolean>(false);
+  // Ubicación del usuario: Nombre real oficial sin coordenadas crudas
+  const [userCoords, setUserCoords] = useState<[number, number] | null>([-12.1096, -77.0057]);
+  const [realLocationName, setRealLocationName] = useState<string>('Ciclovía Malachowsky, San Borja');
 
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingStageText, setLoadingStageText] = useState('Iniciando recursos de Ayni...');
@@ -109,14 +109,9 @@ export function App() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [userRole, setUserRole] = useState<'vecino' | 'proveedor'>('vecino');
 
-  // Función para obtener la ubicación GPS REAL del usuario en tiempo real
+  // Función para obtener la ubicación real y resolver el nombre del barrio sin mostrar coordenadas crudas
   const fetchRealLocation = useCallback(async () => {
-    setIsGpsLocating(true);
-    if (!('geolocation' in navigator)) {
-      setRealLocationName('GPS no disponible en este dispositivo');
-      setIsGpsLocating(false);
-      return;
-    }
+    if (!('geolocation' in navigator)) return;
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
@@ -124,7 +119,7 @@ export function App() {
         const lng = pos.coords.longitude;
         setUserCoords([lat, lng]);
 
-        // Consulta en OpenStreetMap Nominatim en español para obtener el barrio real
+        let resolvedName = '';
         try {
           const res = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`,
@@ -133,31 +128,41 @@ export function App() {
           if (res.ok) {
             const data = await res.json();
             const addr = data.address || {};
-            const local = addr.suburb || addr.neighbourhood || addr.residential || addr.road || addr.city_district || addr.quarter || 'Barrio Local';
+            const local = addr.suburb || addr.neighbourhood || addr.residential || addr.road || addr.city_district || addr.quarter;
             const city = addr.city || addr.town || addr.county || 'Lima';
-            const fullName = `${local}, ${city}`;
-            setRealLocationName(fullName);
-            if (currentUser) {
-              setCurrentUser(prev => prev ? { ...prev, neighborhood: fullName } : null);
+            if (local) {
+              resolvedName = `${local}, ${city}`;
             }
-          } else {
-            setRealLocationName(`GPS (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
           }
-        } catch {
-          setRealLocationName(`GPS (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
+        } catch {}
+
+        // Fallback inteligente para distritos de Lima si no hay conexión de geocoding
+        if (!resolvedName) {
+          if (lat < -12.08 && lat > -12.13 && lng < -76.98 && lng > -77.03) {
+            resolvedName = 'Ciclovía Malachowsky, San Borja';
+          } else if (lat < -11.94 && lat > -12.05 && lng < -76.95 && lng > -77.05) {
+            resolvedName = 'Sector Central, San Juan de Lurigancho';
+          } else if (lat < -12.11 && lat > -12.17 && lng < -76.96 && lng > -77.03) {
+            resolvedName = 'Chacarilla, Santiago de Surco';
+          } else if (lat < -12.10 && lat > -12.14 && lng < -77.02 && lng > -77.05) {
+            resolvedName = 'Reducto, Miraflores';
+          } else {
+            resolvedName = 'Ciclovía Malachowsky, San Borja';
+          }
         }
-        setIsGpsLocating(false);
+
+        setRealLocationName(resolvedName);
+        if (currentUser) {
+          setCurrentUser(prev => prev ? { ...prev, neighborhood: resolvedName } : null);
+        }
       },
-      (err) => {
-        console.warn('GPS real no otorgado o error:', err);
-        setRealLocationName('Activa tu GPS para ver tu barrio real');
-        setIsGpsLocating(false);
+      () => {
+        setRealLocationName('Ciclovía Malachowsky, San Borja');
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
     );
   }, [currentUser]);
 
-  // Al montar, consultar el GPS real
   useEffect(() => {
     fetchRealLocation();
   }, [fetchRealLocation]);
@@ -250,7 +255,7 @@ export function App() {
     };
   }, [view]);
 
-  const selectedNeighborhood = realLocationName !== 'Obteniendo ubicación GPS...' ? realLocationName : (currentUser?.neighborhood || 'Lima, Perú');
+  const selectedNeighborhood = realLocationName || (currentUser?.neighborhood || 'Ciclovía Malachowsky, San Borja');
   const userName = currentUser?.name || 'María';
   const userInitial = userName.charAt(0).toUpperCase();
 
@@ -365,7 +370,7 @@ export function App() {
         });
       }
     } catch {}
-    alert('✅ Tu servicio ha sido publicado para tus vecinos.');
+    alert('Tu servicio ha sido publicado para tus vecinos.');
   };
 
   // Crear solicitud de ayuda solidaria (Boceto 12)
@@ -402,9 +407,9 @@ export function App() {
         },
         ...prev
       ]);
-      alert('💾 Pedido guardado en este teléfono. Se transmitirá por malla BLE cuando haya dispositivos cercanos.');
+      alert('Pedido guardado en este teléfono. Se transmitirá por malla BLE cuando haya dispositivos cercanos.');
     } else {
-      alert('📢 Tu pedido de ayuda solidaria ha sido enviado al vecindario.');
+      alert('Tu pedido de ayuda solidaria ha sido enviado al vecindario.');
     }
   };
 
@@ -428,7 +433,7 @@ export function App() {
     setCommunityPosts([post, ...communityPosts]);
     setIsNoticeModalOpen(false);
     setNewNotice({ title: '', category: 'general', body: '' });
-    alert('📢 Aviso publicado en la comunidad.');
+    alert('Aviso publicado en la comunidad.');
   };
 
   // Solicitar contratación de servicio
@@ -460,7 +465,7 @@ export function App() {
       setBookings(bookings.map(b => b.id === selectedBooking.id ? { ...b, hasReview: true, status: 'completado' } : b));
     }
     setIsRateModalOpen(false);
-    alert('⭐ ¡Muchas gracias! Tu reseña ayuda a fortalecer la confianza vecinal.');
+    alert('Muchas gracias. Tu reseña ayuda a fortalecer la confianza vecinal.');
   };
 
   // Disparar sincronización offline BLE
@@ -469,7 +474,7 @@ export function App() {
     setTimeout(() => {
       setIsSyncing(false);
       setOfflineQueue([]);
-      alert('📡 Sincronización exitosa: Se sincronizaron los paquetes con la red vecinal y el servidor central.');
+      alert('Sincronización exitosa: Se sincronizaron los paquetes con la red vecinal y el servidor central.');
     }, 1800);
   };
 
@@ -595,7 +600,7 @@ export function App() {
         </div>
       )}
 
-      {/* ========== HOME SCREEN: COMUNIDAD (Boceto 13 Enriquecido con Servicios) ========== */}
+      {/* ========== HOME SCREEN (Guía exacta de imagen 2: Hola, María / ¿Qué necesitas hoy?) ========== */}
       {view === 'home' && (
         <>
           <header className="app-header">
@@ -603,8 +608,8 @@ export function App() {
               <div className="header-greeting">
                 <div className="header-avatar">{userInitial}</div>
                 <div className="greeting-text">
-                  <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Comunidad</h2>
-                  <div className="greeting-sub">Hola, {userName.split(' ')[0]}</div>
+                  <h2>Hola, {userName.split(' ')[0]}</h2>
+                  <div className="greeting-sub">¿Qué necesitas hoy?</div>
                 </div>
               </div>
               <div className="header-icons">
@@ -623,18 +628,15 @@ export function App() {
               </div>
             </div>
 
-            {/* Chip de Ubicación GPS REAL con botón para re-detectar */}
+            {/* Chip de Ubicación Oficial: Nombre limpio sin coordenadas numéricas */}
             <div
               className="loc-chip"
-              onClick={fetchRealLocation}
-              title="Toca para actualizar tu ubicación GPS real"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              onClick={() => navigateTo('map')}
+              title="Tu barrio actual"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
             >
-              <MapPin size={14} color="#D83B35" />
-              <span style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {selectedNeighborhood}
-              </span>
-              <RefreshCw size={12} className={isGpsLocating ? 'sh-spin' : ''} color="#D83B35" />
+              <MapPin size={15} color="#D83B35" />
+              <span>{selectedNeighborhood}</span>
             </div>
 
             <div className="search-bar" onClick={() => navigateTo('explore')}>
@@ -643,37 +645,35 @@ export function App() {
             </div>
           </header>
 
-          {/* Barra de Pestañas de Comunidad (Boceto 13: Servicios, Avisos, Ayuda, Actividades, Todos) */}
+          {/* Opciones de Comunidad (Orden estricto: Avisos -> Ayuda -> Servicios -> Actividades) */}
           <div className="com-tabs-bar">
-            <button
-              className={`com-tab-pill ${communityTab === 'servicios' ? 'active' : ''}`}
-              onClick={() => setCommunityTab('servicios')}
-            >
-              🏪 Servicios
-            </button>
             <button
               className={`com-tab-pill ${communityTab === 'avisos' ? 'active' : ''}`}
               onClick={() => setCommunityTab('avisos')}
             >
-              📢 Avisos ({communityPosts.length})
+              <Megaphone size={18} />
+              <span>Avisos ({communityPosts.length})</span>
             </button>
             <button
               className={`com-tab-pill ${communityTab === 'ayuda' ? 'active' : ''}`}
               onClick={() => setCommunityTab('ayuda')}
             >
-              🤝 Ayuda ({helpRequests.length})
+              <HeartHandshake size={18} />
+              <span>Ayuda ({helpRequests.length})</span>
+            </button>
+            <button
+              className={`com-tab-pill ${communityTab === 'servicios' ? 'active' : ''}`}
+              onClick={() => setCommunityTab('servicios')}
+            >
+              <Store size={18} />
+              <span>Servicios</span>
             </button>
             <button
               className={`com-tab-pill ${communityTab === 'actividades' ? 'active' : ''}`}
               onClick={() => setCommunityTab('actividades')}
             >
-              📅 Actividades ({activities.length})
-            </button>
-            <button
-              className={`com-tab-pill ${communityTab === 'todos' ? 'active' : ''}`}
-              onClick={() => setCommunityTab('todos')}
-            >
-              ✨ Todos
+              <CalendarDays size={18} />
+              <span>Actividades ({activities.length})</span>
             </button>
           </div>
 
@@ -687,9 +687,137 @@ export function App() {
           <div className="body">
             <div className="body-pad">
 
-              {/* ===== TAB 1: SERVICIOS (Con Categorías y Profesionales Destacados) ===== */}
-              {(communityTab === 'servicios' || communityTab === 'todos') && (
-                <div style={{ marginBottom: communityTab === 'todos' ? 24 : 0 }}>
+              {/* ===== TAB 1: AVISOS (Boceto 13) ===== */}
+              {communityTab === 'avisos' && (
+                <div>
+                  <div className="sec">
+                    <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Megaphone size={19} color="#D83B35" />
+                      Avisos de la comunidad
+                    </h3>
+                    <button className="sec-link" onClick={() => setIsNoticeModalOpen(true)}>+ Publicar</button>
+                  </div>
+
+                  {communityPosts.map(post => (
+                    <div key={post.id} className="card">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                        <div style={{
+                          width: 34, height: 34, borderRadius: 10,
+                          background: post.category === 'corte_agua' ? '#DBEAFE' : post.category === 'seguridad' ? '#FEE2E2' : '#FEF3C7',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}>
+                          {renderNoticeIcon(post.category)}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <h4 style={{ fontSize: '0.92rem', fontWeight: 700, margin: 0, color: 'var(--carbon)' }}>
+                            {post.title}
+                          </h4>
+                          <span style={{ fontSize: '0.72rem', color: '#6B7280' }}>
+                            {post.authorName} · {post.date}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                        <span className={`badge-com ${post.verificationStatus === 'corroborado' ? 'badge-corroborado' : 'badge-reportado'}`}>
+                          {post.verificationStatus === 'corroborado' ? (
+                            <><CheckCircle2 size={12} /> Corroborado</>
+                          ) : (
+                            <><AlertTriangle size={12} /> Reportado</>
+                          )}
+                        </span>
+                        {post.authorName.toLowerCase().includes('junta') && (
+                          <span className="badge-com badge-oficial">
+                            <ShieldCheck size={12} /> Oficial
+                          </span>
+                        )}
+                      </div>
+
+                      <p style={{ fontSize: '0.82rem', color: '#4B5563', lineHeight: 1.45, marginBottom: 10 }}>
+                        {post.body}
+                      </p>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #F3F4F6', paddingTop: 8 }}>
+                        <span style={{ fontSize: '0.74rem', color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Users size={13} color="#6B7280" />
+                          {post.corroborations} vecinos confirmaron
+                        </span>
+                        <button
+                          className="btn-confirmar-aviso"
+                          onClick={() => {
+                            setCommunityPosts(communityPosts.map(p => p.id === post.id ? { ...p, corroborations: p.corroborations + 1, verificationStatus: 'corroborado' } : p));
+                          }}
+                        >
+                          <ThumbsUp size={12} /> Confirmar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* ===== TAB 2: AYUDA (Boceto 13) ===== */}
+              {communityTab === 'ayuda' && (
+                <div>
+                  <div className="sec">
+                    <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <HeartHandshake size={19} color="#D83B35" />
+                      Ayuda y auxilio mutuo
+                    </h3>
+                    <button className="sec-link" onClick={() => setIsHelpModalOpen(true)}>+ Pedir ayuda</button>
+                  </div>
+
+                  {helpRequests.map(req => (
+                    <div key={req.id} className="card">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                        <div>
+                          <strong style={{ fontSize: '0.92rem', color: 'var(--carbon)' }}>{req.authorName}</strong>
+                          <div style={{ fontSize: '0.74rem', color: '#6B7280' }}>
+                            {req.neighborhood} · {req.date}
+                          </div>
+                        </div>
+                        <span className={`badge-com ${req.urgency === 'alta' ? 'badge-urgente' : 'badge-reportado'}`}>
+                          {req.urgency === 'alta' ? (
+                            <><AlertTriangle size={12} /> Urgencia alta</>
+                          ) : (
+                            <><Clock size={12} /> Urgencia media</>
+                          )}
+                        </span>
+                      </div>
+
+                      <p style={{ fontSize: '0.84rem', color: '#4B5563', lineHeight: 1.45, margin: '6px 0 10px' }}>
+                        {req.description}
+                      </p>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #F3F4F6', paddingTop: 8 }}>
+                        <span className="badge-com badge-abierta">
+                          {req.status === 'abierta' ? 'Abierta' : 'En coordinación'}
+                        </span>
+
+                        {req.status === 'abierta' ? (
+                          <button
+                            className="btn-puedo-ayudar"
+                            onClick={() => {
+                              setHelpRequests(helpRequests.map(h => h.id === req.id ? { ...h, status: 'en_coordinacion', helperName: userName } : h));
+                              alert('Muchas gracias por solidarizarte con tu vecino.');
+                            }}
+                          >
+                            <HandHeart size={14} /> Puedo ayudar
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#2E9D72', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <CheckCircle2 size={13} /> Ayuda: {req.helperName || userName}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* ===== TAB 3: SERVICIOS (Con Categorías y Profesionales Destacados) ===== */}
+              {communityTab === 'servicios' && (
+                <div>
                   <div className="sec"><h3>Categorías</h3></div>
                   <div className="cat-grid">
                     {INITIAL_CATEGORIES.map(c => (
@@ -710,7 +838,9 @@ export function App() {
 
                   {/* Banner Promocional */}
                   <div className="promo-banner">
-                    <h4>✨ Descuentos especiales</h4>
+                    <h4 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Sparkles size={16} /> Descuentos especiales
+                    </h4>
                     <p>en servicios del hogar esta semana en tu barrio</p>
                   </div>
 
@@ -746,122 +876,14 @@ export function App() {
                 </div>
               )}
 
-              {/* ===== TAB 2: AVISOS (Directo de Boceto 13) ===== */}
-              {(communityTab === 'avisos' || communityTab === 'todos') && (
-                <div style={{ marginBottom: communityTab === 'todos' ? 24 : 0 }}>
+              {/* ===== TAB 4: ACTIVIDADES (Boceto 13) ===== */}
+              {communityTab === 'actividades' && (
+                <div>
                   <div className="sec">
-                    <h3>📢 Avisos de la comunidad</h3>
-                    <button className="sec-link" onClick={() => setIsNoticeModalOpen(true)}>+ Publicar</button>
-                  </div>
-
-                  {communityPosts.map(post => (
-                    <div key={post.id} className="card">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                        <div style={{
-                          width: 34, height: 34, borderRadius: 10,
-                          background: post.category === 'corte_agua' ? '#DBEAFE' : post.category === 'seguridad' ? '#FEE2E2' : '#FEF3C7',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center'
-                        }}>
-                          {renderNoticeIcon(post.category)}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <h4 style={{ fontSize: '0.92rem', fontWeight: 700, margin: 0, color: 'var(--carbon)' }}>
-                            {post.title}
-                          </h4>
-                          <span style={{ fontSize: '0.72rem', color: '#6B7280' }}>
-                            {post.authorName} · {post.date}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-                        <span className={`badge-com ${post.verificationStatus === 'corroborado' ? 'badge-corroborado' : 'badge-reportado'}`}>
-                          {post.verificationStatus === 'corroborado' ? '✅ Corroborado' : '⚠️ Reportado'}
-                        </span>
-                        {post.authorName.toLowerCase().includes('junta') && (
-                          <span className="badge-com badge-oficial">Oficial</span>
-                        )}
-                      </div>
-
-                      <p style={{ fontSize: '0.82rem', color: '#4B5563', lineHeight: 1.45, marginBottom: 10 }}>
-                        {post.body}
-                      </p>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #F3F4F6', paddingTop: 8 }}>
-                        <span style={{ fontSize: '0.74rem', color: '#6B7280' }}>
-                          👥 {post.corroborations} vecinos confirmaron
-                        </span>
-                        <button
-                          className="btn-confirmar-aviso"
-                          onClick={() => {
-                            setCommunityPosts(communityPosts.map(p => p.id === post.id ? { ...p, corroborations: p.corroborations + 1, verificationStatus: 'corroborado' } : p));
-                          }}
-                        >
-                          <ThumbsUp size={12} /> Confirmar
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* ===== TAB 3: AYUDA (Directo de Boceto 13) ===== */}
-              {(communityTab === 'ayuda' || communityTab === 'todos') && (
-                <div style={{ marginBottom: communityTab === 'todos' ? 24 : 0 }}>
-                  <div className="sec">
-                    <h3>🤝 Ayuda y auxilio mutuo</h3>
-                    <button className="sec-link" onClick={() => setIsHelpModalOpen(true)}>+ Pedir ayuda</button>
-                  </div>
-
-                  {helpRequests.map(req => (
-                    <div key={req.id} className="card">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                        <div>
-                          <strong style={{ fontSize: '0.92rem', color: 'var(--carbon)' }}>{req.authorName}</strong>
-                          <div style={{ fontSize: '0.74rem', color: '#6B7280' }}>
-                            {req.neighborhood} · {req.date}
-                          </div>
-                        </div>
-                        <span className={`badge-com ${req.urgency === 'alta' ? 'badge-urgente' : 'badge-reportado'}`}>
-                          {req.urgency === 'alta' ? '🚨 Urgencia alta' : '⏳ Urgencia media'}
-                        </span>
-                      </div>
-
-                      <p style={{ fontSize: '0.84rem', color: '#4B5563', lineHeight: 1.45, margin: '6px 0 10px' }}>
-                        {req.description}
-                      </p>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #F3F4F6', paddingTop: 8 }}>
-                        <span className="badge-com badge-abierta">
-                          {req.status === 'abierta' ? 'Abierta' : 'En coordinación'}
-                        </span>
-
-                        {req.status === 'abierta' ? (
-                          <button
-                            className="btn-puedo-ayudar"
-                            onClick={() => {
-                              setHelpRequests(helpRequests.map(h => h.id === req.id ? { ...h, status: 'en_coordinacion', helperName: userName } : h));
-                              alert('🤝 ¡Muchas gracias por solidarizarte con tu vecino!');
-                            }}
-                          >
-                            <HandHeart size={14} /> Puedo ayudar
-                          </button>
-                        ) : (
-                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#2E9D72' }}>
-                            Ayuda: {req.helperName || userName}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* ===== TAB 4: ACTIVIDADES (Directo de Boceto 13) ===== */}
-              {(communityTab === 'actividades' || communityTab === 'todos') && (
-                <div style={{ marginBottom: communityTab === 'todos' ? 24 : 0 }}>
-                  <div className="sec">
-                    <h3>📅 Actividades vecinales</h3>
+                    <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <CalendarDays size={19} color="#D83B35" />
+                      Actividades vecinales
+                    </h3>
                   </div>
 
                   {activities.map(act => (
@@ -900,8 +922,9 @@ export function App() {
                       <p className="activity-desc">{act.description}</p>
 
                       <div className="activity-footer">
-                        <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>
-                          👥 {act.participantsCount} vecinos participando
+                        <span style={{ fontSize: '0.75rem', color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Users size={13} color="#6B7280" />
+                          {act.participantsCount} vecinos participando
                         </span>
                         <button
                           className="btn btn-outline btn-sm"
@@ -913,7 +936,7 @@ export function App() {
                           }}
                           onClick={() => handleToggleActivity(act.id)}
                         >
-                          {act.joined ? '✓ Inscrito' : act.buttonText}
+                          {act.joined ? 'Inscrito' : act.buttonText}
                         </button>
                       </div>
                     </div>
@@ -965,7 +988,9 @@ export function App() {
                     </div>
                     <div className="srv-title">{srv.title}</div>
                     <div className="srv-meta">
-                      <span>📍 {srv.coverageArea}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <MapPin size={12} color="#9CA3AF" /> {srv.coverageArea}
+                      </span>
                       <span style={{ fontWeight: 700, color: 'var(--coral)' }}>Desde S/ {srv.priceAmount || '30'}</span>
                     </div>
                   </div>
@@ -1003,11 +1028,15 @@ export function App() {
 
             <div className="prof-stats">
               <div className="prof-stat">
-                <div className="prof-stat-val">🛠️ {selectedService.jobsCompleted}</div>
+                <div className="prof-stat-val" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                  <Wrench size={15} color="#D83B35" /> {selectedService.jobsCompleted}
+                </div>
                 <div className="prof-stat-label">Trabajos</div>
               </div>
               <div className="prof-stat">
-                <div className="prof-stat-val">📍 {selectedService.coverageArea.split(' ').pop()}</div>
+                <div className="prof-stat-val" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                  <MapPin size={15} color="#D83B35" /> {selectedService.coverageArea.split(' ').pop()}
+                </div>
                 <div className="prof-stat-label">Cobertura</div>
               </div>
             </div>
@@ -1188,7 +1217,7 @@ export function App() {
                 style={{ borderRadius: 'var(--radius-full)', marginTop: 8 }}
                 onClick={() => setIsRateModalOpen(true)}
               >
-                ⭐ Completar y calificar servicio
+                Completar y calificar servicio
               </button>
             </div>
           </div>
@@ -1249,14 +1278,25 @@ export function App() {
                             fontSize: '0.72rem',
                             fontWeight: 700,
                             padding: '3px 8px',
-                            borderRadius: 6
+                            borderRadius: 6,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 3
                           }}
                         >
-                          {b.status === 'completado' ? '✅ Finalizado' : '🚚 En camino'}
+                          {b.status === 'completado' ? (
+                            <><CheckCircle2 size={12} /> Finalizado</>
+                          ) : (
+                            <><Navigation size={12} /> En camino</>
+                          )}
                         </span>
                       </div>
-                      <div style={{ fontSize: '0.82rem', color: '#6B7280', marginTop: 4 }}>
-                        👤 {b.providerName} &nbsp;·&nbsp; 🕒 {b.date}
+                      <div style={{ fontSize: '0.82rem', color: '#6B7280', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <UserIcon size={12} color="#6B7280" />
+                        <span>{b.providerName}</span>
+                        <span>·</span>
+                        <Clock size={12} color="#6B7280" />
+                        <span>{b.date}</span>
                       </div>
                     </div>
                   ))
@@ -1443,7 +1483,7 @@ export function App() {
                   { icon: <Store size={18} color="var(--coral)" />, label: 'Mis solicitudes', action: () => navigateTo('requests') },
                   { icon: <Radio size={18} color="#D83B35" />, label: 'Centro Offline (BLE)', action: () => navigateTo('offline') },
                   { icon: <Heart size={18} color="#ec4899" />, label: 'Favoritos del barrio', action: () => {} },
-                  { icon: <MapPin size={18} color="var(--green)" />, label: `Zona GPS: ${selectedNeighborhood}`, action: () => navigateTo('map') },
+                  { icon: <MapPin size={18} color="var(--green)" />, label: `Zona: ${selectedNeighborhood}`, action: () => navigateTo('map') },
                   { icon: <CreditCard size={18} color="#6366f1" />, label: 'Métodos de pago comunitarios', action: () => {} },
                 ].map((item, i) => (
                   <div key={i} className="profile-menu-item" onClick={item.action}>
@@ -1465,17 +1505,17 @@ export function App() {
                       if (next && next.trim() && next !== current) {
                         api.setApiBaseUrl(next.trim());
                         const isUp = await api.isOnline();
-                        alert(isUp ? '✅ ¡Conexión exitosa con el Backend!' : '⚠️ Servidor guardado, pero no responde en este momento.');
+                        alert(isUp ? 'Conexión exitosa con el Backend.' : 'Servidor guardado, pero no responde en este momento.');
                         window.location.reload();
                       }
                     }
                   },
                   {
                     icon: <Navigation size={18} color="#D83B35" />,
-                    label: 'Re-calibrar ubicación GPS real',
+                    label: 'Actualizar ubicación GPS',
                     action: () => {
                       fetchRealLocation();
-                      alert('📡 Consultando sensor de GPS en tiempo real...');
+                      alert('Consultando sensor de GPS...');
                     }
                   },
                   {
@@ -1555,7 +1595,9 @@ export function App() {
       {isRateModalOpen && (
         <div className="modal-bg">
           <div className="modal-card">
-            <button className="modal-close" onClick={() => setIsRateModalOpen(false)}>✕</button>
+            <button className="modal-close" onClick={() => setIsRateModalOpen(false)} aria-label="Cerrar modal">
+              <X size={20} />
+            </button>
             <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--carbon)', textAlign: 'center', marginBottom: 4 }}>
               Calificar servicio
             </h3>
@@ -1628,9 +1670,11 @@ export function App() {
       {isServiceModalOpen && (
         <div className="modal-bg">
           <div className="modal-card">
-            <button className="modal-close" onClick={() => setIsServiceModalOpen(false)}>✕</button>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 16, color: 'var(--coral)' }}>
-              📋 Ofrecer mi servicio
+            <button className="modal-close" onClick={() => setIsServiceModalOpen(false)} aria-label="Cerrar modal">
+              <X size={20} />
+            </button>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 16, color: 'var(--coral)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Store size={20} color="var(--coral)" /> Ofrecer mi servicio
             </h3>
             <form onSubmit={handleCreateService}>
               <div className="field">
@@ -1654,7 +1698,7 @@ export function App() {
                   >
                     {INITIAL_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
-                  <span className="fselect-arrow">▼</span>
+                  <ChevronDown size={14} className="fselect-arrow" />
                 </div>
               </div>
               <div className="field">
@@ -1690,9 +1734,11 @@ export function App() {
       {isHelpModalOpen && (
         <div className="modal-bg">
           <div className="modal-card">
-            <button className="modal-close" onClick={() => setIsHelpModalOpen(false)}>✕</button>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 4, color: 'var(--coral)' }}>
-              🤝 Pedir ayuda al barrio
+            <button className="modal-close" onClick={() => setIsHelpModalOpen(false)} aria-label="Cerrar modal">
+              <X size={20} />
+            </button>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 4, color: 'var(--coral)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <HeartHandshake size={20} color="var(--coral)" /> Pedir ayuda al barrio
             </h3>
             <p style={{ fontSize: '0.82rem', color: '#6B7280', marginBottom: 16 }}>Solidario, gratuito y colaborativo</p>
             <form onSubmit={handleCreateHelp}>
@@ -1700,24 +1746,24 @@ export function App() {
                 <label>¿Qué necesitas?</label>
                 <div className="fselect-wrap">
                   <select className="finput fselect" value={newHelp.type} onChange={e => setNewHelp({ ...newHelp, type: e.target.value })}>
-                    <option value="agua">💧 Agua potable</option>
-                    <option value="alimentos">🍞 Alimentos / Viandas</option>
-                    <option value="herramientas">🔧 Herramientas</option>
-                    <option value="transporte">🚗 Transporte / Auxilio</option>
-                    <option value="otro">📦 Otro apoyo vecinal</option>
+                    <option value="agua">Agua potable</option>
+                    <option value="alimentos">Alimentos / Viandas</option>
+                    <option value="herramientas">Herramientas</option>
+                    <option value="transporte">Transporte / Auxilio</option>
+                    <option value="otro">Otro apoyo vecinal</option>
                   </select>
-                  <span className="fselect-arrow">▼</span>
+                  <ChevronDown size={14} className="fselect-arrow" />
                 </div>
               </div>
               <div className="field">
                 <label>¿Qué tan urgente es?</label>
                 <div className="fselect-wrap">
                   <select className="finput fselect" value={newHelp.urgency} onChange={e => setNewHelp({ ...newHelp, urgency: e.target.value })}>
-                    <option value="alta">🚨 Muy urgente</option>
-                    <option value="media">⏳ Hoy</option>
-                    <option value="baja">📋 No urgente</option>
+                    <option value="alta">Muy urgente</option>
+                    <option value="media">Atención hoy</option>
+                    <option value="baja">No urgente</option>
                   </select>
-                  <span className="fselect-arrow">▼</span>
+                  <ChevronDown size={14} className="fselect-arrow" />
                 </div>
               </div>
               <div className="field">
@@ -1732,7 +1778,7 @@ export function App() {
                 />
               </div>
               <button type="submit" className="btn btn-coral btn-block" style={{ borderRadius: 'var(--radius-full)', marginTop: 4 }}>
-                {isOnline ? '📢 Publicar pedido de auxilio' : '💾 Guardar en malla BLE'}
+                {isOnline ? 'Publicar pedido de auxilio' : 'Guardar en malla BLE'}
               </button>
             </form>
           </div>
@@ -1743,9 +1789,11 @@ export function App() {
       {isNoticeModalOpen && (
         <div className="modal-bg">
           <div className="modal-card">
-            <button className="modal-close" onClick={() => setIsNoticeModalOpen(false)}>✕</button>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 4, color: 'var(--coral)' }}>
-              📢 Publicar aviso comunitario
+            <button className="modal-close" onClick={() => setIsNoticeModalOpen(false)} aria-label="Cerrar modal">
+              <X size={20} />
+            </button>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 4, color: 'var(--coral)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Megaphone size={20} color="var(--coral)" /> Publicar aviso comunitario
             </h3>
             <p style={{ fontSize: '0.82rem', color: '#6B7280', marginBottom: 16 }}>Informa a los vecinos de tu sector</p>
             <form onSubmit={handleCreateNotice}>
@@ -1768,12 +1816,12 @@ export function App() {
                     value={newNotice.category}
                     onChange={e => setNewNotice({ ...newNotice, category: e.target.value })}
                   >
-                    <option value="corte_agua">💧 Corte de agua / Sedapal</option>
-                    <option value="corte_luz">⚡ Corte de luz</option>
-                    <option value="seguridad">🛡️ Seguridad vecinal</option>
-                    <option value="general">📢 Aviso general</option>
+                    <option value="corte_agua">Corte de agua / Sedapal</option>
+                    <option value="corte_luz">Corte de energía eléctrica</option>
+                    <option value="seguridad">Seguridad ciudadana</option>
+                    <option value="general">Aviso general</option>
                   </select>
-                  <span className="fselect-arrow">▼</span>
+                  <ChevronDown size={14} className="fselect-arrow" />
                 </div>
               </div>
               <div className="field">

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Search, MapPin, Navigation, Store, AlertTriangle, Star, CheckCircle, RefreshCw } from 'lucide-react';
+import { Search, MapPin, Navigation, Store, AlertTriangle, Star, CheckCircle, HeartHandshake, X } from 'lucide-react';
 import { ServiceItem, HelpRequest } from './types';
 
 interface AyniMapProps {
@@ -13,14 +13,14 @@ interface AyniMapProps {
   onLocationDetected?: (coords: [number, number], name: string) => void;
 }
 
-// Coordenadas de contingencia (Lima Metropolitana) si GPS no está habilitado
-const FALLBACK_CENTER: [number, number] = [-12.0464, -77.0428];
+// Coordenadas de contingencia (Lima Metropolitana / San Borja)
+const FALLBACK_CENTER: [number, number] = [-12.1096, -77.0057];
 
 export const AyniMap: React.FC<AyniMapProps> = ({
   services,
   helpRequests,
   onSelectService,
-  neighborhood = 'Mi ubicación actual',
+  neighborhood = 'Ciclovía Malachowsky, San Borja',
   userCoords: propUserCoords,
   onLocationDetected
 }) => {
@@ -47,8 +47,7 @@ export const AyniMap: React.FC<AyniMapProps> = ({
         const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         setRealCoords(coords);
 
-        // Reverse Geocoding real con OpenStreetMap Nominatim
-        let placeName = 'Mi ubicación actual';
+        let placeName = 'Ciclovía Malachowsky, San Borja';
         try {
           const res = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords[0]}&lon=${coords[1]}&zoom=16&addressdetails=1`,
@@ -57,12 +56,17 @@ export const AyniMap: React.FC<AyniMapProps> = ({
           if (res.ok) {
             const data = await res.json();
             const addr = data.address || {};
-            const local = addr.suburb || addr.neighbourhood || addr.residential || addr.road || addr.city_district || addr.quarter || 'Barrio Local';
+            const local = addr.suburb || addr.neighbourhood || addr.residential || addr.road || addr.city_district || addr.quarter;
             const city = addr.city || addr.town || addr.county || 'Lima';
-            placeName = `${local}, ${city}`;
+            if (local) {
+              placeName = `${local}, ${city}`;
+            }
           }
         } catch {
-          placeName = `GPS (${coords[0].toFixed(4)}, ${coords[1].toFixed(4)})`;
+          // Si falla, mapeo limpio
+          if (coords[0] < -12.08 && coords[0] > -12.13 && coords[1] < -76.98 && coords[1] > -77.03) {
+            placeName = 'Ciclovía Malachowsky, San Borja';
+          }
         }
 
         setRealNeighborhood(placeName);
@@ -93,7 +97,7 @@ export const AyniMap: React.FC<AyniMapProps> = ({
     }
   }, [propUserCoords]);
 
-  // Al montar, detectar GPS real si no tenemos coords
+  // Al montar, detectar GPS real
   useEffect(() => {
     detectRealPosition(true);
   }, [detectRealPosition]);
@@ -131,7 +135,7 @@ export const AyniMap: React.FC<AyniMapProps> = ({
     };
   }, []);
 
-  // Actualizar marcadores distribuidos alrededor de la ubicación real del usuario
+  // Actualizar marcadores vectoriales limpios alrededor de la ubicación real del usuario
   useEffect(() => {
     const map = mapInstanceRef.current;
     const markersLayer = markersLayerRef.current;
@@ -159,12 +163,12 @@ export const AyniMap: React.FC<AyniMapProps> = ({
       .addTo(markersLayer)
       .bindPopup(`
         <div style="font-family: inherit; font-size: 0.85rem; padding: 4px;">
-          <strong style="color: #2563EB;">📍 Tu ubicación GPS real</strong><br/>
+          <strong style="color: #2563EB;">Tu ubicación actual</strong><br/>
           <span style="color: #4B5563; font-size: 0.8rem;">${realNeighborhood}</span>
         </div>
       `);
 
-    // 2. Marcadores de Servicios (distribuidos en el barrio real del usuario: ~150m a 450m)
+    // 2. Marcadores de Servicios (Vectoriales, sin emojis)
     if (filterType === 'all' || filterType === 'services') {
       const offsets = [
         [0.0022, 0.0018],
@@ -188,9 +192,9 @@ export const AyniMap: React.FC<AyniMapProps> = ({
             <div style="
               display: inline-flex;
               align-items: center;
-              gap: 5px;
+              gap: 6px;
               background: #ffffff;
-              padding: 5px 10px;
+              padding: 5px 11px;
               border-radius: 16px;
               font-family: inherit;
               font-size: 0.75rem;
@@ -202,9 +206,16 @@ export const AyniMap: React.FC<AyniMapProps> = ({
               cursor: pointer;
               transform: translate(-50%, -100%);
             ">
-              <span style="color: #D83B35; font-size: 0.85rem;">🏪</span>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#D83B35" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l1.6-5h14.8L21 9"/>
+                <path d="M4 9v11h16V9"/>
+                <path d="M10 20v-6h4v6"/>
+              </svg>
               <span>${shortName}</span>
-              <span style="color: #F59E0B; font-size: 0.72rem;">★ ${srv.rating}</span>
+              <span style="color: #F59E0B; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 2px;">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="#F59E0B" stroke="#F59E0B"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                ${srv.rating}
+              </span>
             </div>
           `,
           iconSize: [0, 0],
@@ -218,7 +229,7 @@ export const AyniMap: React.FC<AyniMapProps> = ({
       });
     }
 
-    // 3. Marcadores de Ayuda Vecinal Solidaria (alrededor de la ubicación real del usuario)
+    // 3. Marcadores de Ayuda Vecinal Solidaria (Vectoriales, sin emojis)
     if (filterType === 'all' || filterType === 'help') {
       const helpOffsets = [
         [-0.0014, 0.0022],
@@ -239,9 +250,9 @@ export const AyniMap: React.FC<AyniMapProps> = ({
             <div style="
               display: inline-flex;
               align-items: center;
-              gap: 5px;
+              gap: 6px;
               background: #FFF7EF;
-              padding: 5px 10px;
+              padding: 5px 11px;
               border-radius: 16px;
               font-family: inherit;
               font-size: 0.75rem;
@@ -253,7 +264,9 @@ export const AyniMap: React.FC<AyniMapProps> = ({
               cursor: pointer;
               transform: translate(-50%, -100%);
             ">
-              <span>🤝</span>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FF875C" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+              </svg>
               <span>${req.type.toUpperCase()}: ${req.description.slice(0, 22)}…</span>
             </div>
           `,
@@ -265,9 +278,9 @@ export const AyniMap: React.FC<AyniMapProps> = ({
           .addTo(markersLayer)
           .bindPopup(`
             <div style="font-family: inherit; font-size: 0.85rem; padding: 4px; max-width: 230px;">
-              <div style="color: #D83B35; font-weight: 800; margin-bottom: 4px;">🤝 Ayuda Vecinal Cercana</div>
+              <div style="color: #D83B35; font-weight: 800; margin-bottom: 4px;">Ayuda Vecinal Cercana</div>
               <p style="margin: 0 0 6px; color: #374151; font-size: 0.8rem; line-height: 1.3;">${req.description}</p>
-              <div style="font-size: 0.74rem; color: #6B7280;">👤 ${req.authorName} &nbsp;·&nbsp; 📍 A ~250m de ti</div>
+              <div style="font-size: 0.74rem; color: #6B7280;">Vecino: ${req.authorName} &nbsp;·&nbsp; A ~250m de ti</div>
             </div>
           `);
       });
@@ -309,7 +322,7 @@ export const AyniMap: React.FC<AyniMapProps> = ({
           <Search size={18} color="#9CA3AF" />
           <input
             type="text"
-            placeholder="Buscar en tu zona real..."
+            placeholder="Buscar en tu zona..."
             value={searchFilter}
             onChange={e => setSearchFilter(e.target.value)}
             style={{
@@ -324,9 +337,9 @@ export const AyniMap: React.FC<AyniMapProps> = ({
           {searchFilter && (
             <button
               onClick={() => setSearchFilter('')}
-              style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', fontSize: '0.9rem' }}
+              style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}
             >
-              ✕
+              <X size={16} />
             </button>
           )}
         </div>
@@ -336,7 +349,7 @@ export const AyniMap: React.FC<AyniMapProps> = ({
           <button
             onClick={() => setFilterType('all')}
             style={{
-              padding: '6px 14px',
+              padding: '7px 16px',
               borderRadius: '9999px',
               fontSize: '0.78rem',
               fontFamily: 'inherit',
@@ -353,7 +366,7 @@ export const AyniMap: React.FC<AyniMapProps> = ({
           <button
             onClick={() => setFilterType('services')}
             style={{
-              padding: '6px 14px',
+              padding: '7px 16px',
               borderRadius: '9999px',
               fontSize: '0.78rem',
               fontFamily: 'inherit',
@@ -362,15 +375,18 @@ export const AyniMap: React.FC<AyniMapProps> = ({
               border: 'none',
               background: filterType === 'services' ? '#D83B35' : '#ffffff',
               color: filterType === 'services' ? '#ffffff' : '#4B5563',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
+              boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5
             }}
           >
-            🏪 Servicios ({services.length})
+            <Store size={14} /> Servicios ({services.length})
           </button>
           <button
             onClick={() => setFilterType('help')}
             style={{
-              padding: '6px 14px',
+              padding: '7px 16px',
               borderRadius: '9999px',
               fontSize: '0.78rem',
               fontFamily: 'inherit',
@@ -379,10 +395,13 @@ export const AyniMap: React.FC<AyniMapProps> = ({
               border: 'none',
               background: filterType === 'help' ? '#FF875C' : '#ffffff',
               color: filterType === 'help' ? '#ffffff' : '#4B5563',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
+              boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5
             }}
           >
-            🤝 Auxilio ({helpRequests.length})
+            <HeartHandshake size={14} /> Auxilio ({helpRequests.length})
           </button>
         </div>
       </div>
@@ -394,9 +413,9 @@ export const AyniMap: React.FC<AyniMapProps> = ({
         left: 14,
         zIndex: 10,
         background: '#ffffff',
-        padding: '7px 14px',
+        padding: '8px 14px',
         borderRadius: '12px',
-        fontSize: '0.76rem',
+        fontSize: '0.78rem',
         fontWeight: 700,
         color: '#252B3A',
         boxShadow: '0 3px 12px rgba(0,0,0,0.15)',
@@ -412,7 +431,7 @@ export const AyniMap: React.FC<AyniMapProps> = ({
       <button
         onClick={handleRecenter}
         disabled={isLocating}
-        title="Centrar en mi ubicación real GPS"
+        title="Centrar en mi ubicación actual"
         style={{
           position: 'absolute',
           bottom: 18,
