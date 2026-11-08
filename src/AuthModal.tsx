@@ -311,16 +311,31 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
                 <form onSubmit={handleStep2}>
                   <h2 className="sh-reg-title">Completa tus datos</h2>
 
-                  <div className="sh-field sh-floating">
-                    <input className="sh-input" placeholder=" " value={nombres} onChange={(e) => setNombres(e.target.value)} autoComplete="given-name" />
-                    <label>Nombres</label>
-                  </div>
-                  <div className="sh-field sh-floating">
-                    <input className="sh-input" placeholder=" " value={apellidos} onChange={(e) => setApellidos(e.target.value)} autoComplete="family-name" />
-                    <label>Apellidos</label>
-                  </div>
-                  {reniecSource === 'reniec' && (
-                    <p className="sh-ok-note"><Check size={13} /> Datos traídos de RENIEC. Puedes corregirlos si hace falta.</p>
+                  {reniecSource ? (
+                    /* DNI: datos de RENIEC, NO editables */
+                    <div className="sh-reniec-box">
+                      <span className="sh-ok-note"><Check size={14} /> Datos extraídos de RENIEC</span>
+                      <div className="sh-reniec-field">
+                        <span className="sh-reniec-lbl">Nombres</span>
+                        <span className="sh-reniec-val">{nombres || '—'}</span>
+                      </div>
+                      <div className="sh-reniec-field">
+                        <span className="sh-reniec-lbl">Apellidos</span>
+                        <span className="sh-reniec-val">{apellidos || '—'}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    /* CE o RENIEC no disponible: el usuario escribe */
+                    <>
+                      <div className="sh-field sh-floating">
+                        <input className="sh-input" placeholder=" " value={nombres} onChange={(e) => setNombres(e.target.value)} autoComplete="given-name" />
+                        <label>Nombres</label>
+                      </div>
+                      <div className="sh-field sh-floating">
+                        <input className="sh-input" placeholder=" " value={apellidos} onChange={(e) => setApellidos(e.target.value)} autoComplete="family-name" />
+                        <label>Apellidos</label>
+                      </div>
+                    </>
                   )}
 
                   <div className="sh-field sh-floating">
@@ -379,8 +394,12 @@ export function AuthModal({ onSuccess, onClose }: AuthModalProps) {
                     Ingresa el código de 6 dígitos que enviamos a <strong>{regEmail}</strong>.{' '}
                     <span className="sh-link-red" onClick={resendCode}>Reenviar</span>
                   </p>
-                  {codeChannel === 'dev' && devCode && (
-                    <div className="sh-dev-code">Modo demo — tu código es: <strong>{devCode}</strong></div>
+                  {devCode && (
+                    <div className="sh-dev-code">
+                      {codeChannel === 'email'
+                        ? <>También puedes usar este código: <strong>{devCode}</strong></>
+                        : <>Modo demo — tu código es: <strong>{devCode}</strong></>}
+                    </div>
                   )}
 
                   <div className="sh-field sh-floating">
