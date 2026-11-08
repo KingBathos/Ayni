@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { App as CapApp } from '@capacitor/app';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { Network } from '@capacitor/network';
 import {
   Store, MapPin, Wifi, WifiOff, Radio, Users, HeartHandshake,
-  AlertTriangle, Star, CheckCircle2, Plus, Search, RefreshCw,
+  AlertTriangle, Star, CheckCircle2, Plus, PlusCircle, Search, RefreshCw,
   Info, User as UserIcon, ShieldCheck,
   Bell, ChevronRight, Heart, Clock, Bookmark, CreditCard, Settings,
   HelpCircle, LogOut, ArrowLeft, Camera, Calendar, Send, Navigation,
@@ -666,6 +667,7 @@ export function App() {
           payload: newReq,
           createdAt: new Date().toISOString(),
           status: 'local',
+          step: 'guardado',
           hops: 1,
           hopLimit: 5
         },

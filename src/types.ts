@@ -121,7 +121,7 @@ export interface OfflineEnvelope {
   createdAt: string;
   timeAgo?: string;
   status: 'local' | 'retransmitido' | 'sincronizado';
-  step: OfflineHopsStep;
+  step?: OfflineHopsStep;
   hops: number;
   hopLimit: number;
   expiresIn?: string;

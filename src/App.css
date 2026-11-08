@@ -956,6 +956,140 @@ body {
   gap: 8px;
 }
 
+/* ===== GLOBAL OFFLINE BANNER ===== */
+.off-global-banner {
+  background: #FFFBEB;
+  border-bottom: 2px solid #F59E0B;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+  animation: slide-down-banner 0.3s ease-out;
+  flex-shrink: 0;
+}
+
+@keyframes slide-down-banner {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.off-banner-radio-pulse {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #FEF3C7;
+  color: #D97706;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  animation: pulse-ring 1.5s infinite;
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(217, 119, 6, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0); }
+}
+
+.off-banner-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.off-banner-text strong {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #92400E;
+  line-height: 1.2;
+}
+
+.off-banner-text span {
+  font-size: 0.72rem;
+  color: #B45309;
+}
+
+.off-emergency-btn {
+  background: linear-gradient(135deg, #D83B35 0%, #FF875C 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 14px;
+  padding: 14px 18px;
+  font-weight: 800;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 4px 14px rgba(216, 59, 53, 0.3);
+  margin-bottom: 16px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  width: 100%;
+}
+
+.off-emergency-btn:active {
+  transform: scale(0.98);
+}
+
+.off-auto-sync-badge {
+  background: #ECFDF5;
+  border: 1px solid #A7F3D0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  font-size: 0.76rem;
+  color: #065F46;
+}
+
+.off-auto-sync-pulse {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #10B981;
+  animation: pulse-ring-green 1.2s infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulse-ring-green {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+  70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.off-status-box.recibido {
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+}
+
+.off-status-box.recibido strong {
+  color: #166534;
+}
+
+.off-status-box.recibido span {
+  color: #15803D;
+}
+
+.off-status-box.sincronizado {
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+}
+
+.off-status-box.sincronizado strong {
+  color: #1E40AF;
+}
+
+.off-status-box.sincronizado span {
+  color: #1D4ED8;
+}
+
 /* ===== MODAL OVERLAY ===== */
 .modal-bg {
   position: fixed;
@@ -3514,6 +3648,56 @@ html.dark {
 
 .phone.dark-theme .off-banner svg {
   color: #F59E0B !important;
+}
+
+.phone.dark-theme .off-global-banner {
+  background: rgba(245, 158, 11, 0.16) !important;
+  border-bottom: 2px solid rgba(245, 158, 11, 0.45) !important;
+}
+
+.phone.dark-theme .off-banner-radio-pulse {
+  background: rgba(245, 158, 11, 0.25) !important;
+  color: #FCD34D !important;
+}
+
+.phone.dark-theme .off-banner-text strong {
+  color: #FCD34D !important;
+}
+
+.phone.dark-theme .off-banner-text span {
+  color: #FDE68A !important;
+}
+
+.phone.dark-theme .off-status-box.recibido {
+  background: rgba(34, 197, 94, 0.16) !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+}
+
+.phone.dark-theme .off-status-box.recibido strong {
+  color: #86EFAC !important;
+}
+
+.phone.dark-theme .off-status-box.recibido span {
+  color: #4ADE80 !important;
+}
+
+.phone.dark-theme .off-status-box.sincronizado {
+  background: rgba(59, 130, 246, 0.16) !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+.phone.dark-theme .off-status-box.sincronizado strong {
+  color: #93C5FD !important;
+}
+
+.phone.dark-theme .off-status-box.sincronizado span {
+  color: #60A5FA !important;
+}
+
+.phone.dark-theme .off-auto-sync-badge {
+  background: rgba(34, 197, 94, 0.16) !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+  color: #86EFAC !important;
 }
 
 /* Tutorial Interactivo (Onboarding) en Modo Oscuro */
