@@ -149,6 +149,8 @@ export interface ChatMessage {
   editedAt?: string;
   deletedForEveryone?: boolean;
   deletedForUserIds?: string[];
+  mediaUrl?: string; // Foto o video adjunto estilo WhatsApp
+  mediaType?: 'image' | 'video';
 }
 
 export interface ChatThread {

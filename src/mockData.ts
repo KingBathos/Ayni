@@ -195,7 +195,7 @@ export const INITIAL_CHAT_MESSAGES: Record<string, ChatMessage[]> = {
       senderId: 'usr-junta',
       senderName: 'Junta Vecinal Manzana F',
       senderRole: 'oficial',
-      text: '📌 Vecinos, Sedapal confirmó que la cisterna llegará a las 5:00 PM en el parque principal frente a la loza deportiva. Lleven recipientes limpios.',
+      text: 'Vecinos, Sedapal confirmó que la cisterna llegará a las 5:00 PM en el parque principal frente a la loza deportiva. Lleven recipientes limpios.',
       createdAt: new Date(Date.now() - 35 * 60000).toISOString(),
       timestampLabel: '11:20 a. m.',
       isPinned: true
@@ -228,7 +228,7 @@ export const INITIAL_CHAT_MESSAGES: Record<string, ChatMessage[]> = {
       senderId: 'usr-rosa',
       senderName: 'Rosa Meléndez',
       senderRole: 'autor',
-      text: '📌 Pasaje Sol está totalmente a oscuras desde anoche. Por favor acompañar a los escolares.',
+      text: 'Pasaje Sol está totalmente a oscuras desde anoche. Por favor acompañar a los escolares.',
       createdAt: new Date(Date.now() - 80 * 60000).toISOString(),
       timestampLabel: '10:45 a. m.',
       isPinned: true
@@ -273,7 +273,7 @@ export const INITIAL_CHAT_MESSAGES: Record<string, ChatMessage[]> = {
       senderId: 'usr-comite3',
       senderName: 'Comité Vecinal Sector 3',
       senderRole: 'oficial',
-      text: '📌 Punto de encuentro: Puerta 2 del Parque Central a las 8:00 AM en punto. Habrá refrigerio para los voluntarios.',
+      text: 'Punto de encuentro: Puerta 2 del Parque Central a las 8:00 AM en punto. Habrá refrigerio para los voluntarios.',
       createdAt: new Date(Date.now() - 120 * 60000).toISOString(),
       timestampLabel: '09:00 a. m.',
       isPinned: true
@@ -284,7 +284,7 @@ export const INITIAL_CHAT_MESSAGES: Record<string, ChatMessage[]> = {
 export const INITIAL_NOTIFICATIONS: AppNotification[] = [
   {
     id: 'notif-1',
-    title: '🚨 Corte imprevisto de agua en Sector 4',
+    title: 'Corte imprevisto de agua en Sector 4',
     body: 'Sedapal informó reparación de matriz. Camión cisterna pasará a las 5:00 PM.',
     type: 'aviso',
     date: 'Hace 45 min',
@@ -294,7 +294,7 @@ export const INITIAL_NOTIFICATIONS: AppNotification[] = [
   },
   {
     id: 'notif-2',
-    title: '💬 Nuevo mensaje en el chat vecinal',
+    title: 'Nuevo mensaje en el chat vecinal',
     body: 'Juan Diego respondió a la petición de agua de Familia Mendoza.',
     type: 'chat',
     date: 'Hace 20 min',
@@ -303,7 +303,7 @@ export const INITIAL_NOTIFICATIONS: AppNotification[] = [
   },
   {
     id: 'notif-3',
-    title: '🤝 Estado de servicio de Gasfitería',
+    title: 'Estado de servicio de Gasfitería',
     body: 'Carmen Morales ha aceptado tu encargo y se encuentra en camino.',
     type: 'servicio',
     date: 'Hace 1 hora',
@@ -312,7 +312,7 @@ export const INITIAL_NOTIFICATIONS: AppNotification[] = [
   },
   {
     id: 'notif-4',
-    title: '📢 Faena Comunal este Sábado',
+    title: 'Faena Comunal este Sábado',
     body: 'Se necesitan voluntarios para la limpieza del parque comunal a las 8:00 AM.',
     type: 'aviso',
     date: 'Hace 3 horas',

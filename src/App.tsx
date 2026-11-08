@@ -10,7 +10,7 @@ import {
   Zap, Wrench, Hammer, Sparkles, GraduationCap, Utensils, MoreHorizontal,
   Phone, MessageCircle, CheckCircle, Circle, ThumbsUp, Droplet, Megaphone,
   CalendarDays, HandHeart, Shield, X, ChevronDown, Check, XCircle, AlertCircle, Trash2, Image as ImageIcon,
-  Pin, Edit2, Smile, CheckCheck, BellRing, Hourglass
+  Pin, Edit2, CheckCheck, BellRing, Hourglass, Play
 } from 'lucide-react';
 import {
   INITIAL_SERVICES, INITIAL_COMMUNITY_POSTS, INITIAL_HELP_REQUESTS,
@@ -122,9 +122,17 @@ export function App() {
   } | null>(null);
   const [joinedChats, setJoinedChats] = useState<string[]>(['chat-post-1', 'chat-help-1']);
   const [chatInputText, setChatInputText] = useState('');
-  const [showEmojiTray, setShowEmojiTray] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-  const [activeMessageMenuId, setActiveMessageMenuId] = useState<string | null>(null);
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+  const [isChatInfoOpen, setIsChatInfoOpen] = useState(false);
+  const [isConfirmLeaveChatOpen, setIsConfirmLeaveChatOpen] = useState(false);
+  const [isDeleteMsgDialogOpen, setIsDeleteMsgDialogOpen] = useState(false);
+  const [deleteConfirmMode, setDeleteConfirmMode] = useState<'me' | 'everyone' | null>(null);
+  const [pendingChatMedia, setPendingChatMedia] = useState<{ url: string; type: 'image' | 'video'; name: string } | null>(null);
+  const [chatLightboxMedia, setChatLightboxMedia] = useState<string | null>(null);
+  const chatMediaInputRef = useRef<HTMLInputElement>(null);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isLongPressTriggeredRef = useRef(false);
   const [pinnedMessages, setPinnedMessages] = useState<Record<string, string>>({
     'chat-post-1': 'msg-p1-1',
     'chat-post-2': 'msg-p2-1',
@@ -310,6 +318,12 @@ export function App() {
     isRateModalOpen,
     isNoticeModalOpen,
     activeChatThread,
+    isChatInfoOpen,
+    isConfirmLeaveChatOpen,
+    isDeleteMsgDialogOpen,
+    deleteConfirmMode,
+    selectedMessageId,
+    chatLightboxMedia,
     isNotificationsOpen,
     extendModalItem
   });
@@ -320,6 +334,12 @@ export function App() {
     isRateModalOpen,
     isNoticeModalOpen,
     activeChatThread,
+    isChatInfoOpen,
+    isConfirmLeaveChatOpen,
+    isDeleteMsgDialogOpen,
+    deleteConfirmMode,
+    selectedMessageId,
+    chatLightboxMedia,
     isNotificationsOpen,
     extendModalItem
   };
@@ -338,8 +358,16 @@ export function App() {
     const {
       isAuthModalOpen, isHelpModalOpen, isServiceModalOpen,
       isRateModalOpen, isNoticeModalOpen, activeChatThread,
-      isNotificationsOpen, extendModalItem
+      isChatInfoOpen, isConfirmLeaveChatOpen, isDeleteMsgDialogOpen,
+      deleteConfirmMode, selectedMessageId,
+      chatLightboxMedia, isNotificationsOpen, extendModalItem
     } = modalsRef.current;
+    if (chatLightboxMedia) { setChatLightboxMedia(null); return; }
+    if (deleteConfirmMode) { setDeleteConfirmMode(null); return; }
+    if (isDeleteMsgDialogOpen) { setIsDeleteMsgDialogOpen(false); return; }
+    if (isConfirmLeaveChatOpen) { setIsConfirmLeaveChatOpen(false); return; }
+    if (isChatInfoOpen) { setIsChatInfoOpen(false); return; }
+    if (selectedMessageId) { setSelectedMessageId(null); return; }
     if (activeChatThread) { setActiveChatThread(null); return; }
     if (isNotificationsOpen) { setIsNotificationsOpen(false); return; }
     if (extendModalItem) { setExtendModalItem(null); return; }
@@ -551,12 +579,16 @@ export function App() {
     alert('Aviso publicado en la comunidad.');
   };
 
-  // Handlers para Chat Comunitario estilo WhatsApp
+  // Handlers para Chat Comunitario estilo WhatsApp Auténtico
   const handleOpenChat = (threadId: string, title: string, subtitle: string, itemType: 'aviso' | 'ayuda' | 'actividad') => {
     setActiveChatThread({ id: threadId, title, subtitle, itemType });
-    setActiveMessageMenuId(null);
+    setSelectedMessageId(null);
     setEditingMessageId(null);
-    setShowEmojiTray(false);
+    setIsChatInfoOpen(false);
+    setIsConfirmLeaveChatOpen(false);
+    setIsDeleteMsgDialogOpen(false);
+    setDeleteConfirmMode(null);
+    setPendingChatMedia(null);
   };
 
   const handleJoinChat = (threadId: string) => {
@@ -571,9 +603,64 @@ export function App() {
     alert('Has salido del chat vecinal.');
   };
 
+  // Pulsación prolongada estilo WhatsApp (~400ms para seleccionar mensaje)
+  const handleBubblePressStart = (msgId: string) => {
+    isLongPressTriggeredRef.current = false;
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = setTimeout(() => {
+      isLongPressTriggeredRef.current = true;
+      setSelectedMessageId(msgId);
+      if (navigator.vibrate) {
+        try { navigator.vibrate(40); } catch {}
+      }
+    }, 400);
+  };
+
+  const handleBubblePressEnd = (msgId: string) => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    if (!isLongPressTriggeredRef.current) {
+      if (selectedMessageId) {
+        if (selectedMessageId === msgId) {
+          setSelectedMessageId(null);
+        } else {
+          setSelectedMessageId(msgId);
+        }
+      }
+    }
+  };
+
+  const handleBubblePressCancel = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  // Adjuntar fotos y videos al chat
+  const handleChatMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const isVideo = file.type.startsWith('video');
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPendingChatMedia({
+        url: reader.result as string,
+        type: isVideo ? 'video' : 'image',
+        name: file.name
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
   const handleSendMessage = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!activeChatThread || !chatInputText.trim()) return;
+    if (!activeChatThread) return;
+    if (!chatInputText.trim() && !pendingChatMedia) return;
 
     const timeLabel = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const currentUserId = currentUser?.documentNumber || 'usr-me';
@@ -604,7 +691,9 @@ export function App() {
       senderRole: 'vecino',
       text: chatInputText.trim(),
       createdAt: new Date().toISOString(),
-      timestampLabel: timeLabel
+      timestampLabel: timeLabel,
+      mediaUrl: pendingChatMedia?.url,
+      mediaType: pendingChatMedia?.type
     };
 
     setChatMessages(prev => ({
@@ -617,7 +706,8 @@ export function App() {
     }
 
     setChatInputText('');
-    setShowEmojiTray(false);
+    setPendingChatMedia(null);
+    setSelectedMessageId(null);
   };
 
   const handlePinMessage = (threadId: string, msgId: string) => {
@@ -629,13 +719,13 @@ export function App() {
       }
       return { ...prev, [threadId]: msgId };
     });
-    setActiveMessageMenuId(null);
+    setSelectedMessageId(null);
   };
 
   const handleStartEdit = (msg: ChatMessage) => {
     setEditingMessageId(msg.id);
     setChatInputText(msg.text);
-    setActiveMessageMenuId(null);
+    setSelectedMessageId(null);
   };
 
   const handleDeleteMessage = (msgId: string, mode: 'me' | 'everyone') => {
@@ -652,7 +742,7 @@ export function App() {
             return {
               ...m,
               deletedForEveryone: true,
-              text: '🚫 Este mensaje fue eliminado'
+              text: 'Este mensaje fue eliminado'
             };
           } else {
             return {
@@ -663,7 +753,7 @@ export function App() {
         })
       };
     });
-    setActiveMessageMenuId(null);
+    setSelectedMessageId(null);
   };
 
   // Handlers para Notificaciones y Permisos
@@ -2887,7 +2977,7 @@ export function App() {
         </div>
       )}
 
-      {/* ===== MODAL: CHAT COMUNITARIO ESTILO WHATSAPP ===== */}
+      {/* ===== MODAL: CHAT COMUNITARIO ESTILO WHATSAPP AUTÉNTICO ===== */}
       {activeChatThread && (() => {
         const currentUserId = currentUser?.documentNumber || 'usr-me';
         const msgs = (chatMessages[activeChatThread.id] || []).filter(
@@ -2896,55 +2986,87 @@ export function App() {
         const pinnedId = pinnedMessages[activeChatThread.id];
         const pinnedMsg = msgs.find(m => m.id === pinnedId);
         const isJoined = joinedChats.includes(activeChatThread.id);
+        const selectedMsg = msgs.find(m => m.id === selectedMessageId);
 
         return (
           <div className="chat-overlay">
             <div className="chat-modal-window">
-              {/* Header estilo WhatsApp */}
-              <div className="chat-header">
-                <button
-                  className="icon-circle"
-                  style={{ width: 34, height: 34 }}
-                  onClick={() => setActiveChatThread(null)}
-                  aria-label="Volver"
-                >
-                  <ArrowLeft size={18} />
-                </button>
-                <div className="chat-header-info">
-                  <div className="chat-header-title">{activeChatThread.title}</div>
-                  <div className="chat-header-sub">
-                    <Users size={12} />
-                    <span>{activeChatThread.subtitle}</span>
+              {/* Header WhatsApp o Barra de selección por pulsación prolongada */}
+              {selectedMsg ? (
+                <div className="chat-selection-bar">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <button
+                      type="button"
+                      className="chat-sel-action-btn"
+                      onClick={() => setSelectedMessageId(null)}
+                      aria-label="Cerrar selección"
+                    >
+                      <X size={22} />
+                    </button>
+                    <span className="chat-selection-count">1</span>
+                  </div>
+                  <div className="chat-selection-actions">
+                    <button
+                      type="button"
+                      className="chat-sel-action-btn"
+                      onClick={() => handlePinMessage(activeChatThread.id, selectedMsg.id)}
+                      title={pinnedId === selectedMsg.id ? 'Desfijar' : 'Fijar mensaje'}
+                    >
+                      <Pin size={20} />
+                    </button>
+
+                    {selectedMsg.senderId === currentUserId && !selectedMsg.deletedForEveryone && (
+                      <button
+                        type="button"
+                        className="chat-sel-action-btn"
+                        onClick={() => handleStartEdit(selectedMsg)}
+                        title="Editar mensaje"
+                      >
+                        <Edit2 size={20} />
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      className="chat-sel-action-btn"
+                      onClick={() => setIsDeleteMsgDialogOpen(true)}
+                      title="Eliminar mensaje"
+                    >
+                      <Trash2 size={20} />
+                    </button>
                   </div>
                 </div>
-                <div>
-                  {isJoined ? (
-                    <button
-                      type="button"
-                      className="btn btn-outline"
-                      style={{ fontSize: '0.74rem', padding: '4px 10px', borderRadius: 14 }}
-                      onClick={() => handleLeaveChat(activeChatThread.id)}
-                    >
-                      Salir
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="btn btn-coral"
-                      style={{ fontSize: '0.74rem', padding: '4px 10px', borderRadius: 14 }}
-                      onClick={() => handleJoinChat(activeChatThread.id)}
-                    >
-                      Unirme
-                    </button>
-                  )}
+              ) : (
+                <div className="chat-whatsapp-header">
+                  <button
+                    type="button"
+                    className="chat-back-btn"
+                    onClick={() => setActiveChatThread(null)}
+                    aria-label="Volver"
+                  >
+                    <ArrowLeft size={22} />
+                  </button>
+                  <div className="chat-avatar-circle">
+                    {activeChatThread.title.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div
+                    className="chat-header-center"
+                    onClick={() => setIsChatInfoOpen(true)}
+                    title="Toca para ver info del grupo vecinal y salir del chat"
+                  >
+                    <div className="chat-header-title-wa">{activeChatThread.title}</div>
+                    <div className="chat-header-sub-wa">
+                      <span>{activeChatThread.subtitle}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Mensaje Fijado si existe */}
-              {pinnedMsg && (
-                <div className="chat-pin-banner">
+              {pinnedMsg && !selectedMsg && (
+                <div className="chat-pin-banner-wa">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
-                    <Pin size={13} style={{ flexShrink: 0 }} />
+                    <Pin size={12} style={{ flexShrink: 0 }} />
                     <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       <strong>{pinnedMsg.senderName}:</strong> {pinnedMsg.text}
                     </span>
@@ -2960,11 +3082,18 @@ export function App() {
                 </div>
               )}
 
-              {/* Lista de mensajes tipo WhatsApp */}
-              <div className="chat-messages-scroll">
+              {/* Lista de mensajes tipo WhatsApp con fondo auténtico */}
+              <div
+                className="chat-messages-container"
+                onClick={() => {
+                  if (selectedMessageId) setSelectedMessageId(null);
+                }}
+              >
+                <div className="chat-date-pill">HOY</div>
+
                 {!isJoined && (
-                  <div style={{ background: '#FEF3C7', border: '1px solid #FDE68A', padding: '8px 12px', borderRadius: 10, fontSize: '0.78rem', color: '#92400E', textAlign: 'center', margin: '4px 0 8px 0' }}>
-                    Estás en modo lectura. Puedes unirte al chat o enviar un mensaje para participar en la conversación vecinal.
+                  <div style={{ background: '#FEF3C7', border: '1px solid #FDE68A', padding: '8px 12px', borderRadius: 10, fontSize: '0.78rem', color: '#92400E', textAlign: 'center', margin: '2px 0 6px 0' }}>
+                    Estás en modo lectura. Envía un mensaje o toca el título para unirte a la coordinación vecinal.
                   </div>
                 )}
 
@@ -2979,129 +3108,432 @@ export function App() {
                     const isMe = m.senderId === currentUserId;
                     const isPinned = pinnedId === m.id;
                     const isDeleted = m.deletedForEveryone;
+                    const isSelected = selectedMessageId === m.id;
 
                     return (
-                      <div key={m.id} className={`chat-bubble-wrap ${isMe ? 'me' : 'other'}`}>
+                      <div key={m.id} className={`chat-bubble-row ${isMe ? 'me' : 'other'}`}>
                         <div
-                          className="chat-bubble"
-                          style={isPinned ? { borderLeft: '4px solid #F59E0B' } : undefined}
-                          onClick={() => {
-                            if (!isDeleted) {
-                              setActiveMessageMenuId(activeMessageMenuId === m.id ? null : m.id);
-                            }
-                          }}
+                          className={`chat-bubble-wa ${isSelected ? 'is-selected' : ''}`}
+                          style={isPinned ? { borderLeft: '3px solid #008069' } : undefined}
+                          onMouseDown={() => handleBubblePressStart(m.id)}
+                          onMouseUp={() => handleBubblePressEnd(m.id)}
+                          onMouseLeave={handleBubblePressCancel}
+                          onTouchStart={() => handleBubblePressStart(m.id)}
+                          onTouchEnd={() => handleBubblePressEnd(m.id)}
+                          onTouchMove={handleBubblePressCancel}
                         >
-                          {!isMe && <div className="chat-sender-name">{m.senderName}</div>}
+                          {!isMe && <div className="chat-sender-wa">{m.senderName}</div>}
 
                           {isPinned && (
-                            <div style={{ fontSize: '0.68rem', color: '#B45309', display: 'flex', alignItems: 'center', gap: 3, marginBottom: 2 }}>
+                            <div style={{ fontSize: '0.66rem', color: '#008069', display: 'flex', alignItems: 'center', gap: 3, marginBottom: 2 }}>
                               <Pin size={10} /> Mensaje fijado
                             </div>
                           )}
 
-                          <div className={isDeleted ? 'chat-bubble-deleted' : ''}>
+                          {/* Foto o Video adjunto */}
+                          {m.mediaUrl && (
+                            <div className="chat-media-container">
+                              {m.mediaType === 'video' ? (
+                                <video src={m.mediaUrl} controls className="chat-media-video" />
+                              ) : (
+                                <img
+                                  src={m.mediaUrl}
+                                  alt="Foto adjunta"
+                                  className="chat-media-img"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setChatLightboxMedia(m.mediaUrl!);
+                                  }}
+                                />
+                              )}
+                            </div>
+                          )}
+
+                          <div className={isDeleted ? 'chat-bubble-deleted-wa' : 'chat-bubble-text'}>
                             {m.text}
                           </div>
 
-                          <div className="chat-meta">
-                            {m.isEdited && <span style={{ fontSize: '0.64rem', color: '#9CA3AF' }}>(editado)</span>}
+                          <div className="chat-meta-wa">
+                            {m.isEdited && <span style={{ fontSize: '0.62rem', color: '#667781' }}>(editado)</span>}
                             <span>{m.timestampLabel}</span>
-                            {isMe && <CheckCheck size={13} color="#3B82F6" />}
+                            {isMe && <CheckCheck size={13} color="#53BDEB" />}
                           </div>
                         </div>
-
-                        {/* Menú de opciones de mensaje (Fijar, Editar, Borrar) */}
-                        {activeMessageMenuId === m.id && !isDeleted && (
-                          <div className="chat-actions-popup">
-                            <button
-                              type="button"
-                              className="chat-action-item"
-                              onClick={() => handlePinMessage(activeChatThread.id, m.id)}
-                            >
-                              <Pin size={13} /> {isPinned ? 'Desfijar' : 'Fijar mensaje'}
-                            </button>
-
-                            {isMe && (
-                              <button
-                                type="button"
-                                className="chat-action-item"
-                                onClick={() => handleStartEdit(m)}
-                              >
-                                <Edit2 size={13} /> Editar mensaje
-                              </button>
-                            )}
-
-                            <button
-                              type="button"
-                              className="chat-action-item danger"
-                              onClick={() => handleDeleteMessage(m.id, 'me')}
-                            >
-                              <Trash2 size={13} /> Eliminar para mí
-                            </button>
-
-                            {isMe && (
-                              <button
-                                type="button"
-                                className="chat-action-item danger"
-                                onClick={() => handleDeleteMessage(m.id, 'everyone')}
-                              >
-                                <Trash2 size={13} /> Eliminar para todos
-                              </button>
-                            )}
-                          </div>
-                        )}
                       </div>
                     );
                   })
                 )}
               </div>
 
-              {/* Selector de Emojis estilo WhatsApp */}
-              {showEmojiTray && (
-                <div className="emoji-tray">
-                  {['👍', '🙏', '⚠️', '💧', '🛠️', '🚨', '💡', '👏', '❤️', '😊', '🏠', '📦', '⏰', '⚡', '🔔', '🤝', '🙌', '👌', '📢', '✅'].map(em => (
+              {/* Barra inferior estilo WhatsApp con margen de seguridad para botones de movimiento Android */}
+              <div className="chat-whatsapp-footer">
+                {editingMessageId && (
+                  <div className="chat-edit-indicator">
+                    <span>Editando mensaje</span>
                     <button
-                      key={em}
                       type="button"
-                      className="emoji-btn"
-                      onClick={() => setChatInputText(prev => prev + em)}
+                      style={{ background: 'none', border: 'none', color: '#92400E', cursor: 'pointer' }}
+                      onClick={() => { setEditingMessageId(null); setChatInputText(''); }}
                     >
-                      {em}
+                      <X size={15} />
                     </button>
-                  ))}
+                  </div>
+                )}
+
+                {pendingChatMedia && (
+                  <div className="chat-media-preview-bar">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
+                      {pendingChatMedia.type === 'image' ? (
+                        <img src={pendingChatMedia.url} alt="Vista previa" className="chat-media-preview-thumb" />
+                      ) : (
+                        <div style={{ width: 44, height: 44, background: '#111827', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF' }}>
+                          <Play size={20} />
+                        </div>
+                      )}
+                      <span style={{ fontSize: '0.78rem', color: '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {pendingChatMedia.name}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      style={{ background: 'none', border: 'none', color: '#6B7280', cursor: 'pointer', padding: 4 }}
+                      onClick={() => setPendingChatMedia(null)}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                )}
+
+                <form className="chat-input-controls-row" onSubmit={handleSendMessage}>
+                  <input
+                    type="file"
+                    ref={chatMediaInputRef}
+                    accept="image/*,video/*"
+                    style={{ display: 'none' }}
+                    onChange={handleChatMediaSelect}
+                  />
+
+                  <div className="chat-input-capsule">
+                    <input
+                      type="text"
+                      className="chat-capsule-input"
+                      placeholder={editingMessageId ? 'Escribe el texto corregido...' : 'Mensaje'}
+                      value={chatInputText}
+                      onChange={e => setChatInputText(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="chat-capsule-btn"
+                      onClick={() => chatMediaInputRef.current?.click()}
+                      title="Cámara"
+                      aria-label="Cámara"
+                    >
+                      <Camera size={21} />
+                    </button>
+                    <button
+                      type="button"
+                      className="chat-capsule-btn"
+                      onClick={() => chatMediaInputRef.current?.click()}
+                      title="Adjuntar foto o video"
+                      aria-label="Adjuntar foto o video"
+                    >
+                      <ImageIcon size={20} />
+                    </button>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="chat-send-btn-wa"
+                    aria-label="Enviar"
+                    disabled={!chatInputText.trim() && !pendingChatMedia}
+                    style={{ opacity: (!chatInputText.trim() && !pendingChatMedia) ? 0.6 : 1 }}
+                  >
+                    <Send size={20} />
+                  </button>
+                </form>
+              </div>
+
+              {/* Modal de Información del Grupo Vecinal (Donde está oculta la opción Salir del Chat) */}
+              {isChatInfoOpen && (
+                <div className="chat-info-modal">
+                  <div className="chat-info-header">
+                    <button
+                      type="button"
+                      className="chat-back-btn"
+                      onClick={() => setIsChatInfoOpen(false)}
+                      aria-label="Cerrar información"
+                    >
+                      <ArrowLeft size={22} />
+                    </button>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF' }}>
+                      Info. del grupo vecinal
+                    </div>
+                  </div>
+
+                  <div className="chat-info-card" style={{ textAlign: 'center', padding: '24px 16px' }}>
+                    <div
+                      style={{
+                        width: 72,
+                        height: 72,
+                        borderRadius: '50%',
+                        background: '#00A884',
+                        color: '#FFFFFF',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto 12px',
+                        boxShadow: '0 4px 10px rgba(0,0,0,0.15)'
+                      }}
+                    >
+                      {activeChatThread.itemType === 'ayuda' ? <HeartHandshake size={36} /> :
+                       activeChatThread.itemType === 'aviso' ? <Megaphone size={36} /> :
+                       <CalendarDays size={36} />}
+                    </div>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#111827', margin: '0 0 6px 0' }}>
+                      {activeChatThread.title}
+                    </h3>
+                    <p style={{ fontSize: '0.82rem', color: '#6B7280', margin: 0 }}>
+                      {activeChatThread.subtitle}
+                    </p>
+                  </div>
+
+                  <div className="chat-info-card">
+                    <h4 style={{ fontSize: '0.82rem', fontWeight: 700, color: '#008069', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
+                      Coordinación comunitaria
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: '0.85rem', color: '#374151' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Shield size={16} color="#008069" />
+                        <span>Chat vecinal verificado en {selectedNeighborhood}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Users size={16} color="#008069" />
+                        <span>{msgs.length + 3} mensajes y actualizaciones de vecinos</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Acciones del chat: Salir del chat o Unirme */}
+                  <div className="chat-info-card" style={{ marginTop: 'auto', marginBottom: 28 }}>
+                    {isJoined ? (
+                      <button
+                        type="button"
+                        className="btn"
+                        style={{
+                          width: '100%',
+                          background: '#FEE2E2',
+                          color: '#DC2626',
+                          border: '1px solid #FCA5A5',
+                          padding: '12px',
+                          borderRadius: 12,
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          fontSize: '0.9rem'
+                        }}
+                        onClick={() => setIsConfirmLeaveChatOpen(true)}
+                      >
+                        <LogOut size={18} /> Salir del chat vecinal
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn"
+                        style={{
+                          width: '100%',
+                          background: '#008069',
+                          color: '#FFFFFF',
+                          padding: '12px',
+                          borderRadius: 12,
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          fontSize: '0.9rem'
+                        }}
+                        onClick={() => {
+                          handleJoinChat(activeChatThread.id);
+                          setIsChatInfoOpen(false);
+                        }}
+                      >
+                        <Users size={18} /> Unirme a este chat
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 
-              {/* Barra de input estilo WhatsApp */}
-              <form className="chat-input-bar" onSubmit={handleSendMessage}>
-                <button
-                  type="button"
-                  style={{ background: 'none', border: 'none', color: '#6B7280', cursor: 'pointer', padding: 4 }}
-                  onClick={() => setShowEmojiTray(s => !s)}
-                  aria-label="Emojis"
+              {/* Modal de confirmación para Salir del Chat */}
+              {isConfirmLeaveChatOpen && (
+                <div className="chat-delete-dialog-overlay" onClick={() => setIsConfirmLeaveChatOpen(false)}>
+                  <div className="chat-delete-dialog" onClick={e => e.stopPropagation()}>
+                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#111827' }}>
+                      ¿Deseas salirte de este chat?
+                    </h4>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#4B5563', lineHeight: 1.4 }}>
+                      ¿Estás seguro de que deseas salirte de la conversación vecinal de "{activeChatThread.title}"? Ya no recibirás nuevos avisos ni podrás enviar mensajes en este hilo.
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+                      <button
+                        type="button"
+                        className="btn"
+                        style={{ background: '#DC2626', color: '#FFFFFF', padding: '10px 14px', borderRadius: 10, fontWeight: 700, fontSize: '0.88rem' }}
+                        onClick={() => {
+                          handleLeaveChat(activeChatThread.id);
+                          setIsConfirmLeaveChatOpen(false);
+                          setIsChatInfoOpen(false);
+                        }}
+                      >
+                        Sí, salir del chat
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        style={{ padding: '10px 14px', borderRadius: 10, fontWeight: 700, fontSize: '0.88rem' }}
+                        onClick={() => setIsConfirmLeaveChatOpen(false)}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Modal de confirmación para eliminar mensaje */}
+              {isDeleteMsgDialogOpen && selectedMsg && (
+                <div
+                  className="chat-delete-dialog-overlay"
+                  onClick={() => {
+                    setIsDeleteMsgDialogOpen(false);
+                    setDeleteConfirmMode(null);
+                  }}
                 >
-                  <Smile size={22} />
-                </button>
-                <input
-                  type="text"
-                  className="chat-input-field"
-                  placeholder={editingMessageId ? 'Editando mensaje...' : 'Escribe un mensaje vecinal...'}
-                  value={chatInputText}
-                  onChange={e => setChatInputText(e.target.value)}
-                />
-                {editingMessageId && (
+                  <div className="chat-delete-dialog" onClick={e => e.stopPropagation()}>
+                    {deleteConfirmMode === null ? (
+                      <>
+                        <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700, color: '#111827' }}>
+                          ¿Deseas eliminar este mensaje?
+                        </h4>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#6B7280' }}>
+                          Selecciona una opción para eliminar el mensaje:
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+                          {selectedMsg.senderId === currentUserId && (
+                            <button
+                              type="button"
+                              className="btn"
+                              style={{ background: '#DC2626', color: '#FFFFFF', padding: '10px 14px', borderRadius: 10, fontWeight: 700, fontSize: '0.85rem' }}
+                              onClick={() => setDeleteConfirmMode('everyone')}
+                            >
+                              Eliminar para todos
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            style={{ padding: '10px 14px', borderRadius: 10, fontWeight: 700, fontSize: '0.85rem' }}
+                            onClick={() => setDeleteConfirmMode('me')}
+                          >
+                            Eliminar para mí
+                          </button>
+                          <button
+                            type="button"
+                            style={{ background: 'none', border: 'none', color: '#6B7280', padding: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}
+                            onClick={() => {
+                              setIsDeleteMsgDialogOpen(false);
+                              setDeleteConfirmMode(null);
+                            }}
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </>
+                    ) : deleteConfirmMode === 'everyone' ? (
+                      <>
+                        <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700, color: '#DC2626' }}>
+                          ¿Eliminar para todos los vecinos?
+                        </h4>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#4B5563', lineHeight: 1.4 }}>
+                          ¿Estás seguro de querer eliminar este mensaje para todos? Se borrará permanentemente para ti y para todos los miembros de este chat vecinal.
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+                          <button
+                            type="button"
+                            className="btn"
+                            style={{ background: '#DC2626', color: '#FFFFFF', padding: '10px 14px', borderRadius: 10, fontWeight: 700, fontSize: '0.85rem' }}
+                            onClick={() => {
+                              handleDeleteMessage(selectedMsg.id, 'everyone');
+                              setIsDeleteMsgDialogOpen(false);
+                              setDeleteConfirmMode(null);
+                              setSelectedMessageId(null);
+                            }}
+                          >
+                            Sí, eliminar para todos
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            style={{ padding: '10px 14px', borderRadius: 10, fontWeight: 700, fontSize: '0.85rem' }}
+                            onClick={() => setDeleteConfirmMode(null)}
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700, color: '#111827' }}>
+                          ¿Eliminar para ti?
+                        </h4>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#4B5563', lineHeight: 1.4 }}>
+                          ¿Estás seguro de querer eliminar este mensaje para ti? Solo se eliminará de tu vista en este teléfono, pero los demás vecinos aún podrán verlo.
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+                          <button
+                            type="button"
+                            className="btn"
+                            style={{ background: '#DC2626', color: '#FFFFFF', padding: '10px 14px', borderRadius: 10, fontWeight: 700, fontSize: '0.85rem' }}
+                            onClick={() => {
+                              handleDeleteMessage(selectedMsg.id, 'me');
+                              setIsDeleteMsgDialogOpen(false);
+                              setDeleteConfirmMode(null);
+                              setSelectedMessageId(null);
+                            }}
+                          >
+                            Sí, eliminar para mí
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            style={{ padding: '10px 14px', borderRadius: 10, fontWeight: 700, fontSize: '0.85rem' }}
+                            onClick={() => setDeleteConfirmMode(null)}
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Visor a pantalla completa de fotos */}
+              {chatLightboxMedia && (
+                <div className="chat-lightbox-overlay" onClick={() => setChatLightboxMedia(null)}>
                   <button
                     type="button"
-                    style={{ background: 'none', border: 'none', color: '#6B7280', cursor: 'pointer', fontSize: '0.75rem' }}
-                    onClick={() => { setEditingMessageId(null); setChatInputText(''); }}
+                    style={{ position: 'absolute', top: 20, right: 20, background: 'none', border: 'none', color: '#FFFFFF', cursor: 'pointer' }}
+                    onClick={() => setChatLightboxMedia(null)}
+                    aria-label="Cerrar visor"
                   >
-                    Cancelar
+                    <X size={28} />
                   </button>
-                )}
-                <button type="submit" className="chat-send-btn" aria-label="Enviar">
-                  <Send size={18} />
-                </button>
-              </form>
+                  <img src={chatLightboxMedia} alt="Foto ampliada" className="chat-lightbox-img" onClick={e => e.stopPropagation()} />
+                </div>
+              )}
             </div>
           </div>
         );
