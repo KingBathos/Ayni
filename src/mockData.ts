@@ -139,6 +139,66 @@ export const INITIAL_BOOKINGS: Booking[] = [
       acceptedAt: 'Hoy, 9:30 a. m.',
       onTheWayAt: 'Hoy, 9:35 a. m.'
     }
+  },
+  {
+    id: 'bk-rec-201',
+    serviceId: 'srv-2',
+    serviceTitle: 'Gasfitería rápida y detección de fugas',
+    clientId: 'usr-c2',
+    clientName: 'Rosa Meléndez (Vecina Sector 4)',
+    providerId: 'usr-me',
+    providerName: 'Tú (Profesional)',
+    status: 'en_revision',
+    date: 'Hoy, 02:29 p. m.',
+    hasReview: false,
+    notes: 'Tengo una fuga constante en la tubería bajo el lavadero. Requiere cambio de llave y empaques.',
+    address: 'Pasaje Sol 142, San Borja',
+    scheduledDate: 'Hoy, lo antes posible',
+    timeline: {
+      sentAt: 'Hoy, 02:29 p. m.',
+      reviewedAt: 'Hoy, 02:30 p. m.'
+    }
+  },
+  {
+    id: 'bk-rec-202',
+    serviceId: 'srv-1',
+    serviceTitle: 'Reparaciones e Instalaciones Eléctricas de Emergencia',
+    clientId: 'usr-c3',
+    clientName: 'Carlos Rivas (Vecino Mz F)',
+    providerId: 'usr-me',
+    providerName: 'Tú (Profesional)',
+    status: 'en_revision',
+    date: 'Hoy, 01:15 p. m.',
+    hasReview: false,
+    notes: 'Se bajó la llave general y no sube. Por favor revisar el tablero de entrada.',
+    address: 'Calle Andrea del Sarto 280, San Borja',
+    scheduledDate: 'Hoy a partir de las 4:00 PM',
+    timeline: {
+      sentAt: 'Hoy, 01:15 p. m.',
+      reviewedAt: 'Hoy, 01:20 p. m.'
+    }
+  },
+  {
+    id: 'bk-hist-1',
+    serviceId: 'srv-3',
+    serviceTitle: 'Carpintería y armado de muebles en melamina',
+    clientId: 'usr-me',
+    clientName: 'María (Tú)',
+    providerId: 'usr-p3',
+    providerName: 'Pedro Quispe',
+    status: 'completado',
+    date: 'Ayer, 4:10 p. m.',
+    hasReview: true,
+    notes: 'Armado de estante de cocina de 3 niveles.',
+    address: 'Ciclovía Malachowsky, San Borja',
+    scheduledDate: 'Ayer, 4:00 p. m.',
+    timeline: {
+      sentAt: 'Ayer, 3:30 p. m.',
+      reviewedAt: 'Ayer, 3:35 p. m.',
+      acceptedAt: 'Ayer, 3:40 p. m.',
+      onTheWayAt: 'Ayer, 3:55 p. m.',
+      inProgressAt: 'Ayer, 4:10 p. m.'
+    }
   }
 ];
 

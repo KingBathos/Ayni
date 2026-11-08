@@ -10,7 +10,7 @@ import {
   Zap, Wrench, Hammer, Sparkles, GraduationCap, Utensils, MoreHorizontal,
   Phone, MessageCircle, CheckCircle, Circle, ThumbsUp, Droplet, Megaphone,
   CalendarDays, HandHeart, Shield, X, ChevronDown, Check, XCircle, AlertCircle, Trash2, Image as ImageIcon,
-  Pin, Edit2, CheckCheck, BellRing, Hourglass, Play
+  Pin, Edit2, CheckCheck, BellRing, Hourglass, Play, Inbox
 } from 'lucide-react';
 import {
   INITIAL_SERVICES, INITIAL_COMMUNITY_POSTS, INITIAL_HELP_REQUESTS,
@@ -87,8 +87,8 @@ export function App() {
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
-  // Pestaña en Mis Solicitudes (Boceto 10)
-  const [requestsTab, setRequestsTab] = useState<'current' | 'history'>('current');
+  // Pestaña en Mis Solicitudes (3 opciones: En curso, Pedidos recibidos, Historial)
+  const [requestsTab, setRequestsTab] = useState<'current' | 'received' | 'history'>('current');
 
   // Modal Calificar Servicio (Boceto 15)
   const [isRateModalOpen, setIsRateModalOpen] = useState(false);
@@ -987,7 +987,7 @@ export function App() {
     }));
   };
 
-  const handleAdvanceBookingStatus = (bkId: string, nextStatus: 'en_camino' | 'en_proceso') => {
+  const handleAdvanceBookingStatus = (bkId: string, nextStatus: 'en_camino' | 'en_proceso' | 'completado') => {
     const timeNow = 'Hoy, ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     setBookings(prev => prev.map(b => {
       if (b.id !== bkId) return b;
@@ -2092,44 +2092,21 @@ export function App() {
                   </div>
                 </div>
 
-                {/* APARTADO DE DECISIÓN DEL PROFESIONAL (Solicitado por el usuario) */}
+                {/* Estado de espera del cliente mientras el profesional revisa */}
                 {isPendingDecision && (
-                  <div className="decision-card">
-                    <div className="decision-header">
-                      <div className="decision-badge">
-                        <Clock size={12} /> Decisión pendiente
+                  <div className="card" style={{ marginTop: 12, border: '1px solid #FDE68A', background: '#FFFBEB', padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                      <div className="icon-circle" style={{ background: '#FEF3C7', color: '#B45309', flexShrink: 0, marginTop: 2 }}>
+                        <Clock size={18} />
                       </div>
-                      <span style={{ fontSize: '0.72rem', color: '#6B7280', fontWeight: 700 }}>
-                        Vista del Profesional
-                      </span>
-                    </div>
-
-                    <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: 'var(--carbon)', marginBottom: 4 }}>
-                      ¿Aceptas el encargo de {curBk.clientName}?
-                    </h4>
-                    <p style={{ fontSize: '0.8rem', color: '#4B5563', lineHeight: 1.35, marginBottom: 10 }}>
-                      "{curBk.notes}"
-                    </p>
-
-                    <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: '4px 0 10px 0' }}>
-                      Revisa la dirección y horario solicitado arriba. Como profesional, puedes aceptar el encargo para iniciar el viaje o rechazarlo si no tienes disponibilidad.
-                    </p>
-
-                    <div className="decision-btn-group">
-                      <button
-                        type="button"
-                        className="btn-accept"
-                        onClick={() => handleAcceptBooking(curBk.id)}
-                      >
-                        <Check size={16} /> Aceptar encargo
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-reject"
-                        onClick={() => handleRejectBooking(curBk.id)}
-                      >
-                        <X size={16} /> Rechazar encargo
-                      </button>
+                      <div>
+                        <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#92400E', margin: 0 }}>
+                          Esperando confirmación del profesional
+                        </h4>
+                        <p style={{ fontSize: '0.8rem', color: '#B45309', marginTop: 4, lineHeight: 1.35, margin: '4px 0 0' }}>
+                          Tu solicitud ha sido enviada a {providerNameClean}. Te notificaremos en cuanto acepte el encargo para iniciar el viaje a tu domicilio. Puedes revisar los pedidos recibidos en la sección Solicitudes.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -2240,101 +2217,361 @@ export function App() {
         );
       })()}
 
-      {/* ========== MIS SOLICITUDES (Boceto 10) ========== */}
-      {view === 'requests' && (
-        <>
-          <div className="top-bar" style={{ borderBottom: '1px solid var(--gray-200)', paddingBottom: 14 }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--carbon)' }}>Mis solicitudes</h3>
-          </div>
+      {/* ========== MIS SOLICITUDES (Boceto 10 con 3 pestañas: En curso, Pedidos recibidos, Historial) ========== */}
+      {view === 'requests' && (() => {
+        const currentUserId = currentUser?.documentNumber || 'usr-me';
 
-          <div className="body">
-            <div className="body-pad">
-              <div className="seg-tabs">
-                <button
-                  className={`seg-tab ${requestsTab === 'current' ? 'active' : ''}`}
-                  onClick={() => setRequestsTab('current')}
-                >
-                  En curso ({bookings.filter(b => b.status !== 'completado').length})
-                </button>
-                <button
-                  className={`seg-tab ${requestsTab === 'history' ? 'active' : ''}`}
-                  onClick={() => setRequestsTab('history')}
-                >
-                  Historial ({bookings.filter(b => b.status === 'completado').length})
-                </button>
-              </div>
+        // 1. Solicitudes realizadas por el usuario como cliente (En curso)
+        const myClientBookings = bookings.filter(
+          b => (b.clientId === currentUserId || b.clientId === 'usr-me') &&
+               b.status !== 'completado' &&
+               b.status !== 'rechazado'
+        );
 
-              {bookings.filter(b => requestsTab === 'current' ? b.status !== 'completado' : b.status === 'completado').length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 0', color: '#9CA3AF' }}>
-                  <Store size={40} style={{ margin: '0 auto 8px', opacity: 0.4, display: 'block' }} />
-                  <p style={{ fontWeight: 700 }}>No hay solicitudes en esta sección</p>
-                  <p style={{ fontSize: '0.82rem' }}>Explora servicios cercanos de tu barrio</p>
-                </div>
-              ) : (
-                bookings
-                  .filter(b => requestsTab === 'current' ? b.status !== 'completado' : b.status === 'completado')
-                  .map(b => (
-                    <div
-                      key={b.id}
-                      className="card"
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => {
-                        setSelectedBooking(b);
-                        setSelectedService(services.find(s => s.id === b.serviceId) || null);
-                        navigateTo('tracking');
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <span style={{ fontWeight: 700, color: 'var(--carbon)', fontSize: '0.92rem' }}>{b.serviceTitle}</span>
-                        <span
-                          className="tag"
-                          style={{
-                            background:
-                              b.status === 'completado' ? '#E8F8F0' :
-                              b.status === 'rechazado' ? '#FEE2E2' :
-                              b.status === 'en_revision' || b.status === 'solicitado' ? '#FEF3C7' :
-                              b.status === 'en_proceso' ? '#DBEAFE' : '#FFEDD5',
-                            color:
-                              b.status === 'completado' ? '#2E9D72' :
-                              b.status === 'rechazado' ? '#DC2626' :
-                              b.status === 'en_revision' || b.status === 'solicitado' ? '#B45309' :
-                              b.status === 'en_proceso' ? '#1D4ED8' : 'var(--coral)',
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            padding: '3px 8px',
-                            borderRadius: 6,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 3
-                          }}
-                        >
-                          {b.status === 'completado' ? (
-                            <><CheckCircle2 size={12} /> Finalizado</>
-                          ) : b.status === 'rechazado' ? (
-                            <><XCircle size={12} /> Rechazado</>
-                          ) : b.status === 'en_revision' || b.status === 'solicitado' ? (
-                            <><Clock size={12} /> En revisión</>
-                          ) : b.status === 'en_proceso' ? (
-                            <><Zap size={12} /> En proceso</>
-                          ) : (
-                            <><Navigation size={12} /> En camino</>
-                          )}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '0.82rem', color: '#6B7280', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <UserIcon size={12} color="#6B7280" />
-                        <span>{b.providerName}</span>
-                        <span>·</span>
-                        <Clock size={12} color="#6B7280" />
-                        <span>{b.date}</span>
-                      </div>
-                    </div>
-                  ))
-              )}
+        // 2. Pedidos de servicio que otros vecinos han solicitado al usuario (Proveedor)
+        const receivedBookings = bookings.filter(
+          b => b.providerId === currentUserId || b.providerId === 'usr-me' || b.id.startsWith('bk-rec-')
+        );
+        const pendingReceivedCount = receivedBookings.filter(
+          b => b.status === 'en_revision' || b.status === 'solicitado'
+        ).length;
+
+        // 3. Historial de servicios (completados o rechazados)
+        const historyBookings = bookings.filter(
+          b => b.status === 'completado' || b.status === 'rechazado'
+        );
+
+        return (
+          <>
+            <div className="top-bar" style={{ borderBottom: '1px solid var(--gray-200)', paddingBottom: 14 }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--carbon)' }}>Mis solicitudes</h3>
             </div>
-          </div>
-        </>
-      )}
+
+            <div className="body">
+              <div className="body-pad">
+                <div className="seg-tabs">
+                  <button
+                    className={`seg-tab ${requestsTab === 'current' ? 'active' : ''}`}
+                    onClick={() => setRequestsTab('current')}
+                  >
+                    En curso ({myClientBookings.length})
+                  </button>
+                  <button
+                    className={`seg-tab ${requestsTab === 'received' ? 'active' : ''}`}
+                    onClick={() => setRequestsTab('received')}
+                  >
+                    Pedidos recibidos ({receivedBookings.filter(b => b.status !== 'completado' && b.status !== 'rechazado').length})
+                    {pendingReceivedCount > 0 && <span className="seg-tab-dot" />}
+                  </button>
+                  <button
+                    className={`seg-tab ${requestsTab === 'history' ? 'active' : ''}`}
+                    onClick={() => setRequestsTab('history')}
+                  >
+                    Historial ({historyBookings.length})
+                  </button>
+                </div>
+
+                {/* PESTAÑA 1: EN CURSO (Servicios solicitados como cliente) */}
+                {requestsTab === 'current' && (
+                  myClientBookings.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px 0', color: '#9CA3AF' }}>
+                      <Store size={40} style={{ margin: '0 auto 8px', opacity: 0.4, display: 'block' }} />
+                      <p style={{ fontWeight: 700 }}>No tienes solicitudes en curso</p>
+                      <p style={{ fontSize: '0.82rem' }}>Explora servicios cercanos de tu barrio para pedir una atención</p>
+                    </div>
+                  ) : (
+                    myClientBookings.map(b => (
+                      <div
+                        key={b.id}
+                        className="card"
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => {
+                          setSelectedBooking(b);
+                          setSelectedService(services.find(s => s.id === b.serviceId) || null);
+                          navigateTo('tracking');
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span style={{ fontWeight: 700, color: 'var(--carbon)', fontSize: '0.92rem' }}>{b.serviceTitle}</span>
+                          <span
+                            className="tag"
+                            style={{
+                              background:
+                                b.status === 'en_revision' || b.status === 'solicitado' ? '#FEF3C7' :
+                                b.status === 'en_proceso' ? '#DBEAFE' : '#FFEDD5',
+                              color:
+                                b.status === 'en_revision' || b.status === 'solicitado' ? '#B45309' :
+                                b.status === 'en_proceso' ? '#1D4ED8' : 'var(--coral)',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              padding: '3px 8px',
+                              borderRadius: 6,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3
+                            }}
+                          >
+                            {b.status === 'en_revision' || b.status === 'solicitado' ? (
+                              <><Clock size={12} /> En revisión</>
+                            ) : b.status === 'en_proceso' ? (
+                              <><Zap size={12} /> En proceso</>
+                            ) : (
+                              <><Navigation size={12} /> En camino</>
+                            )}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.82rem', color: '#6B7280', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <UserIcon size={12} color="#6B7280" />
+                          <span>{b.providerName}</span>
+                          <span>·</span>
+                          <Clock size={12} color="#6B7280" />
+                          <span>{b.date}</span>
+                        </div>
+                      </div>
+                    ))
+                  )
+                )}
+
+                {/* PESTAÑA 2: PEDIDOS RECIBIDOS (Encargos solicitados por vecinos para ti) */}
+                {requestsTab === 'received' && (
+                  receivedBookings.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px 0', color: '#9CA3AF' }}>
+                      <Inbox size={40} style={{ margin: '0 auto 8px', opacity: 0.4, display: 'block' }} />
+                      <p style={{ fontWeight: 700 }}>No tienes pedidos de servicio recibidos</p>
+                      <p style={{ fontSize: '0.82rem' }}>Cuando los vecinos soliciten tus oficios o servicios, aparecerán aquí para que los revises y aceptes.</p>
+                    </div>
+                  ) : (
+                    receivedBookings.map(b => {
+                      const isPending = b.status === 'en_revision' || b.status === 'solicitado';
+                      const isAcceptedOnTheWay = b.status === 'en_camino';
+                      const isInProgress = b.status === 'en_proceso';
+                      const isDone = b.status === 'completado';
+                      const isRejected = b.status === 'rechazado';
+
+                      return (
+                        <div key={b.id} className="received-order-card">
+                          <div className="received-order-top">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <div className="received-client-avatar">
+                                <UserIcon size={18} color="var(--carbon)" />
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--carbon)' }}>
+                                  {b.clientName}
+                                </div>
+                                <div style={{ fontSize: '0.74rem', color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <Clock size={11} /> {b.date}
+                                </div>
+                              </div>
+                            </div>
+
+                            <span
+                              className="tag"
+                              style={{
+                                background: isPending ? '#FEF3C7' : isAcceptedOnTheWay ? '#FFEDD5' : isInProgress ? '#DBEAFE' : isDone ? '#E8F8F0' : '#FEE2E2',
+                                color: isPending ? '#B45309' : isAcceptedOnTheWay ? 'var(--coral)' : isInProgress ? '#1D4ED8' : isDone ? '#2E9D72' : '#DC2626',
+                                fontSize: '0.72rem',
+                                fontWeight: 800,
+                                padding: '3px 8px',
+                                borderRadius: 6,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4
+                              }}
+                            >
+                              {isPending ? <Clock size={12} /> : isAcceptedOnTheWay ? <Navigation size={12} /> : isInProgress ? <Zap size={12} /> : isDone ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                              {isPending ? 'Por aceptar' : isAcceptedOnTheWay ? 'En camino' : isInProgress ? 'En proceso' : isDone ? 'Completado' : 'Rechazado'}
+                            </span>
+                          </div>
+
+                          <div className="received-order-body">
+                            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--coral)', marginBottom: 4 }}>
+                              {b.serviceTitle}
+                            </div>
+                            <p style={{ fontSize: '0.82rem', color: '#374151', margin: '4px 0 8px 0', lineHeight: 1.4 }}>
+                              "{b.notes}"
+                            </p>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: '0.78rem', color: '#4B5563', background: 'var(--gray-50)', padding: '8px 10px', borderRadius: 8 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <MapPin size={13} color="var(--coral)" style={{ flexShrink: 0 }} />
+                                <span style={{ color: 'var(--carbon)', fontWeight: 600 }}>{b.address || 'Ciclovía Malachowsky, San Borja'}</span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <Calendar size={13} color="#6B7280" style={{ flexShrink: 0 }} />
+                                <span>Horario solicitado: <strong>{b.scheduledDate || 'Hoy lo antes posible'}</strong></span>
+                              </div>
+                            </div>
+
+                            {b.photos && b.photos.length > 0 && (
+                              <div style={{ marginTop: 8 }}>
+                                <span style={{ fontSize: '0.72rem', color: '#6B7280', fontWeight: 700, display: 'block', marginBottom: 4 }}>
+                                  Fotos adjuntas por el vecino:
+                                </span>
+                                <div className="photo-previews">
+                                  {b.photos.map((ph, idx) => (
+                                    <div key={idx} className="photo-thumb-card">
+                                      <img src={ph} alt={`Foto ${idx + 1}`} className="photo-thumb-img" />
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Opciones de Aceptar o Rechazar el encargo */}
+                          {isPending && (
+                            <div className="decision-btn-group" style={{ marginTop: 12 }}>
+                              <button
+                                type="button"
+                                className="btn-accept"
+                                onClick={() => handleAcceptBooking(b.id)}
+                              >
+                                <Check size={16} /> Aceptar encargo
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-reject"
+                                onClick={() => handleRejectBooking(b.id)}
+                              >
+                                <X size={16} /> Rechazar encargo
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Si ya fue aceptado y está en camino */}
+                          {isAcceptedOnTheWay && (
+                            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#FFF7ED', padding: '8px 12px', borderRadius: 8, fontSize: '0.78rem', color: 'var(--coral)', fontWeight: 700 }}>
+                                <span>Has aceptado este encargo · Estás en camino</span>
+                                <div style={{ display: 'flex', gap: 6 }}>
+                                  <a href="tel:999888777" className="icon-circle" style={{ width: 28, height: 28, background: '#E8F8F0' }} aria-label="Llamar">
+                                    <Phone size={13} color="#2E9D72" />
+                                  </a>
+                                  <a href="https://wa.me/51999888777" target="_blank" rel="noreferrer" className="icon-circle" style={{ width: 28, height: 28, background: '#FFF7ED' }} aria-label="WhatsApp">
+                                    <MessageCircle size={13} color="#FF875C" />
+                                  </a>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                className="btn btn-block"
+                                style={{ background: '#2563EB', color: '#FFFFFF', borderRadius: 'var(--radius-full)', padding: '10px 14px', fontSize: '0.84rem' }}
+                                onClick={() => handleAdvanceBookingStatus(b.id, 'en_proceso')}
+                              >
+                                <CheckCircle2 size={16} /> Llegué al domicilio · Iniciar servicio
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Si está en proceso */}
+                          {isInProgress && (
+                            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#EFF6FF', padding: '8px 12px', borderRadius: 8, fontSize: '0.78rem', color: '#1D4ED8', fontWeight: 700 }}>
+                                <span>Servicio en proceso en el domicilio</span>
+                                <div style={{ display: 'flex', gap: 6 }}>
+                                  <a href="tel:999888777" className="icon-circle" style={{ width: 28, height: 28, background: '#E8F8F0' }} aria-label="Llamar">
+                                    <Phone size={13} color="#2E9D72" />
+                                  </a>
+                                  <a href="https://wa.me/51999888777" target="_blank" rel="noreferrer" className="icon-circle" style={{ width: 28, height: 28, background: '#FFF7ED' }} aria-label="WhatsApp">
+                                    <MessageCircle size={13} color="#FF875C" />
+                                  </a>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                className="btn btn-coral btn-block"
+                                style={{ borderRadius: 'var(--radius-full)', padding: '10px 14px', fontSize: '0.84rem' }}
+                                onClick={() => handleAdvanceBookingStatus(b.id, 'completado')}
+                              >
+                                <CheckCircle2 size={16} /> Finalizar trabajo
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Concluido */}
+                          {isDone && (
+                            <div style={{ marginTop: 10, padding: '8px 12px', background: '#E8F8F0', borderRadius: 8, fontSize: '0.78rem', color: '#2E9D72', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <CheckCircle2 size={14} /> Trabajo concluido con éxito
+                            </div>
+                          )}
+
+                          {/* Rechazado */}
+                          {isRejected && (
+                            <div style={{ marginTop: 10, padding: '8px 12px', background: '#FEE2E2', borderRadius: 8, fontSize: '0.78rem', color: '#DC2626', fontWeight: 600 }}>
+                              Solicitud rechazada: {b.rejectionReason || 'No disponible'}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )
+                )}
+
+                {/* PESTAÑA 3: HISTORIAL */}
+                {requestsTab === 'history' && (
+                  historyBookings.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px 0', color: '#9CA3AF' }}>
+                      <Store size={40} style={{ margin: '0 auto 8px', opacity: 0.4, display: 'block' }} />
+                      <p style={{ fontWeight: 700 }}>No hay servicios en el historial</p>
+                      <p style={{ fontSize: '0.82rem' }}>Aquí aparecerán los servicios que hayan concluido o hayan sido rechazados</p>
+                    </div>
+                  ) : (
+                    historyBookings.map(b => (
+                      <div
+                        key={b.id}
+                        className="card"
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => {
+                          setSelectedBooking(b);
+                          setSelectedService(services.find(s => s.id === b.serviceId) || null);
+                          navigateTo('tracking');
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span style={{ fontWeight: 700, color: 'var(--carbon)', fontSize: '0.92rem' }}>{b.serviceTitle}</span>
+                          <span
+                            className="tag"
+                            style={{
+                              background: b.status === 'completado' ? '#E8F8F0' : '#FEE2E2',
+                              color: b.status === 'completado' ? '#2E9D72' : '#DC2626',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              padding: '3px 8px',
+                              borderRadius: 6,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3
+                            }}
+                          >
+                            {b.status === 'completado' ? (
+                              <><CheckCircle2 size={12} /> Finalizado</>
+                            ) : (
+                              <><XCircle size={12} /> Rechazado</>
+                            )}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.82rem', color: '#6B7280', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <UserIcon size={12} color="#6B7280" />
+                          <span>{b.providerId === 'usr-me' ? `Cliente: ${b.clientName}` : b.providerName}</span>
+                          <span>·</span>
+                          <Clock size={12} color="#6B7280" />
+                          <span>{b.date}</span>
+                        </div>
+                        {b.status === 'rechazado' && b.rejectionReason && (
+                          <div style={{ fontSize: '0.75rem', color: '#DC2626', marginTop: 6, fontStyle: 'italic' }}>
+                            Motivo: {b.rejectionReason}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )
+                )}
+              </div>
+            </div>
+          </>
+        );
+      })()}
 
       {/* ========== MAPA DE SERVICIOS Y AYUDA (Boceto 11 con GPS REAL) ========== */}
       {view === 'map' && (

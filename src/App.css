@@ -1275,29 +1275,71 @@ body {
 .seg-tabs {
   display: flex;
   background: var(--gray-100);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 4px;
   margin-bottom: 16px;
+  gap: 4px;
 }
 
 .seg-tab {
   flex: 1;
   text-align: center;
-  padding: 8px 12px;
+  padding: 8px 4px;
   border-radius: 8px;
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   font-weight: 700;
   color: var(--gray-500);
   background: transparent;
   border: none;
   cursor: pointer;
   transition: all 0.15s ease;
+  white-space: nowrap;
+  position: relative;
 }
 
 .seg-tab.active {
   background: var(--white);
   color: var(--coral);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.seg-tab-dot {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  width: 7px;
+  height: 7px;
+  background-color: var(--coral);
+  border-radius: 50%;
+}
+
+/* Tarjetas de pedidos recibidos para el profesional */
+.received-order-card {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.received-order-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.received-client-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--gray-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 /* ===== COMUNIDAD PESTAÑAS (Boceto 13) ===== */
