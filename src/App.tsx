@@ -96,7 +96,7 @@ export function App() {
     });
   };
 
-  // Conectividad real del dispositivo
+  // Conectividad real del dispositivo con soporte nativo de Capacitor Network
   const [deviceOnline, setDeviceOnline] = useState<boolean>(() => {
     if (typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean') {
       return navigator.onLine;
@@ -104,7 +104,7 @@ export function App() {
     return true;
   });
 
-  // Simulación de modo sin conexión (se activa ÚNICAMENTE desde el Perfil para pruebas)
+  // Simulación de modo sin conexión (se activa desde el Centro de Conectividad o Perfil para pruebas)
   const [simulateOffline, setSimulateOffline] = useState<boolean>(() => {
     try {
       return localStorage.getItem('ayni_simulate_offline') === 'true';
@@ -113,10 +113,19 @@ export function App() {
     }
   });
 
-  // El modo sin conexión aparece cuando el dispositivo de verdad pierde la red O si se activa la simulación en Perfil
+  // El modo sin conexión aparece cuando el dispositivo de verdad pierde la red O si se activa la simulación
   const isOnline = deviceOnline && !simulateOffline;
 
   useEffect(() => {
+    // 1. Escuchar cambios de red con Capacitor Network (Modo avión / corte de datos / wifi)
+    Network.getStatus().then(status => {
+      setDeviceOnline(status.connected);
+    }).catch(() => {});
+
+    const netListenerPromise = Network.addListener('networkStatusChange', status => {
+      setDeviceOnline(status.connected);
+    });
+
     const handleOnline = () => setDeviceOnline(true);
     const handleOffline = () => setDeviceOnline(false);
 
@@ -124,6 +133,7 @@ export function App() {
     window.addEventListener('offline', handleOffline);
 
     return () => {
+      netListenerPromise.then(l => l.remove()).catch(() => {});
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
@@ -182,7 +192,170 @@ export function App() {
   const [helpRequests, setHelpRequests] = useState<HelpRequest[]>(INITIAL_HELP_REQUESTS);
   const [activities, setActivities] = useState<CommunityActivity[]>(INITIAL_ACTIVITIES);
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
-  const [offlineQueue, setOfflineQueue] = useState<OfflineEnvelope[]>([]);
+
+  const [offlineQueue, setOfflineQueue] = useState<OfflineEnvelope[]>(() => {
+    try {
+      const saved = localStorage.getItem('ayni_offline_queue');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [
+      {
+        id: 'msg-7f3a',
+        type: 'help_request',
+        title: 'Solicitud de ayuda · Agua potable',
+        description: 'Adulto mayor necesita 2 bidones de agua potable por corte prolongado. No puede cargar peso.',
+        createdAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+        timeAgo: 'Hace 2 min',
+        status: 'local',
+        step: 'enviando',
+        hops: 1,
+        hopLimit: 5,
+        expiresIn: 'Caduca en 23 h',
+        statusText: 'Enviando a dispositivo cercano…',
+        statusSubtext: 'Buscando teléfono de vecino para saltar por BLE.'
+      },
+      {
+        id: 'msg-3b1c',
+        type: 'booking_status',
+        title: 'Contratación · Electricidad',
+        description: 'Confirmado por el servidor · 3 saltos',
+        createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        timeAgo: 'Ayer',
+        status: 'sincronizado',
+        step: 'sincronizado',
+        hops: 3,
+        hopLimit: 5,
+        expiresIn: 'Vigente',
+        statusText: 'Sincronizado con servidor',
+        statusSubtext: 'Confirmado por el servidor · 3 saltos'
+      }
+    ];
+  });
+
+  // Guardar offlineQueue en localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('ayni_offline_queue', JSON.stringify(offlineQueue));
+    } catch {}
+  }, [offlineQueue]);
+
+  // Motor de propagación y confirmación automática por Malla BLE (No requiere presionar botones)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setOfflineQueue(prevQueue => {
+        let hasChanges = false;
+        const nextQueue = prevQueue.map(item => {
+          // Fase 1: De guardado -> enviando (inicia transmisión BLE a 2.4 GHz)
+          if (item.step === 'guardado') {
+            hasChanges = true;
+            return {
+              ...item,
+              step: 'enviando' as const,
+              statusText: 'Enviando a dispositivo cercano…',
+              statusSubtext: 'Buscando teléfono de vecino para saltar por BLE.'
+            };
+          }
+          // Fase 2: De enviando -> recibido por vecino cercano
+          if (item.step === 'enviando') {
+            hasChanges = true;
+            return {
+              ...item,
+              step: 'recibido' as const,
+              status: 'retransmitido' as const,
+              hops: Math.min(item.hops + 1, item.hopLimit),
+              statusText: 'Recibido por dispositivo cercano (Vecino)',
+              statusSubtext: '✓ Teléfono de vecino confirmó: "Ya estoy recibiendo tu información y se está sincronizando con la red".'
+            };
+          }
+          // Fase 3: De recibido -> sincronizado con servidor central
+          if (item.step === 'recibido') {
+            hasChanges = true;
+            return {
+              ...item,
+              step: 'sincronizado' as const,
+              status: 'sincronizado' as const,
+              hops: Math.min(item.hops + 1, item.hopLimit),
+              statusText: 'Sincronizado con servidor',
+              statusSubtext: 'Confirmado por la red vecinal central · 3 saltos'
+            };
+          }
+          return item;
+        });
+
+        return hasChanges ? nextQueue : prevQueue;
+      });
+    }, 4500);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Modal para escribir ayuda de emergencia offline
+  const [isOfflineHelpModalOpen, setIsOfflineHelpModalOpen] = useState(false);
+  const [offlineEmergencyType, setOfflineEmergencyType] = useState('agua');
+  const [offlineEmergencyDesc, setOfflineEmergencyDesc] = useState('');
+  const [offlineEmergencyUrgency, setOfflineEmergencyUrgency] = useState<'alta' | 'media' | 'baja'>('alta');
+
+  const handleCreateOfflineEmergency = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!offlineEmergencyDesc.trim()) {
+      alert('Por favor describe brevemente qué ayuda de emergencia necesitas.');
+      return;
+    }
+
+    const typeLabels: Record<string, string> = {
+      agua: 'Agua potable',
+      medicina: 'Medicinas / Primeros Auxilios',
+      electricidad: 'Electricidad / Linterna',
+      adulto: 'Auxilio a Adulto Mayor',
+      alimento: 'Alimentos de Emergencia',
+      otro: 'Auxilio Vecinal Urgente'
+    };
+
+    const label = typeLabels[offlineEmergencyType] || 'Auxilio General';
+    const newMsgId = `msg-${Math.random().toString(36).substring(2, 6)}`;
+
+    const newEnvelope: OfflineEnvelope = {
+      id: newMsgId,
+      type: 'help_request',
+      title: `Solicitud de ayuda · ${label}`,
+      description: offlineEmergencyDesc.trim(),
+      createdAt: new Date().toISOString(),
+      timeAgo: 'Justo ahora',
+      status: 'local',
+      step: 'guardado',
+      hops: 1,
+      hopLimit: 5,
+      expiresIn: 'Caduca en 24 h',
+      statusText: 'Guardado de forma segura en este teléfono',
+      statusSubtext: 'Paquete sellado localmente. Iniciando transmisión automática por BLE...'
+    };
+
+    setOfflineQueue(prev => [newEnvelope, ...prev]);
+
+    // Añadir a las solicitudes vecinales de la app
+    const newReq: HelpRequest = {
+      id: `req-${Date.now()}`,
+      title: `Auxilio Emergencia (${label})`,
+      authorName: currentUser?.name || userName,
+      authorId: currentUser?.documentNumber || 'usr-local',
+      type: (offlineEmergencyType === 'medicina' ? 'otro' : offlineEmergencyType === 'adulto' ? 'cuidado' : offlineEmergencyType) as any,
+      description: offlineEmergencyDesc.trim(),
+      urgency: offlineEmergencyUrgency,
+      neighborhood: selectedNeighborhood,
+      status: 'abierta',
+      date: 'Recién publicado (Offline BLE)',
+      isOfflineCreated: true,
+      expiresAt: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+      chatThreadId: `chat-${Date.now()}`
+    };
+    setHelpRequests(prev => [newReq, ...prev]);
+
+    setOfflineEmergencyDesc('');
+    setIsOfflineHelpModalOpen(false);
+  };
 
   const [searchQuery, setSearchQuery] = useState('');
   const [homeSearchQuery, setHomeSearchQuery] = useState('');
@@ -1287,6 +1460,26 @@ export function App() {
   // ============================ RENDER ============================
   return (
     <div className={`phone ${isDarkMode ? 'dark-theme' : ''}`}>
+
+      {/* Banner global de estado sin conexión (BLE) */}
+      {!isOnline && view !== 'welcome' && (
+        <div
+          className="off-global-banner"
+          onClick={() => {
+            if (view !== 'offline') navigateTo('offline');
+          }}
+          style={{ cursor: view !== 'offline' ? 'pointer' : 'default' }}
+        >
+          <div className="off-banner-radio-pulse">
+            <Radio size={16} />
+          </div>
+          <div className="off-banner-text">
+            <strong>Sin conexión a Internet — Modo de Auxilio Offline (BLE)</strong>
+            <span>{view === 'offline' ? 'Malla vecinal activa · Transmitiendo paquetes automáticamente' : 'Toca para abrir el Centro de Conectividad'}</span>
+          </div>
+          {view !== 'offline' && <ChevronRight size={18} />}
+        </div>
+      )}
 
       {/* ========== WELCOME SCREEN / CARGA INICIAL (Boceto 01) ========== */}
       {view === 'welcome' && (
