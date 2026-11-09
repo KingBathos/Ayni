@@ -838,12 +838,18 @@ export function App() {
         {
           id: `msg-${Date.now().toString(36)}`,
           type: 'help_request',
+          title: `Solicitud de ayuda · ${newReq.title}`,
+          description: newReq.description,
+          timeAgo: 'Justo ahora',
           payload: newReq,
           createdAt: new Date().toISOString(),
           status: 'local',
           step: 'guardado',
           hops: 1,
-          hopLimit: 5
+          hopLimit: 5,
+          expiresIn: 'Caduca en 24 h',
+          statusText: 'Guardado de forma segura en este teléfono',
+          statusSubtext: 'Paquete sellado localmente. Iniciando transmisión automática por BLE...'
         },
         ...prev
       ]);
@@ -1462,26 +1468,6 @@ export function App() {
   return (
     <div className={`phone ${isDarkMode ? 'dark-theme' : ''}`}>
 
-      {/* Banner global de estado sin conexión (BLE) */}
-      {!isOnline && view !== 'welcome' && (
-        <div
-          className="off-global-banner"
-          onClick={() => {
-            if (view !== 'offline') navigateTo('offline');
-          }}
-          style={{ cursor: view !== 'offline' ? 'pointer' : 'default' }}
-        >
-          <div className="off-banner-radio-pulse">
-            <Radio size={16} />
-          </div>
-          <div className="off-banner-text">
-            <strong>Sin conexión a Internet — Modo de Auxilio Offline (BLE)</strong>
-            <span>{view === 'offline' ? 'Malla vecinal activa · Transmitiendo paquetes automáticamente' : 'Toca para abrir el Centro de Conectividad'}</span>
-          </div>
-          {view !== 'offline' && <ChevronRight size={18} />}
-        </div>
-      )}
-
       {/* ========== WELCOME SCREEN / CARGA INICIAL (Boceto 01) ========== */}
       {view === 'welcome' && (
         <div className="welcome-screen">
@@ -1607,6 +1593,14 @@ export function App() {
               <span>Actividades ({activities.length})</span>
             </button>
           </div>
+
+          {/* Banner de Modo Offline con enlace al Centro de Conectividad (Boceto 14) */}
+          {!isOnline && (
+            <div className="off-banner" onClick={() => navigateTo('offline')} style={{ cursor: 'pointer' }}>
+              <Radio size={16} />
+              <span>Sin Internet — Modo offline activado (Toca para ver malla BLE)</span>
+            </div>
+          )}
 
           <div className="body">
             <div className="body-pad">
@@ -3155,15 +3149,38 @@ export function App() {
                 </div>
               </div>
 
-              {/* Botón destacado para redactar auxilio de emergencia */}
-              <button
-                type="button"
-                className="off-emergency-btn"
-                onClick={() => setIsOfflineHelpModalOpen(true)}
-              >
-                <PlusCircle size={20} />
-                <span>Escribir ayuda de emergencia (BLE)</span>
-              </button>
+              {/* Botones de acción: redactar auxilio y prueba en vivo de propagación BLE */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                <button
+                  type="button"
+                  className="off-emergency-btn"
+                  style={{ flex: 1, padding: '12px 14px' }}
+                  onClick={() => setIsOfflineHelpModalOpen(true)}
+                >
+                  <PlusCircle size={18} />
+                  <span>Escribir auxilio (BLE)</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={handleRestartMeshDemo}
+                  style={{
+                    borderColor: 'var(--coral)',
+                    color: 'var(--coral)',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    padding: '0 12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    borderRadius: 14
+                  }}
+                  title="Reiniciar o probar ciclo de propagación de malla BLE en vivo"
+                >
+                  <RefreshCw size={15} />
+                  <span>Probar malla</span>
+                </button>
+              </div>
 
               <div className="sec" style={{ marginTop: 4 }}>
                 <h3>Estado de tus envíos por malla</h3>
@@ -3930,12 +3947,12 @@ export function App() {
                     value={offlineEmergencyType}
                     onChange={e => setOfflineEmergencyType(e.target.value)}
                   >
-                    <option value="agua">💧 Agua potable (Corte o emergencia)</option>
-                    <option value="medicina">💊 Botiquín / Primeros Auxilios</option>
-                    <option value="electricidad">⚡ Electricidad / Linternas</option>
-                    <option value="adulto">👵 Auxilio para Adulto Mayor</option>
-                    <option value="alimento">🥫 Alimentos no perecibles</option>
-                    <option value="otro">🛠️ Reparación o apoyo urgente</option>
+                    <option value="agua">Agua potable (Corte o emergencia)</option>
+                    <option value="medicina">Botiquín / Primeros Auxilios</option>
+                    <option value="electricidad">Electricidad / Linternas</option>
+                    <option value="adulto">Auxilio para Adulto Mayor</option>
+                    <option value="alimento">Alimentos no perecibles</option>
+                    <option value="otro">Reparación o apoyo urgente</option>
                   </select>
                   <ChevronDown size={14} className="fselect-arrow" />
                 </div>
@@ -3964,14 +3981,22 @@ export function App() {
                       style={{ justifyContent: 'center', height: 36, fontSize: '0.78rem' }}
                       onClick={() => setOfflineEmergencyUrgency(u)}
                     >
-                      {u === 'alta' ? '🚨 Muy Alta' : u === 'media' ? '⚡ Media' : 'Normal'}
+                      {u === 'alta' ? 'Muy Alta' : u === 'media' ? 'Media' : 'Normal'}
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div style={{ background: '#F3F4F6', borderRadius: 10, padding: '10px 12px', fontSize: '0.74rem', color: '#4B5563', marginBottom: 16 }}>
-                📡 <strong>Propagación automática:</strong> Tu mensaje se enviará automáticamente de teléfono a teléfono vecino cada pocos segundos.
+              <div style={{
+                background: isDarkMode ? '#1E293B' : '#F3F4F6',
+                border: isDarkMode ? '1px solid #334155' : 'none',
+                borderRadius: 10,
+                padding: '10px 12px',
+                fontSize: '0.74rem',
+                color: isDarkMode ? '#CBD5E1' : '#4B5563',
+                marginBottom: 16
+              }}>
+                <strong>Propagación automática:</strong> Tu mensaje se enviará automáticamente de teléfono a teléfono vecino cada pocos segundos por Bluetooth Mesh.
               </div>
 
               <button

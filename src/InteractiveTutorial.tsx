@@ -54,8 +54,8 @@ export function InteractiveTutorial({ onComplete, onSkip, isDarkMode = false }: 
   };
 
   return (
-    <div className="tutorial-overlay">
-      <div className="tutorial-container">
+    <div className={`tutorial-overlay ${isDarkMode ? 'dark-theme' : ''}`}>
+      <div className={`tutorial-container ${isDarkMode ? 'dark-theme' : ''}`}>
         {/* Cabecera del tutorial */}
         <div className="tutorial-top-bar">
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -108,7 +108,7 @@ export function InteractiveTutorial({ onComplete, onSkip, isDarkMode = false }: 
               </p>
 
               {/* Elemento Interactivo 1: Tocar los 3 pilares */}
-              <div className="tutorial-interactive-box">
+              <div className="tutorial-interactive-box" style={{ background: isDarkMode ? '#161F30' : '#FFFFFF', borderColor: isDarkMode ? '#233044' : 'var(--gray-200)' }}>
                 <span className="tutorial-box-label">Toca un pilar para explorar cómo funciona:</span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
                   <button
@@ -193,10 +193,10 @@ export function InteractiveTutorial({ onComplete, onSkip, isDarkMode = false }: 
               </p>
 
               {/* Elemento Interactivo 2 */}
-              <div className="tutorial-interactive-box">
+              <div className="tutorial-interactive-box" style={{ background: isDarkMode ? '#161F30' : '#FFFFFF', borderColor: isDarkMode ? '#233044' : 'var(--gray-200)' }}>
                 <span className="tutorial-box-label">Prueba interactiva · Pedido solidario en tu barrio:</span>
 
-                <div className="tutorial-card-preview">
+                <div className="tutorial-card-preview" style={{ background: isDarkMode ? '#1E293B' : '#FFFFFF', borderColor: isDarkMode ? '#334155' : 'var(--gray-200)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                       <span style={{ fontSize: '0.72rem', color: isDarkMode ? '#4ADE80' : '#059669', fontWeight: 800, textTransform: 'uppercase' }}>
@@ -254,10 +254,10 @@ export function InteractiveTutorial({ onComplete, onSkip, isDarkMode = false }: 
               </p>
 
               {/* Elemento Interactivo 3 */}
-              <div className="tutorial-interactive-box">
+              <div className="tutorial-interactive-box" style={{ background: isDarkMode ? '#161F30' : '#FFFFFF', borderColor: isDarkMode ? '#233044' : 'var(--gray-200)' }}>
                 <span className="tutorial-box-label">Prueba interactiva · Corrobora y abre el chat:</span>
 
-                <div className="tutorial-card-preview">
+                <div className="tutorial-card-preview" style={{ background: isDarkMode ? '#1E293B' : '#FFFFFF', borderColor: isDarkMode ? '#334155' : 'var(--gray-200)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                       <span style={{ fontSize: '0.72rem', color: isDarkMode ? '#FCD34D' : '#D97706', fontWeight: 800, textTransform: 'uppercase' }}>
@@ -334,10 +334,10 @@ export function InteractiveTutorial({ onComplete, onSkip, isDarkMode = false }: 
               </p>
 
               {/* Elemento Interactivo 4 */}
-              <div className="tutorial-interactive-box">
+              <div className="tutorial-interactive-box" style={{ background: isDarkMode ? '#161F30' : '#FFFFFF', borderColor: isDarkMode ? '#233044' : 'var(--gray-200)' }}>
                 <span className="tutorial-box-label">Prueba interactiva · Convocatoria comunal:</span>
 
-                <div className="tutorial-card-preview">
+                <div className="tutorial-card-preview" style={{ background: isDarkMode ? '#1E293B' : '#FFFFFF', borderColor: isDarkMode ? '#334155' : 'var(--gray-200)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                       <span style={{ fontSize: '0.72rem', color: isDarkMode ? '#93C5FD' : '#1D4ED8', fontWeight: 800, textTransform: 'uppercase' }}>
@@ -400,7 +400,7 @@ export function InteractiveTutorial({ onComplete, onSkip, isDarkMode = false }: 
               </p>
 
               {/* Elemento Interactivo 5 */}
-              <div className="tutorial-interactive-box">
+              <div className="tutorial-interactive-box" style={{ background: isDarkMode ? '#161F30' : '#FFFFFF', borderColor: isDarkMode ? '#233044' : 'var(--gray-200)' }}>
                 <span className="tutorial-box-label">Prueba interactiva · Dos modalidades de cobro vecinal:</span>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8, marginBottom: 10 }}>
@@ -471,7 +471,7 @@ export function InteractiveTutorial({ onComplete, onSkip, isDarkMode = false }: 
               </p>
 
               {/* Elemento Interactivo 6 */}
-              <div className="tutorial-interactive-box">
+              <div className="tutorial-interactive-box" style={{ background: isDarkMode ? '#161F30' : '#FFFFFF', borderColor: isDarkMode ? '#233044' : 'var(--gray-200)' }}>
                 <span className="tutorial-box-label">Prueba interactiva · Simula pedir ayuda en una emergencia:</span>
 
                 <div className="tutorial-card-preview" style={{
