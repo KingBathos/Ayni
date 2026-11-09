@@ -3129,70 +3129,138 @@ export function App() {
 
           <div className="body">
             <div className="body-pad">
-              <div className="off-dark-card">
+              <div className="off-dark-card" style={{ position: 'relative' }}>
                 <div className="off-dark-icon">
                   <Radio size={24} />
                 </div>
-                <div className="off-dark-info">
+                <div className="off-dark-info" style={{ flex: 1 }}>
                   <h3>{isOnline ? 'Conexión a Internet activa' : 'Sin Internet'}</h3>
                   <p>Tus datos se guardan de forma segura en este teléfono</p>
                 </div>
+                <button
+                  type="button"
+                  onClick={toggleSimulateOffline}
+                  style={{
+                    background: simulateOffline ? '#D83B35' : 'rgba(255,255,255,0.15)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 20,
+                    padding: '5px 12px',
+                    fontSize: '0.70rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                  title="Alternar simulación de corte de Internet"
+                >
+                  {simulateOffline ? 'Modo Offline: ON' : 'Simular Offline'}
+                </button>
               </div>
 
               <div className="off-grid-metrics">
                 <div className="off-metric-box">
-                  <div className="off-metric-val coral">{offlineQueue.length > 0 ? offlineQueue.length : 2}</div>
+                  <div className="off-metric-val coral">
+                    {offlineQueue.filter(q => q.step !== 'sincronizado').length}
+                  </div>
                   <div className="off-metric-lbl">Pendientes por sincronizar</div>
                 </div>
                 <div className="off-metric-box">
-                  <div className="off-metric-val green">1</div>
+                  <div className="off-metric-val green">
+                    {offlineQueue.filter(q => q.step === 'sincronizado').length}
+                  </div>
                   <div className="off-metric-lbl">Sincronizado con servidor</div>
                 </div>
               </div>
 
-              <div className="sec">
+              {/* Botón destacado para redactar auxilio de emergencia */}
+              <button
+                type="button"
+                className="off-emergency-btn"
+                onClick={() => setIsOfflineHelpModalOpen(true)}
+              >
+                <PlusCircle size={20} />
+                <span>Escribir ayuda de emergencia (BLE)</span>
+              </button>
+
+              <div className="sec" style={{ marginTop: 4 }}>
                 <h3>Estado de tus envíos por malla</h3>
               </div>
 
-              <div className="card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <strong style={{ fontSize: '0.92rem', color: 'var(--carbon)' }}>Solicitud de ayuda · Agua potable</strong>
-                    <div style={{ fontSize: '0.74rem', color: '#6B7280', marginTop: 2 }}>
-                      ID msg-7f3a · Saltos 1 de 5 · Caduca en 23 h
+              {offlineQueue.map(item => {
+                const isGuardadoDone = item.step === 'guardado' || item.step === 'enviando' || item.step === 'recibido' || item.step === 'sincronizado';
+                const isEnviandoActive = item.step === 'enviando';
+                const isEnviandoDone = item.step === 'recibido' || item.step === 'sincronizado';
+                const isRecibidoActive = item.step === 'recibido';
+                const isRecibidoDone = item.step === 'sincronizado';
+                const isSincronizadoDone = item.step === 'sincronizado';
+
+                return (
+                  <div key={item.id} className="card" style={{ marginBottom: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <strong style={{ fontSize: '0.92rem', color: 'var(--carbon)' }}>{item.title}</strong>
+                        <div style={{ fontSize: '0.74rem', color: '#6B7280', marginTop: 2 }}>
+                          ID {item.id} · Saltos {item.hops} de {item.hopLimit} · {item.expiresIn || 'Caduca en 23 h'}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: '0.72rem', color: '#9CA3AF' }}>{item.timeAgo}</span>
+                    </div>
+
+                    <div className="off-hops-timeline">
+                      <div className="off-hop-line" />
+
+                      {/* Paso 1: Guardado */}
+                      <div className="off-hop-step">
+                        <div className={`off-hop-dot ${isGuardadoDone ? 'done' : ''}`}>
+                          <CheckCircle2 size={12} />
+                        </div>
+                        <span className="off-hop-lbl">Guardado</span>
+                      </div>
+
+                      {/* Paso 2: Enviando */}
+                      <div className="off-hop-step">
+                        <div className={`off-hop-dot ${isEnviandoDone ? 'done' : isEnviandoActive ? 'active' : ''}`}>
+                          {isEnviandoDone ? <CheckCircle2 size={12} /> : <Circle size={10} />}
+                        </div>
+                        <span className="off-hop-lbl">Enviando</span>
+                      </div>
+
+                      {/* Paso 3: Recibido */}
+                      <div className="off-hop-step">
+                        <div
+                          className={`off-hop-dot ${isRecibidoDone ? 'done' : isRecibidoActive ? 'done' : ''}`}
+                          style={isRecibidoActive ? { background: '#2E9D72', borderColor: '#2E9D72', color: '#fff' } : {}}
+                        >
+                          {isRecibidoDone || isRecibidoActive ? <CheckCircle2 size={12} /> : <Circle size={10} />}
+                        </div>
+                        <span className="off-hop-lbl" style={isRecibidoActive ? { color: '#2E9D72', fontWeight: 700 } : {}}>
+                          Recibido
+                        </span>
+                      </div>
+
+                      {/* Paso 4: Sincronizado */}
+                      <div className="off-hop-step">
+                        <div
+                          className={`off-hop-dot ${isSincronizadoDone ? 'done' : ''}`}
+                          style={isSincronizadoDone ? { background: '#1D4ED8', borderColor: '#1D4ED8', color: '#fff' } : {}}
+                        >
+                          {isSincronizadoDone ? <CheckCircle2 size={12} /> : <Circle size={10} />}
+                        </div>
+                        <span className="off-hop-lbl" style={isSincronizadoDone ? { color: '#1D4ED8', fontWeight: 700 } : {}}>
+                          Sincroniz.
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className={`off-status-box ${item.step === 'recibido' ? 'recibido' : item.step === 'sincronizado' ? 'sincronizado' : ''}`}>
+                      <Radio size={16} color={item.step === 'recibido' ? '#16A34A' : item.step === 'sincronizado' ? '#2563EB' : '#FF875C'} style={{ flexShrink: 0, marginTop: 2 }} />
+                      <div>
+                        <strong>{item.statusText || 'Enviando a dispositivo cercano…'}</strong>
+                        <span>{item.statusSubtext || 'Buscando teléfono de vecino para saltar por BLE.'}</span>
+                      </div>
                     </div>
                   </div>
-                  <span style={{ fontSize: '0.72rem', color: '#9CA3AF' }}>Hace 2 min</span>
-                </div>
-
-                <div className="off-hops-timeline">
-                  <div className="off-hop-line" />
-                  <div className="off-hop-step">
-                    <div className="off-hop-dot done"><CheckCircle2 size={12} /></div>
-                    <span className="off-hop-lbl">Guardado</span>
-                  </div>
-                  <div className="off-hop-step">
-                    <div className="off-hop-dot active"><Circle size={10} /></div>
-                    <span className="off-hop-lbl">Enviando</span>
-                  </div>
-                  <div className="off-hop-step">
-                    <div className="off-hop-dot"><Circle size={10} /></div>
-                    <span className="off-hop-lbl">Recibido</span>
-                  </div>
-                  <div className="off-hop-step">
-                    <div className="off-hop-dot"><Circle size={10} /></div>
-                    <span className="off-hop-lbl">Sincroniz.</span>
-                  </div>
-                </div>
-
-                <div className="off-status-box">
-                  <Radio size={16} color="#FF875C" style={{ flexShrink: 0, marginTop: 2 }} />
-                  <div>
-                    <strong>Enviando a dispositivo cercano…</strong>
-                    <span>Buscando teléfono de vecino para saltar por BLE.</span>
-                  </div>
-                </div>
-              </div>
+                );
+              })}
 
               <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{
@@ -3226,15 +3294,16 @@ export function App() {
                 </span>
               </div>
 
-              <button
-                className="btn btn-coral btn-block"
-                style={{ borderRadius: 'var(--radius-full)', marginTop: 14 }}
-                disabled={isSyncing}
-                onClick={handleSyncOffline}
-              >
-                <RefreshCw size={18} className={isSyncing ? 'sh-spin' : ''} />
-                {isSyncing ? 'Sincronizando malla…' : 'Sincronizar ahora'}
-              </button>
+              {/* Indicador de transmisión automática por Malla BLE */}
+              <div className="off-auto-sync-badge">
+                <div className="off-auto-sync-pulse" />
+                <div>
+                  <strong>Malla BLE activa · Transmisión y confirmación automática</strong>
+                  <div style={{ fontSize: '0.72rem', opacity: 0.9 }}>
+                    Los saltos entre teléfonos ocurren automáticamente cuando los vecinos pasan cerca. No necesitas presionar ningún botón.
+                  </div>
+                </div>
+              </div>
 
               <div className="off-disclaimer">
                 <Info size={16} />
@@ -3897,6 +3966,85 @@ export function App() {
 
               <button type="submit" className="btn btn-coral btn-block" style={{ borderRadius: 'var(--radius-full)', marginTop: 4 }}>
                 {isOnline ? 'Publicar pedido de auxilio' : 'Guardar en malla BLE'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===== MODAL: ESCRIBIR AYUDA DE EMERGENCIA OFFLINE (BLE) ===== */}
+      {isOfflineHelpModalOpen && (
+        <div className="modal-bg">
+          <div className="modal-card">
+            <button className="modal-close" onClick={() => setIsOfflineHelpModalOpen(false)} aria-label="Cerrar modal">
+              <X size={20} />
+            </button>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: 4, color: 'var(--coral)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Radio size={22} color="var(--coral)" /> Escribir ayuda de emergencia
+            </h3>
+            <p style={{ fontSize: '0.82rem', color: '#6B7280', marginBottom: 16 }}>
+              Se guardará en este teléfono y se transmitirá <strong>automáticamente por Bluetooth (BLE)</strong> a los vecinos cercanos sin internet.
+            </p>
+
+            <form onSubmit={handleCreateOfflineEmergency}>
+              <div className="field">
+                <label>Tipo de auxilio</label>
+                <div className="fselect-wrap">
+                  <select
+                    className="finput fselect"
+                    value={offlineEmergencyType}
+                    onChange={e => setOfflineEmergencyType(e.target.value)}
+                  >
+                    <option value="agua">💧 Agua potable (Corte o emergencia)</option>
+                    <option value="medicina">💊 Botiquín / Primeros Auxilios</option>
+                    <option value="electricidad">⚡ Electricidad / Linternas</option>
+                    <option value="adulto">👵 Auxilio para Adulto Mayor</option>
+                    <option value="alimento">🥫 Alimentos no perecibles</option>
+                    <option value="otro">🛠️ Reparación o apoyo urgente</option>
+                  </select>
+                  <ChevronDown size={14} className="fselect-arrow" />
+                </div>
+              </div>
+
+              <div className="field">
+                <label>Detalle de la emergencia</label>
+                <textarea
+                  required
+                  rows={3}
+                  className="finput"
+                  placeholder="Ej. Adulto mayor necesita 2 bidones de agua en Pasaje Sol mz F..."
+                  value={offlineEmergencyDesc}
+                  onChange={e => setOfflineEmergencyDesc(e.target.value)}
+                />
+              </div>
+
+              <div className="field">
+                <label>Nivel de urgencia</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+                  {(['alta', 'media', 'baja'] as const).map(u => (
+                    <button
+                      key={u}
+                      type="button"
+                      className={`com-tab-pill ${offlineEmergencyUrgency === u ? 'active' : ''}`}
+                      style={{ justifyContent: 'center', height: 36, fontSize: '0.78rem' }}
+                      onClick={() => setOfflineEmergencyUrgency(u)}
+                    >
+                      {u === 'alta' ? '🚨 Muy Alta' : u === 'media' ? '⚡ Media' : 'Normal'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ background: '#F3F4F6', borderRadius: 10, padding: '10px 12px', fontSize: '0.74rem', color: '#4B5563', marginBottom: 16 }}>
+                📡 <strong>Propagación automática:</strong> Tu mensaje se enviará automáticamente de teléfono a teléfono vecino cada pocos segundos.
+              </div>
+
+              <button
+                type="submit"
+                className="btn btn-coral btn-block"
+                style={{ borderRadius: 'var(--radius-full)' }}
+              >
+                Transmitir auxilio por malla BLE
               </button>
             </form>
           </div>
