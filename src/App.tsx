@@ -1607,13 +1607,6 @@ export function App() {
             </button>
           </div>
 
-          {!isOnline && (
-            <div className="off-banner" onClick={() => navigateTo('offline')} style={{ cursor: 'pointer' }}>
-              <Radio size={16} />
-              <span>Sin Internet — Modo offline activado (Toca para ver malla BLE)</span>
-            </div>
-          )}
-
           <div className="body">
             <div className="body-pad">
 
