@@ -562,13 +562,6 @@ export function AuthModal({ onSuccess, onClose, isDarkMode = false, onToggleThem
                     Ingresa el código de 6 dígitos que enviamos a <strong>{regEmail}</strong>.{' '}
                     <span className="sh-link-red" onClick={resendCode}>Reenviar</span>
                   </p>
-                  {devCode && (
-                    <div className="sh-dev-code">
-                      {codeChannel === 'email'
-                        ? <>También puedes usar este código: <strong>{devCode}</strong></>
-                        : <>Modo demo — tu código es: <strong>{devCode}</strong></>}
-                    </div>
-                  )}
 
                   <div className="sh-field sh-floating">
                     <input

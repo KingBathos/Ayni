@@ -104,17 +104,8 @@ export function App() {
     return true;
   });
 
-  // Simulación de modo sin conexión (se activa desde el Centro de Conectividad o Perfil para pruebas)
-  const [simulateOffline, setSimulateOffline] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('ayni_simulate_offline') === 'true';
-    } catch {
-      return false;
-    }
-  });
-
-  // El modo sin conexión aparece cuando el dispositivo de verdad pierde la red O si se activa la simulación
-  const isOnline = deviceOnline && !simulateOffline;
+  // El modo sin conexión se rige exclusivamente por el estado real de la red del dispositivo
+  const isOnline = deviceOnline;
 
   useEffect(() => {
     // 1. Escuchar cambios de red con Capacitor Network (Modo avión / corte de datos / wifi)
@@ -138,16 +129,6 @@ export function App() {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
-
-  const toggleSimulateOffline = () => {
-    setSimulateOffline(prev => {
-      const next = !prev;
-      try {
-        localStorage.setItem('ayni_simulate_offline', String(next));
-      } catch {}
-      return next;
-    });
-  };
 
   // Ubicación del usuario: Nombre real oficial sin coordenadas crudas
   const [userCoords, setUserCoords] = useState<[number, number] | null>([-12.1096, -77.0057]);
@@ -287,10 +268,30 @@ export function App() {
 
         return hasChanges ? nextQueue : prevQueue;
       });
-    }, 4500);
+    }, 2500);
 
     return () => clearInterval(timer);
   }, []);
+
+  // Probar o reiniciar ciclo de propagación BLE en vivo (demostración rápida)
+  const handleRestartMeshDemo = () => {
+    const demoEnvelope: OfflineEnvelope = {
+      id: `msg-${Math.random().toString(36).substring(2, 6)}`,
+      type: 'help_request',
+      title: 'Solicitud de ayuda · Agua potable',
+      description: 'Adulto mayor necesita 2 bidones de agua potable por corte prolongado. No puede cargar peso.',
+      createdAt: new Date().toISOString(),
+      timeAgo: 'Justo ahora',
+      status: 'local',
+      step: 'guardado',
+      hops: 1,
+      hopLimit: 5,
+      expiresIn: 'Caduca en 24 h',
+      statusText: 'Guardado de forma segura en este teléfono',
+      statusSubtext: 'Paquete sellado localmente. Iniciando transmisión automática por BLE...'
+    };
+    setOfflineQueue(prev => [demoEnvelope, ...prev.filter(x => x.id !== 'msg-7f3a')]);
+  };
 
   // Modal para escribir ayuda de emergencia offline
   const [isOfflineHelpModalOpen, setIsOfflineHelpModalOpen] = useState(false);
@@ -1258,7 +1259,7 @@ export function App() {
           sentAt: b.timeline?.sentAt || timeNow,
           reviewedAt: b.timeline?.reviewedAt || timeNow,
           acceptedAt: timeNow,
-          onTheWayAt: 'Llegará en aprox. 15 min'
+          onTheWayAt: timeNow
         }
       };
       if (selectedBooking?.id === bkId) {
@@ -2382,7 +2383,7 @@ export function App() {
           },
           {
             label: 'Profesional en camino',
-            sub: isOnTheWay ? 'Llegará en aprox. 15 min' : (isInProgress || isCompleted ? 'Llegó al punto' : ''),
+            sub: isOnTheWay ? (curBk.timeline?.onTheWayAt ? `En camino · ${curBk.timeline.onTheWayAt}` : 'En camino al domicilio') : (isInProgress || isCompleted ? 'Llegó al punto' : ''),
             done: isInProgress || isCompleted,
             active: isOnTheWay,
             pending: isPendingDecision || isRejected || isAccepted
@@ -2601,7 +2602,7 @@ export function App() {
                           </div>
                           <div style={{ fontSize: '0.78rem', color: isDarkMode ? '#94A3B8' : '#6B7280' }}>
                             {isOnTheWay
-                              ? 'Llegando en bicicleta / ~15 min'
+                              ? 'Profesional en camino al domicilio'
                               : isInProgress
                               ? 'En tu domicilio · Servicio en proceso'
                               : isCompleted
@@ -3129,31 +3130,14 @@ export function App() {
 
           <div className="body">
             <div className="body-pad">
-              <div className="off-dark-card" style={{ position: 'relative' }}>
+              <div className="off-dark-card">
                 <div className="off-dark-icon">
                   <Radio size={24} />
                 </div>
-                <div className="off-dark-info" style={{ flex: 1 }}>
+                <div className="off-dark-info">
                   <h3>{isOnline ? 'Conexión a Internet activa' : 'Sin Internet'}</h3>
                   <p>Tus datos se guardan de forma segura en este teléfono</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={toggleSimulateOffline}
-                  style={{
-                    background: simulateOffline ? '#D83B35' : 'rgba(255,255,255,0.15)',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 20,
-                    padding: '5px 12px',
-                    fontSize: '0.70rem',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                  title="Alternar simulación de corte de Internet"
-                >
-                  {simulateOffline ? 'Modo Offline: ON' : 'Simular Offline'}
-                </button>
               </div>
 
               <div className="off-grid-metrics">
@@ -3376,56 +3360,7 @@ export function App() {
                   </button>
                 </div>
 
-                {/* Switch Simular Modo Sin Conexión para pruebas */}
-                <div className="profile-setting-toggle-row" style={{ borderTop: '1px solid var(--gray-200)', paddingTop: 10, marginTop: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div
-                      className="profile-menu-icon"
-                      style={{
-                        background: simulateOffline
-                          ? (isDarkMode ? 'rgba(239, 68, 68, 0.18)' : '#FEE2E2')
-                          : (isDarkMode ? 'rgba(34, 197, 94, 0.18)' : '#ECFDF5'),
-                        color: simulateOffline
-                          ? (isDarkMode ? '#FCA5A5' : '#D83B35')
-                          : (isDarkMode ? '#86EFAC' : '#16A34A')
-                      }}
-                    >
-                      {simulateOffline ? <WifiOff size={18} /> : <Wifi size={18} />}
-                    </div>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <strong style={{ fontSize: '0.90rem', color: 'var(--carbon)' }}>Simular modo sin conexión</strong>
-                        {simulateOffline && (
-                          <span
-                            className="badge-com"
-                            style={{
-                              background: isDarkMode ? 'rgba(245, 158, 11, 0.18)' : '#FEF3C7',
-                              color: isDarkMode ? '#FCD34D' : '#92400E',
-                              border: isDarkMode ? '1px solid rgba(245, 158, 11, 0.4)' : 'none',
-                              fontSize: '0.66rem',
-                              padding: '1px 6px'
-                            }}
-                          >
-                            Forzado
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: '0.74rem', color: 'var(--gray-500)' }}>
-                        {simulateOffline ? 'Simulación offline activa para probar BLE' : 'Desactivado (detecta internet del celular)'}
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={`theme-toggle-switch ${simulateOffline ? 'on' : ''}`}
-                    onClick={toggleSimulateOffline}
-                    aria-label="Alternar simulación sin conexión"
-                  >
-                    <span className="theme-toggle-handle">
-                      {simulateOffline ? <WifiOff size={12} /> : <Wifi size={12} />}
-                    </span>
-                  </button>
-                </div>
+
               </div>
 
               <div className="card" style={{ padding: '4px 14px', marginTop: 12 }}>
