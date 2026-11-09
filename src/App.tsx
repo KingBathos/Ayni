@@ -817,6 +817,7 @@ export function App() {
     const threadId = `chat-help-${Date.now()}`;
     const newReq: HelpRequest = {
       id: `help-${Date.now()}`,
+      title: `Ayuda · ${newHelp.type.charAt(0).toUpperCase() + newHelp.type.slice(1)}`,
       authorName: userName,
       authorId: currentUser?.documentNumber || 'usr-me',
       type: newHelp.type as any,

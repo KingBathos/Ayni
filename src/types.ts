@@ -96,6 +96,7 @@ export interface CommunityPost {
 
 export interface HelpRequest {
   id: string;
+  title?: string;
   authorName: string;
   authorId: string;
   type: 'agua' | 'alimentos' | 'herramientas' | 'transporte' | 'cuidado' | 'otro';
